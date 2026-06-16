@@ -139,6 +139,91 @@ function PaymentForm({ onPaymentInitiated }) {
   )
 }
 
+function PaylinkForm() {
+  const [form, setForm] = useState({
+    amount: '', currency: 'EUR', description: '', expiresInMinutes: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError]     = useState(null)
+  const [link, setLink]       = useState(null)
+
+  const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    setLink(null)
+    try {
+      const r = await axios.post(`${API}/paylinks`, {
+        amount: Number(form.amount),
+        currency: form.currency,
+        description: form.description,
+        expiresInMinutes: form.expiresInMinutes ? Number(form.expiresInMinutes) : undefined,
+      }, { headers })
+      setLink(r.data)
+      setForm({ amount: '', currency: 'EUR', description: '', expiresInMinutes: '' })
+    } catch (err) {
+      setError(err.response?.data?.message || 'Échec de la création du lien')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: '#1e2433', border: '1px solid #2d3748', borderRadius: 12,
+      padding: '20px 24px', marginBottom: 32,
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Créer un lien de paiement</div>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ flex: '1 1 120px' }}>
+            <label style={labelStyle}>Montant</label>
+            <input style={inputStyle} type="number" min="1" value={form.amount}
+              onChange={update('amount')} placeholder="1000" required />
+          </div>
+          <div style={{ flex: '0 1 100px' }}>
+            <label style={labelStyle}>Devise</label>
+            <select style={inputStyle} value={form.currency} onChange={update('currency')}>
+              <option value="EUR">EUR</option>
+              <option value="XAF">XAF</option>
+            </select>
+          </div>
+          <div style={{ flex: '2 1 220px' }}>
+            <label style={labelStyle}>Description</label>
+            <input style={inputStyle} value={form.description} onChange={update('description')}
+              placeholder="Frais d'inscription" required />
+          </div>
+          <div style={{ flex: '1 1 140px' }}>
+            <label style={labelStyle}>Expiration (min, optionnel)</label>
+            <input style={inputStyle} type="number" min="1" value={form.expiresInMinutes}
+              onChange={update('expiresInMinutes')} placeholder="60" />
+          </div>
+        </div>
+        <button type="submit" disabled={submitting} style={{
+          padding: '10px 20px', borderRadius: 8, border: 'none', cursor: submitting ? 'default' : 'pointer',
+          fontSize: 13, fontWeight: 700, background: submitting ? '#1e293b' : '#3b82f6', color: '#fff',
+        }}>
+          {submitting ? 'Création...' : 'Créer le lien'}
+        </button>
+      </form>
+
+      {error && (
+        <div style={{ marginTop: 16, color: '#ef4444', fontSize: 13 }}>⚠️ {error}</div>
+      )}
+      {link && (
+        <div style={{ marginTop: 16, fontSize: 13 }}>
+          <div style={{ color: '#22c55e', marginBottom: 6 }}>✅ Lien créé</div>
+          <a href={link.url} target="_blank" rel="noreferrer" style={{
+            color: '#3b82f6', wordBreak: 'break-all',
+          }}>{link.url}</a>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [stats, setStats]         = useState({ totals: [], recent: [] })
   const [filter, setFilter]       = useState('ALL')
@@ -243,6 +328,9 @@ export default function App() {
 
       {/* Formulaire d'initiation */}
       <PaymentForm onPaymentInitiated={fetchStats} />
+
+      {/* Liens de paiement */}
+      <PaylinkForm />
 
       {/* Filtres + table */}
       <div style={{ background: '#1e2433', border: '1px solid #2d3748', borderRadius: 12, overflow: 'hidden' }}>

@@ -1,0 +1,468 @@
+[
+  {
+    "index": 1,
+    "phone": "242056100037",
+    "externalId": "sandbox-test-1781614889762-1",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 702
+  },
+  {
+    "index": 2,
+    "phone": "242068100074",
+    "externalId": "sandbox-test-1781614893674-2",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "9f01b5cf-1fe7-4986-b155-69b9733b1e4b",
+    "durationMs": 392
+  },
+  {
+    "index": 3,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781614897276-3",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "ad175c11-3cc5-4260-8733-89fa0bb23909",
+    "durationMs": 4561
+  },
+  {
+    "index": 4,
+    "phone": "242067100148",
+    "externalId": "sandbox-test-1781614905050-4",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "1db4d143-6781-4e53-9ddd-aed70e28bcac",
+    "durationMs": 244
+  },
+  {
+    "index": 5,
+    "phone": "242075100185",
+    "externalId": "sandbox-test-1781614908504-5",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 408
+  },
+  {
+    "index": 6,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781614912125-6",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "2946837f-35fd-4e9c-98fc-76d646250d2c",
+    "durationMs": 390
+  },
+  {
+    "index": 7,
+    "phone": "242077100259",
+    "externalId": "sandbox-test-1781614915723-7",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 305
+  },
+  {
+    "index": 8,
+    "phone": "242068100296",
+    "externalId": "sandbox-test-1781614919243-8",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "cb6de985-e2dd-4f9d-b166-2b2c7693930b",
+    "durationMs": 1701
+  },
+  {
+    "index": 9,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781614924149-9",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "8450dbce-04e6-40e3-83b6-654dd288602d",
+    "durationMs": 42694
+  },
+  {
+    "index": 10,
+    "phone": "242067100370",
+    "externalId": "sandbox-test-1781614970058-10",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "3971fe04-187c-4db0-9a8d-b03c30f2496b",
+    "durationMs": 1597
+  },
+  {
+    "index": 11,
+    "phone": "242058100407",
+    "externalId": "sandbox-test-1781614974869-11",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 873
+  },
+  {
+    "index": 12,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781614978945-12",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "b6962628-2fd1-4947-98f5-444a7b000db9",
+    "durationMs": 389
+  },
+  {
+    "index": 13,
+    "phone": "242075100481",
+    "externalId": "sandbox-test-1781614982546-13",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 318
+  },
+  {
+    "index": 14,
+    "phone": "242068100518",
+    "externalId": "sandbox-test-1781614986073-14",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "34368a86-be2e-4de8-a05a-2abbd2755aa3",
+    "durationMs": 1212
+  },
+  {
+    "index": 15,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781614990491-15",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "aa0216d0-06ef-4dda-9d4e-4978e8627813",
+    "durationMs": 609
+  },
+  {
+    "index": 16,
+    "phone": "242067100592",
+    "externalId": "sandbox-test-1781614994309-16",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "4985ab82-71cd-42a3-9ce1-41e364efdfd1",
+    "durationMs": 224
+  },
+  {
+    "index": 17,
+    "phone": "242056100629",
+    "externalId": "sandbox-test-1781614997743-17",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 826
+  },
+  {
+    "index": 18,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615001784-18",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "6a2e1f9c-32a4-4d91-8124-c17f936c24c4",
+    "durationMs": 485
+  },
+  {
+    "index": 19,
+    "phone": "242058100703",
+    "externalId": "sandbox-test-1781615005473-19",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 575
+  },
+  {
+    "index": 20,
+    "phone": "242068100740",
+    "externalId": "sandbox-test-1781615009260-20",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "839e83ac-c520-40de-a2ba-3b2ab3a2f0ba",
+    "durationMs": 907
+  },
+  {
+    "index": 21,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615013367-21",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "3b7fb8e7-15f1-41ea-930d-eb1bfe0cbfaf",
+    "durationMs": 571
+  },
+  {
+    "index": 22,
+    "phone": "242067100814",
+    "externalId": "sandbox-test-1781615017145-22",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "adeb0b3d-c2cc-4dcc-b78f-1a434e98d6f2",
+    "durationMs": 225
+  },
+  {
+    "index": 23,
+    "phone": "242077100851",
+    "externalId": "sandbox-test-1781615020606-23",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 333
+  },
+  {
+    "index": 24,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615024146-24",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "8e90fd70-8ad4-4753-9ba4-2622af6d9810",
+    "durationMs": 511
+  },
+  {
+    "index": 25,
+    "phone": "242056100925",
+    "externalId": "sandbox-test-1781615027862-25",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 339
+  },
+  {
+    "index": 26,
+    "phone": "242068100962",
+    "externalId": "sandbox-test-1781615031405-26",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "ac3319d5-8b18-4d6f-a666-4db85369a646",
+    "durationMs": 657
+  },
+  {
+    "index": 27,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615035265-27",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "ae002981-df9a-4e30-94f6-500aafacb625",
+    "durationMs": 553
+  },
+  {
+    "index": 28,
+    "phone": "242067101036",
+    "externalId": "sandbox-test-1781615039025-28",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "474d3659-7bd5-49f4-9b67-50d0c87321b9",
+    "durationMs": 614
+  },
+  {
+    "index": 29,
+    "phone": "242075101073",
+    "externalId": "sandbox-test-1781615042840-29",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 319
+  },
+  {
+    "index": 30,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615046362-30",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "c536d585-3050-4454-9562-8cafa6716c7f",
+    "durationMs": 536
+  },
+  {
+    "index": 31,
+    "phone": "242077101147",
+    "externalId": "sandbox-test-1781615050105-31",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 750
+  },
+  {
+    "index": 32,
+    "phone": "242068101184",
+    "externalId": "sandbox-test-1781615054066-32",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "5d8c83c5-1e87-4767-bdff-cd534fc02495",
+    "durationMs": 865
+  },
+  {
+    "index": 33,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615058139-33",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "8fede751-7ed3-4e0c-a041-bcdbd353b251",
+    "durationMs": 225
+  },
+  {
+    "index": 34,
+    "phone": "242067101258",
+    "externalId": "sandbox-test-1781615061572-34",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "ce887dcb-1609-4934-ac54-dcf8ce1cc8e2",
+    "durationMs": 599
+  },
+  {
+    "index": 35,
+    "phone": "242058101295",
+    "externalId": "sandbox-test-1781615065375-35",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 478
+  },
+  {
+    "index": 36,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615069059-36",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "7862c140-73be-4c3d-b594-6e63f15c5198",
+    "durationMs": 692
+  },
+  {
+    "index": 37,
+    "phone": "242075101369",
+    "externalId": "sandbox-test-1781615072962-37",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 321
+  },
+  {
+    "index": 38,
+    "phone": "242068101406",
+    "externalId": "sandbox-test-1781615076490-38",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "78b060f7-6a5c-48d6-a2bc-767bc6df5fc8",
+    "durationMs": 853
+  },
+  {
+    "index": 39,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615080554-39",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "36d12b4f-6741-4ed5-86ae-2f8fc3a33199",
+    "durationMs": 557
+  },
+  {
+    "index": 40,
+    "phone": "242067101480",
+    "externalId": "sandbox-test-1781615084313-40",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "74f4e44c-0922-473b-9b1b-ccbdcc49367a",
+    "durationMs": 593
+  },
+  {
+    "index": 41,
+    "phone": "242056101517",
+    "externalId": "sandbox-test-1781615088112-41",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 364
+  },
+  {
+    "index": 42,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615091680-42",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "13d8e6bb-ca02-4bc4-be59-9f56e4fdf144",
+    "durationMs": 594
+  },
+  {
+    "index": 43,
+    "phone": "242058101591",
+    "externalId": "sandbox-test-1781615095488-43",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 471
+  },
+  {
+    "index": 44,
+    "phone": "242068101628",
+    "externalId": "sandbox-test-1781615099174-44",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "9913d61e-d490-4edf-a353-07873deda279",
+    "durationMs": 398
+  },
+  {
+    "index": 45,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615102779-45",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "08fd9b17-01b0-46e2-98c5-9afa848ad67e",
+    "durationMs": 572
+  },
+  {
+    "index": 46,
+    "phone": "242067101702",
+    "externalId": "sandbox-test-1781615106558-46",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "1e3d6dbc-1c10-4af0-bfd8-d0fed63246d4",
+    "durationMs": 564
+  },
+  {
+    "index": 47,
+    "phone": "242077101739",
+    "externalId": "sandbox-test-1781615110324-47",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 635
+  },
+  {
+    "index": 48,
+    "phone": "46733123450",
+    "externalId": "sandbox-test-1781615114164-48",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "1203379d-eea0-4ea1-900c-a2b4f92b4a26",
+    "durationMs": 718
+  },
+  {
+    "index": 49,
+    "phone": "242056101813",
+    "externalId": "sandbox-test-1781615118090-49",
+    "ok": false,
+    "error": "Internal server error",
+    "durationMs": 704
+  },
+  {
+    "index": 50,
+    "phone": "242068101850",
+    "externalId": "sandbox-test-1781615122008-50",
+    "ok": true,
+    "status": "PENDING",
+    "operator": "MTN",
+    "referenceId": "18e71145-f45b-45fd-a7e8-c3fbca3facc3",
+    "durationMs": 388
+  }
+]
