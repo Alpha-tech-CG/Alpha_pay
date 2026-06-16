@@ -5,8 +5,11 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { loadSecretsFromAws } from './secrets/secrets-loader';
 
 async function bootstrap() {
+  await loadSecretsFromAws();
+
   const app = await NestFactory.create(AppModule);
 
   app.use(helmet());
