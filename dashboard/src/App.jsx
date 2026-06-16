@@ -43,6 +43,102 @@ function StatCard({ label, value, sub, color }) {
   )
 }
 
+const inputStyle = {
+  background: '#0f1117', border: '1px solid #2d3748', borderRadius: 8,
+  padding: '10px 12px', color: '#e2e8f0', fontSize: 13, width: '100%',
+  boxSizing: 'border-box',
+}
+const labelStyle = { fontSize: 12, color: '#94a3b8', marginBottom: 6, display: 'block' }
+
+function PaymentForm({ onPaymentInitiated }) {
+  const [form, setForm] = useState({
+    amount: '', currency: 'EUR', phone: '', externalId: '', description: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError]     = useState(null)
+  const [success, setSuccess] = useState(null)
+
+  const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const r = await axios.post(`${API}/payments`, {
+        amount: Number(form.amount),
+        currency: form.currency,
+        phone: form.phone,
+        externalId: form.externalId,
+        description: form.description || undefined,
+      }, { headers })
+      setSuccess(r.data)
+      setForm({ amount: '', currency: 'EUR', phone: '', externalId: '', description: '' })
+      onPaymentInitiated()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Échec de l\'initiation du paiement')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: '#1e2433', border: '1px solid #2d3748', borderRadius: 12,
+      padding: '20px 24px', marginBottom: 32,
+    }}>
+      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Initier un paiement</div>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ flex: '1 1 160px' }}>
+            <label style={labelStyle}>Téléphone</label>
+            <input style={inputStyle} value={form.phone} onChange={update('phone')}
+              placeholder="242066123456" required />
+          </div>
+          <div style={{ flex: '1 1 120px' }}>
+            <label style={labelStyle}>Montant</label>
+            <input style={inputStyle} type="number" min="1" value={form.amount}
+              onChange={update('amount')} placeholder="1000" required />
+          </div>
+          <div style={{ flex: '0 1 100px' }}>
+            <label style={labelStyle}>Devise</label>
+            <select style={inputStyle} value={form.currency} onChange={update('currency')}>
+              <option value="EUR">EUR</option>
+              <option value="XAF">XAF</option>
+            </select>
+          </div>
+          <div style={{ flex: '1 1 160px' }}>
+            <label style={labelStyle}>ID externe</label>
+            <input style={inputStyle} value={form.externalId} onChange={update('externalId')}
+              placeholder="commande-001" required />
+          </div>
+          <div style={{ flex: '2 1 220px' }}>
+            <label style={labelStyle}>Description (optionnel)</label>
+            <input style={inputStyle} value={form.description} onChange={update('description')}
+              placeholder="Paiement frais d'inscription" />
+          </div>
+        </div>
+        <button type="submit" disabled={submitting} style={{
+          padding: '10px 20px', borderRadius: 8, border: 'none', cursor: submitting ? 'default' : 'pointer',
+          fontSize: 13, fontWeight: 700, background: submitting ? '#1e293b' : '#3b82f6', color: '#fff',
+        }}>
+          {submitting ? 'Envoi en cours...' : 'Initier le paiement'}
+        </button>
+      </form>
+
+      {error && (
+        <div style={{ marginTop: 16, color: '#ef4444', fontSize: 13 }}>⚠️ {error}</div>
+      )}
+      {success && (
+        <div style={{ marginTop: 16, color: '#22c55e', fontSize: 13 }}>
+          ✅ Paiement initié — opérateur {success.operator}, statut {success.status}, réf. {success.referenceId}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const [stats, setStats]         = useState({ totals: [], recent: [] })
   const [filter, setFilter]       = useState('ALL')
@@ -145,6 +241,9 @@ export default function App() {
         <StatCard label="Échouées / Rejetées" value={failed} color="#ef4444" sub="MTN sandbox" />
       </div>
 
+      {/* Formulaire d'initiation */}
+      <PaymentForm onPaymentInitiated={fetchStats} />
+
       {/* Filtres + table */}
       <div style={{ background: '#1e2433', border: '1px solid #2d3748', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #2d3748', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -190,21 +289,21 @@ export default function App() {
                   background: i % 2 === 0 ? 'transparent' : '#191f2e',
                 }}>
                   <td style={{ padding: '10px 16px', fontSize: 13, color: '#94a3b8' }}>
-                    {t.merchant_name || '—'}
+                    {t.merchantName || '—'}
                   </td>
                   <td style={{ padding: '10px 16px', fontSize: 11, fontFamily: 'monospace', color: '#64748b' }}>
-                    {t.external_id}
+                    {t.externalId}
                   </td>
                   <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>
                     {Number(t.amount).toLocaleString('fr-FR')}
                     <span style={{ fontSize: 11, color: '#64748b', marginLeft: 4 }}>{t.currency}</span>
                   </td>
                   <td style={{ padding: '10px 16px', fontSize: 12, fontFamily: 'monospace', color: '#94a3b8' }}>
-                    {t.payer_phone}
+                    {t.payerPhone}
                   </td>
                   <td style={{ padding: '10px 16px' }}><Badge status={t.status} /></td>
                   <td style={{ padding: '10px 16px', fontSize: 11, color: '#64748b' }}>
-                    {new Date(t.created_at).toLocaleString('fr-FR')}
+                    {new Date(t.createdAt).toLocaleString('fr-FR')}
                   </td>
                 </tr>
               ))}
