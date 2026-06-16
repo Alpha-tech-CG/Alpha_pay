@@ -15,7 +15,10 @@ describe('PaymentsService', () => {
   let service: PaymentsService;
 
   beforeEach(() => {
-    prisma = { transaction: { create: jest.fn(), findFirst: jest.fn() } };
+    prisma = {
+      transaction: { create: jest.fn(), update: jest.fn(), findFirst: jest.fn() },
+      outboxEvent: { create: jest.fn() },
+    };
     mtnRequestToPay = jest.fn();
     airtelRequestToPay = jest.fn();
     (createMtnConnector as jest.Mock).mockReturnValue({ requestToPay: mtnRequestToPay });
@@ -37,6 +40,13 @@ describe('PaymentsService', () => {
     expect(airtelRequestToPay).not.toHaveBeenCalled();
     expect(prisma.transaction.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ operator: 'MTN', merchantId: 'merchant-1' }),
+    });
+    expect(prisma.transaction.update).toHaveBeenCalledWith({
+      where: { id: 'tx-1' },
+      data: { mtnReferenceId: 'ref-mtn' },
+    });
+    expect(prisma.outboxEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ transactionId: 'tx-1', type: 'payment.initiated', status: 'SENT' }),
     });
     expect(result).toEqual({
       referenceId: 'ref-mtn',
@@ -71,5 +81,54 @@ describe('PaymentsService', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.transaction.create).not.toHaveBeenCalled();
+  });
+
+  it('replays the existing transaction when externalId was already processed (idempotency)', async () => {
+    prisma.transaction.findFirst.mockResolvedValue({
+      id: 'tx-existing',
+      mtnReferenceId: 'ref-existing',
+      operator: 'MTN',
+      status: 'PENDING',
+    });
+
+    const result = await service.initiatePayment(
+      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-dup' } as any,
+      'merchant-1',
+    );
+
+    expect(prisma.transaction.create).not.toHaveBeenCalled();
+    expect(mtnRequestToPay).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      referenceId: 'ref-existing',
+      transactionId: 'tx-existing',
+      operator: 'MTN',
+      status: 'PENDING',
+      idempotent: true,
+    });
+  });
+
+  it('compensates by marking the transaction FAILED when the connector call throws', async () => {
+    mtnRequestToPay.mockRejectedValue(new Error('Request failed with status code 400'));
+    prisma.transaction.create.mockResolvedValue({ id: 'tx-fail' });
+
+    const result = await service.initiatePayment(
+      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-fail' } as any,
+      'merchant-1',
+    );
+
+    expect(prisma.transaction.update).toHaveBeenCalledWith({
+      where: { id: 'tx-fail' },
+      data: { status: 'FAILED', failureReason: 'Request failed with status code 400' },
+    });
+    expect(prisma.outboxEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ transactionId: 'tx-fail', type: 'payment.failed', status: 'PENDING' }),
+    });
+    expect(result).toEqual({
+      referenceId: null,
+      transactionId: 'tx-fail',
+      operator: 'MTN',
+      status: 'FAILED',
+      error: 'Request failed with status code 400',
+    });
   });
 });

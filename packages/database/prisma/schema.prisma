@@ -26,6 +26,19 @@ enum OutboxStatus {
   DEAD
 }
 
+enum AccountType {
+  ASSET
+  LIABILITY
+  REVENUE
+  EXPENSE
+  EQUITY
+}
+
+enum EntryDirection {
+  DEBIT
+  CREDIT
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -109,4 +122,53 @@ model PaymentLink {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("payment_links")
+}
+
+// Grand livre comptable en partie double. Source de vérité financière :
+// immutable et auditable via chaînage cryptographique (cf. LedgerService).
+model LedgerAccount {
+  id         String         @id @default(uuid())
+  merchantId String?        @map("merchant_id")
+  name       String
+  type       AccountType
+  createdAt  DateTime       @default(now()) @map("created_at")
+  entries    JournalEntry[]
+  snapshots  LedgerBalanceSnapshot[]
+
+  @@unique([merchantId, name])
+  @@map("ledger_accounts")
+}
+
+// Lignes d'écriture immuables. Aucune opération UPDATE/DELETE n'est exposée
+// par LedgerService sur ce modèle — toute correction se fait par contre-écriture.
+model JournalEntry {
+  id            String         @id @default(uuid())
+  sequence      BigInt         @default(autoincrement())
+  transactionId String         @map("transaction_id")
+  accountId     String         @map("account_id")
+  account       LedgerAccount  @relation(fields: [accountId], references: [id])
+  direction     EntryDirection
+  amount        Decimal        @db.Decimal(15, 2)
+  currency      String
+  description   String?
+  prevHash      String         @map("prev_hash")
+  hash          String
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@index([accountId])
+  @@index([transactionId])
+  @@index([sequence])
+  @@map("journal_entries")
+}
+
+model LedgerBalanceSnapshot {
+  id           String        @id @default(uuid())
+  accountId    String        @map("account_id")
+  account      LedgerAccount @relation(fields: [accountId], references: [id])
+  balance      Decimal       @db.Decimal(15, 2)
+  asOfSequence BigInt        @map("as_of_sequence")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  @@index([accountId, asOfSequence])
+  @@map("ledger_balance_snapshots")
 }

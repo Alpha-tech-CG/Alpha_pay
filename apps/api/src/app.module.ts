@@ -6,6 +6,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaylinksModule } from './modules/paylinks/paylinks.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
+import { LedgerModule } from './modules/ledger/ledger.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { DatabaseModule } from './database.module';
     PaylinksModule,
     StatsModule,
     OutboxModule,
+    LedgerModule,
   ],
 })
 export class AppModule {}
