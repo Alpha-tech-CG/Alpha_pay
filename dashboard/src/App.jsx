@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import axios from 'axios'
+import { QRCodeSVG } from 'qrcode.react'
 
 const API = '/api'
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
@@ -218,6 +219,9 @@ function PaylinkForm() {
           <a href={link.url} target="_blank" rel="noreferrer" style={{
             color: '#3b82f6', wordBreak: 'break-all',
           }}>{link.url}</a>
+          <div style={{ marginTop: 16, background: '#fff', borderRadius: 8, padding: 12, display: 'inline-block' }}>
+            <QRCodeSVG value={link.url} size={140} />
+          </div>
         </div>
       )}
     </div>

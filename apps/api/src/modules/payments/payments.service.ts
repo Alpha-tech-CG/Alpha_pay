@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors';
 import { detectOperator, normalizePhone } from '@paybrain/shared';
@@ -6,28 +6,37 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
   private readonly mtn = createMtnConnector();
   private readonly airtel = createAirtelConnector();
 
   constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
 
   async initiatePayment(dto: CreatePaymentDto, merchantId: string) {
+    const existing = await this.prisma.transaction.findFirst({
+      where: { merchantId, externalId: dto.externalId },
+    });
+    if (existing) {
+      return {
+        referenceId: existing.mtnReferenceId,
+        transactionId: existing.id,
+        operator: existing.operator,
+        status: existing.status,
+        idempotent: true,
+      };
+    }
+
     const phone = normalizePhone(dto.phone);
     let operator: 'MTN' | 'AIRTEL';
-
     try {
       operator = detectOperator(phone);
     } catch (err: any) {
       throw new BadRequestException(err.message);
     }
 
-    const connector = operator === 'MTN' ? this.mtn : this.airtel;
-    const result = await connector.requestToPay({ ...dto, phone });
-
     const transaction = await this.prisma.transaction.create({
       data: {
         merchantId,
-        mtnReferenceId: result.referenceId,
         operator,
         externalId: dto.externalId,
         amount: dto.amount,
@@ -38,7 +47,55 @@ export class PaymentsService {
       },
     });
 
-    return { referenceId: result.referenceId, transactionId: transaction.id, operator, status: 'PENDING' };
+    const connector = operator === 'MTN' ? this.mtn : this.airtel;
+
+    try {
+      const result = await connector.requestToPay({ ...dto, phone });
+
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { mtnReferenceId: result.referenceId },
+      });
+      await this.prisma.outboxEvent.create({
+        data: {
+          transactionId: transaction.id,
+          type: 'payment.initiated',
+          payload: { referenceId: result.referenceId, operator },
+          status: 'SENT',
+        },
+      });
+
+      return { referenceId: result.referenceId, transactionId: transaction.id, operator, status: 'PENDING' };
+    } catch (err: any) {
+      // Compensation: the DB write succeeded but the operator call failed —
+      // roll the transaction to FAILED and queue an outbox event so the
+      // dispatcher can retry without the caller having to resubmit (which
+      // would violate the externalId idempotency guarantee above).
+      const reason = err.response?.data?.message || err.message || 'Erreur opérateur';
+      this.logger.warn(`Échec requestToPay transaction ${transaction.id}: ${reason}`);
+
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: 'FAILED', failureReason: reason },
+      });
+      await this.prisma.outboxEvent.create({
+        data: {
+          transactionId: transaction.id,
+          type: 'payment.failed',
+          payload: { dto: { ...dto, phone }, operator },
+          status: 'PENDING',
+          lastError: reason,
+        },
+      });
+
+      return {
+        referenceId: null,
+        transactionId: transaction.id,
+        operator,
+        status: 'FAILED',
+        error: reason,
+      };
+    }
   }
 
   async getStatus(referenceId: string, merchantId: string) {
