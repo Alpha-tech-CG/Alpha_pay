@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { InitiatePaymentDto, PaymentResult, TransactionStatus } from '@paybrain/shared';
+import { withRetry } from '../retry';
 
 interface MtnConfig {
   subscriptionKey: string;
@@ -31,15 +32,17 @@ export class MtnConnector {
       `${this.config.apiUserId}:${this.config.apiKey}`,
     ).toString('base64');
 
-    const response = await axios.post(
-      `${this.config.baseUrl}/collection/token/`,
-      {},
-      {
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
+    const response = await withRetry(() =>
+      axios.post(
+        `${this.config.baseUrl}/collection/token/`,
+        {},
+        {
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
+          },
         },
-      },
+      ),
     );
 
     this.tokenCache = {
@@ -54,26 +57,28 @@ export class MtnConnector {
     const token = await this.getAccessToken();
     const referenceId = uuidv4();
 
-    await axios.post(
-      `${this.config.baseUrl}/collection/v1_0/requesttopay`,
-      {
-        amount: String(dto.amount),
-        currency: this.config.currency,
-        externalId: dto.externalId,
-        payer: { partyIdType: 'MSISDN', partyId: dto.phone },
-        payerMessage: dto.description ?? 'Paiement PayBrain',
-        payeeNote: dto.externalId,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-Reference-Id': referenceId,
-          'X-Target-Environment': this.config.environment,
-          'X-Callback-Url': this.config.webhookUrl,
-          'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
-          'Content-Type': 'application/json',
+    await withRetry(() =>
+      axios.post(
+        `${this.config.baseUrl}/collection/v1_0/requesttopay`,
+        {
+          amount: String(dto.amount),
+          currency: this.config.currency,
+          externalId: dto.externalId,
+          payer: { partyIdType: 'MSISDN', partyId: dto.phone },
+          payerMessage: dto.description ?? 'Paiement PayBrain',
+          payeeNote: dto.externalId,
         },
-      },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Reference-Id': referenceId,
+            'X-Target-Environment': this.config.environment,
+            'X-Callback-Url': this.config.webhookUrl,
+            'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
     );
 
     return { referenceId, status: 'PENDING', operator: 'MTN' };
@@ -82,15 +87,17 @@ export class MtnConnector {
   async getStatus(referenceId: string): Promise<TransactionStatus> {
     const token = await this.getAccessToken();
 
-    const response = await axios.get(
-      `${this.config.baseUrl}/collection/v1_0/requesttopay/${referenceId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-Target-Environment': this.config.environment,
-          'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
+    const response = await withRetry(() =>
+      axios.get(
+        `${this.config.baseUrl}/collection/v1_0/requesttopay/${referenceId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Target-Environment': this.config.environment,
+            'Ocp-Apim-Subscription-Key': this.config.subscriptionKey,
+          },
         },
-      },
+      ),
     );
 
     const s = response.data.status as string;

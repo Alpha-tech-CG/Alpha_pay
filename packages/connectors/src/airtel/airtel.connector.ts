@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { InitiatePaymentDto, PaymentResult, TransactionStatus } from '@paybrain/shared';
+import { withRetry } from '../retry';
 
 interface AirtelConfig {
   clientId: string;
@@ -25,14 +26,16 @@ export class AirtelConnector {
       return this.tokenCache.token;
     }
 
-    const response = await axios.post(
-      `${this.config.baseUrl}/auth/oauth2/token`,
-      {
-        client_id: this.config.clientId,
-        client_secret: this.config.clientSecret,
-        grant_type: 'client_credentials',
-      },
-      { headers: { 'Content-Type': 'application/json' } },
+    const response = await withRetry(() =>
+      axios.post(
+        `${this.config.baseUrl}/auth/oauth2/token`,
+        {
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
+          grant_type: 'client_credentials',
+        },
+        { headers: { 'Content-Type': 'application/json' } },
+      ),
     );
 
     this.tokenCache = {
@@ -47,30 +50,32 @@ export class AirtelConnector {
     const token = await this.getAccessToken();
     const referenceId = uuidv4();
 
-    await axios.post(
-      `${this.config.baseUrl}/merchant/v2/payments/`,
-      {
-        reference: dto.externalId,
-        subscriber: {
-          country: 'CG',
-          currency: 'XAF',
-          msisdn: dto.phone,
+    await withRetry(() =>
+      axios.post(
+        `${this.config.baseUrl}/merchant/v2/payments/`,
+        {
+          reference: dto.externalId,
+          subscriber: {
+            country: 'CG',
+            currency: 'XAF',
+            msisdn: dto.phone,
+          },
+          transaction: {
+            amount: dto.amount,
+            country: 'CG',
+            currency: 'XAF',
+            id: referenceId,
+          },
         },
-        transaction: {
-          amount: dto.amount,
-          country: 'CG',
-          currency: 'XAF',
-          id: referenceId,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Country': 'CG',
+            'X-Currency': 'XAF',
+            'Content-Type': 'application/json',
+          },
         },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-Country': 'CG',
-          'X-Currency': 'XAF',
-          'Content-Type': 'application/json',
-        },
-      },
+      ),
     );
 
     return { referenceId, status: 'PENDING', operator: 'AIRTEL' };
@@ -79,15 +84,17 @@ export class AirtelConnector {
   async getStatus(referenceId: string): Promise<TransactionStatus> {
     const token = await this.getAccessToken();
 
-    const response = await axios.get(
-      `${this.config.baseUrl}/standard/v1/payments/${referenceId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-Country': 'CG',
-          'X-Currency': 'XAF',
+    const response = await withRetry(() =>
+      axios.get(
+        `${this.config.baseUrl}/standard/v1/payments/${referenceId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'X-Country': 'CG',
+            'X-Currency': 'XAF',
+          },
         },
-      },
+      ),
     );
 
     const s = response.data.data?.transaction?.status as string;
