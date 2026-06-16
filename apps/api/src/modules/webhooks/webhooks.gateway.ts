@@ -4,7 +4,7 @@ import { Server, WebSocket } from 'ws';
 @WebSocketGateway({ path: '/' })
 export class WebhooksGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   handleConnection(client: WebSocket) {
     client.send(JSON.stringify({ event: 'connected', data: { service: 'PayBrain' }, ts: Date.now() }));

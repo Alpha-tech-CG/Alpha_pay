@@ -6,12 +6,7 @@
     "rootDir": "./src",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "incremental": true,
-    "paths": {
-      "@paybrain/shared": ["../../packages/shared/src"],
-      "@paybrain/database": ["../../packages/database/src"],
-      "@paybrain/connectors": ["../../packages/connectors/src"]
-    }
+    "incremental": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

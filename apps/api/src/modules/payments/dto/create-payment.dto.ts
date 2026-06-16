@@ -3,16 +3,16 @@ import { IsNumber, IsString, Min, IsOptional } from 'class-validator';
 export class CreatePaymentDto {
   @IsNumber()
   @Min(1)
-  amount: number;
+  amount!: number;
 
   @IsString()
-  currency: string;
+  currency!: string;
 
   @IsString()
-  phone: string;
+  phone!: string;
 
   @IsString()
-  externalId: string;
+  externalId!: string;
 
   @IsOptional()
   @IsString()
