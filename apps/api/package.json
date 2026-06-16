@@ -41,5 +41,15 @@
     "@types/jest": "^29.5.14",
     "ts-jest": "^29.3.4",
     "ts-node": "^10.9.2"
+  },
+  "jest": {
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "coverageDirectory": "../coverage"
   }
 }
