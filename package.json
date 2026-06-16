@@ -1,0 +1,25 @@
+{
+  "name": "paybrain-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "db:migrate": "turbo run db:migrate --filter=@paybrain/database",
+    "db:generate": "turbo run db:generate --filter=@paybrain/database"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3",
+    "prettier": "^3.5.3",
+    "@types/node": "^22.15.29"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

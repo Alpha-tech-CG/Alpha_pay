@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REJECTED
+}
+
+model Merchant {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  apiKey       String        @unique @map("api_key")
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  transactions Transaction[]
+  paymentLinks PaymentLink[]
+
+  @@map("merchants")
+}
+
+model Transaction {
+  id               String            @id @default(uuid())
+  merchantId       String            @map("merchant_id")
+  merchant         Merchant          @relation(fields: [merchantId], references: [id])
+  mtnReferenceId   String?           @map("mtn_reference_id")
+  externalId       String            @map("external_id")
+  amount           Decimal           @db.Decimal(15, 2)
+  currency         String            @default("XAF")
+  payerPhone       String            @map("payer_phone")
+  status           TransactionStatus @default(PENDING)
+  payerMessage     String?           @map("payer_message")
+  failureReason    String?           @map("failure_reason")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  webhookLogs      WebhookLog[]
+
+  @@index([status])
+  @@index([merchantId])
+  @@index([externalId])
+  @@index([mtnReferenceId])
+  @@map("transactions")
+}
+
+model WebhookLog {
+  id               String      @id @default(uuid())
+  transactionId    String?     @map("transaction_id")
+  transaction      Transaction? @relation(fields: [transactionId], references: [id])
+  mtnReferenceId   String?     @map("mtn_reference_id")
+  event            String
+  payload          Json
+  processedAt      DateTime    @default(now()) @map("processed_at")
+
+  @@map("webhooks_log")
+}
+
+model PaymentLink {
+  id          String    @id @default(uuid())
+  merchantId  String    @map("merchant_id")
+  merchant    Merchant  @relation(fields: [merchantId], references: [id])
+  amount      Decimal   @db.Decimal(15, 2)
+  currency    String    @default("XAF")
+  description String
+  expiresAt   DateTime? @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("payment_links")
+}
