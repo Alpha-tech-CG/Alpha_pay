@@ -14,6 +14,11 @@ enum TransactionStatus {
   REJECTED
 }
 
+enum Operator {
+  MTN
+  AIRTEL
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -33,6 +38,7 @@ model Transaction {
   merchantId       String            @map("merchant_id")
   merchant         Merchant          @relation(fields: [merchantId], references: [id])
   mtnReferenceId   String?           @map("mtn_reference_id")
+  operator         Operator          @default(MTN)
   externalId       String            @map("external_id")
   amount           Decimal           @db.Decimal(15, 2)
   currency         String            @default("XAF")

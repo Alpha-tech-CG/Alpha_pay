@@ -28,6 +28,7 @@ export class PaymentsService {
       data: {
         merchantId,
         mtnReferenceId: result.referenceId,
+        operator,
         externalId: dto.externalId,
         amount: dto.amount,
         currency: dto.currency,
