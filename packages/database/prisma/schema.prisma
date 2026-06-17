@@ -95,6 +95,24 @@ enum SettlementStatus {
   FAILED
 }
 
+enum KycStatus {
+  NOT_STARTED
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_MORE
+}
+
+enum KycDocumentType {
+  ID_FRONT
+  ID_BACK
+  RCCM
+  NIU
+  STATUTES
+  PROOF_OF_ADDRESS
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -315,6 +333,52 @@ model ContactMessage {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("contact_messages")
+}
+
+// Pipeline KYC marchand (ALP-142). Conservation 10 ans (réglementaire).
+model KycCase {
+  id              String         @id @default(uuid())
+  merchantId      String         @unique @map("merchant_id")
+  status          KycStatus      @default(NOT_STARTED)
+  smileScore      Int?           @map("smile_score")
+  screeningHit    Boolean        @default(false) @map("screening_hit")
+  decision        String?
+  decidedBy       String?        @map("decided_by")
+  decidedAt       DateTime?      @map("decided_at")
+  rejectionReason String?        @map("rejection_reason")
+  reKycDueAt      DateTime?      @map("re_kyc_due_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  documents       KycDocument[]
+  events          KycEvent[]
+
+  @@map("kyc_cases")
+}
+
+model KycDocument {
+  id         String          @id @default(uuid())
+  caseId     String          @map("case_id")
+  kycCase    KycCase         @relation(fields: [caseId], references: [id])
+  type       KycDocumentType
+  // Référence S3 (bucket chiffré, jamais public). L'upload se fait via URL pré-signée.
+  s3Key      String          @map("s3_key")
+  uploadedAt DateTime        @default(now()) @map("uploaded_at")
+
+  @@unique([caseId, type])
+  @@map("kyc_documents")
+}
+
+model KycEvent {
+  id        String   @id @default(uuid())
+  caseId    String   @map("case_id")
+  kycCase   KycCase  @relation(fields: [caseId], references: [id])
+  action    String
+  actor     String
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([caseId])
+  @@map("kyc_events")
 }
 
 // Reversement aux marchands : configuration + batches (ALP-141).
