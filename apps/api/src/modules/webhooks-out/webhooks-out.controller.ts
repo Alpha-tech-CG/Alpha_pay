@@ -1,8 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { WebhookEndpointsService } from './webhook-endpoints.service';
 import { CreateWebhookEndpointDto, UpdateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
 
+@ApiTags('Webhooks')
+@ApiSecurity('ApiKey')
 @Controller('v1/webhook-endpoints')
 @UseGuards(ApiKeyGuard)
 export class WebhooksOutController {

@@ -1,9 +1,11 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { PaylinksService } from './paylinks.service';
 import { CreatePaylinkDto } from './dto/create-paylink.dto';
 import { PayPaylinkDto } from './dto/pay-paylink.dto';
 
+@ApiTags('Liens de paiement')
 @Controller('paylinks')
 export class PaylinksController {
   constructor(private readonly paylinksService: PaylinksService) {}

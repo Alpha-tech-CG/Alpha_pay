@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { WsAdapter } from '@nestjs/platform-ws';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { loadSecretsFromAws } from './secrets/secrets-loader';
 import { bodyGuard } from './common/security/body-guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -85,9 +86,27 @@ async function bootstrap() {
     }),
   );
 
+  // Documentation OpenAPI + playground interactif sur /docs (ALP-138).
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('PayBrain API')
+    .setDescription("API d'agrégation de paiement mobile money (MTN, Airtel) — Congo")
+    .setVersion('1.0')
+    .setOpenAPIVersion('3.1.0')
+    .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'ApiKey')
+    .addTag('Paiements', 'Initier et suivre les paiements mobile money')
+    .addTag('Liens de paiement', 'Générer des liens de paiement hébergés (checkout)')
+    .addTag('Clés API', 'Gérer les clés API marchand (test/live, rotation, révocation)')
+    .addTag('Webhooks', 'Configurer les endpoints de notification sortants')
+    .addServer('http://localhost:3000', 'Local')
+    .addServer('https://api.paybrain.cg', 'Production')
+    .build();
+  const openapi = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, openapi, { jsonDocumentUrl: 'docs/openapi.json' });
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`PayBrain API (NestJS) démarrée sur le port ${port}`);
+  console.log(`Documentation API : http://localhost:${port}/docs`);
 }
 
 bootstrap();

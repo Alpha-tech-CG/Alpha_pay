@@ -1,8 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
+@ApiTags('Clés API')
+@ApiSecurity('ApiKey')
 @Controller('v1/api-keys')
 @UseGuards(ApiKeyGuard)
 export class ApiKeysController {
