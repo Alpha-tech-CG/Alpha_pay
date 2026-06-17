@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { loadSecretsFromAws } from './secrets/secrets-loader';
 import { bodyGuard } from './common/security/body-guard';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 const MAX_BODY_BYTES = 8 * 1024;
 
@@ -33,6 +34,9 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+
+  // Masque les 5xx (jamais error.message brut au client) + request_id corrélable (ALP-154).
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Limite globale : protège l'API contre un flood générique.
   app.use(
