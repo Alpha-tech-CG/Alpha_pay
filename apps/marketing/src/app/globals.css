@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+:root {
+  --pb-bg: #ffffff;
+  --pb-ink: #0e1525;
+  --pb-muted: #5b6678;
+  --pb-primary: #3b56f0;
+  --pb-soft: #f3f5fb;
+  --pb-border: #e6e9f2;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,0 +1,100 @@
+{
+  "nav": {
+    "solution": "Solution",
+    "pricing": "Tarifs",
+    "docs": "Documentation",
+    "contact": "Contact",
+    "cta": "Demander un accès"
+  },
+  "home": {
+    "metaTitle": "PayBrain — Encaissez en mobile money, simplement",
+    "metaDescription": "Plateforme d'agrégation de paiement mobile money pour l'Afrique centrale. Une seule intégration, plusieurs opérateurs.",
+    "heroBadge": "Infrastructure de paiement",
+    "heroTitle": "Encaissez en mobile money, sans friction",
+    "heroSubtitle": "Une seule API pour accepter les paiements de vos clients, quel que soit leur opérateur. Fiable, sécurisé, pensé pour l'Afrique centrale.",
+    "heroCtaPrimary": "Demander un accès",
+    "heroCtaSecondary": "Voir la documentation",
+    "feature1Title": "Une intégration unique",
+    "feature1Text": "Branchez plusieurs opérateurs via une seule API REST claire et versionnée.",
+    "feature2Title": "Sécurité de bout en bout",
+    "feature2Text": "Webhooks signés HMAC, idempotence, chiffrement des données sensibles.",
+    "feature3Title": "Temps réel",
+    "feature3Text": "Statuts de transaction en direct et notifications webhook fiables avec retry.",
+    "trustTitle": "Pensé pour les marchands exigeants",
+    "trustText": "Tableau de bord clair, clés API, journaux de webhooks, réconciliation. Tout ce qu'il faut pour opérer sereinement."
+  },
+  "solution": {
+    "metaTitle": "Solution — PayBrain",
+    "title": "Une infrastructure de paiement complète",
+    "subtitle": "De l'initiation du paiement au reversement, PayBrain gère le cycle de vie complet.",
+    "block1Title": "Acceptation",
+    "block1Text": "Initiez des paiements et générez des liens de paiement hébergés en quelques lignes.",
+    "block2Title": "Notifications",
+    "block2Text": "Webhooks sortants signés, avec rejeu programmé et journaux consultables.",
+    "block3Title": "Pilotage",
+    "block3Text": "Dashboard marchand : transactions, clés API, webhooks, profil."
+  },
+  "pricing": {
+    "metaTitle": "Tarifs — PayBrain",
+    "title": "Une tarification simple",
+    "subtitle": "Pas de frais cachés. Vous payez à l'usage.",
+    "planStarterName": "Starter",
+    "planStarterPrice": "0",
+    "planStarterDesc": "Pour démarrer et tester en sandbox.",
+    "planStarterF1": "Environnement de test",
+    "planStarterF2": "Documentation complète",
+    "planStarterF3": "Support communautaire",
+    "planProName": "Croissance",
+    "planProPrice": "Sur devis",
+    "planProDesc": "Pour les marchands en production.",
+    "planProF1": "Paiements en live",
+    "planProF2": "Webhooks & clés API illimités",
+    "planProF3": "Support prioritaire",
+    "perMonth": "/ mois",
+    "cta": "Demander un accès"
+  },
+  "docs": {
+    "metaTitle": "Documentation — PayBrain",
+    "title": "Documentation développeur",
+    "subtitle": "Tout pour intégrer l'API en quelques minutes.",
+    "openapi": "Référence OpenAPI interactive",
+    "guide": "Guide développeur (Quickstart, Auth, Webhooks)",
+    "cta": "Ouvrir la documentation"
+  },
+  "contact": {
+    "metaTitle": "Contact — PayBrain",
+    "title": "Parlons de votre projet",
+    "subtitle": "Une question, une demande d'accès ? Écrivez-nous.",
+    "name": "Nom",
+    "email": "Email",
+    "message": "Message",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "success": "Merci, votre message a bien été envoyé.",
+    "error": "Une erreur est survenue, réessayez."
+  },
+  "waitlist": {
+    "title": "Rejoignez la liste d'attente",
+    "subtitle": "Soyez prévenu du lancement.",
+    "placeholder": "votre@email.com",
+    "join": "Je m'inscris",
+    "joining": "…",
+    "success": "Vous êtes inscrit. À bientôt !",
+    "error": "Inscription impossible, réessayez."
+  },
+  "legal": {
+    "mentionsTitle": "Mentions légales",
+    "cguTitle": "Conditions générales d'utilisation",
+    "privacyTitle": "Politique de confidentialité",
+    "lastUpdate": "Dernière mise à jour"
+  },
+  "footer": {
+    "product": "Produit",
+    "company": "Entreprise",
+    "legal": "Légal",
+    "mentions": "Mentions légales",
+    "cgu": "CGU",
+    "privacy": "Confidentialité",
+    "rights": "Tous droits réservés."
+  }
+}

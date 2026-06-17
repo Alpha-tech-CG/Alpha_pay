@@ -1,0 +1,100 @@
+{
+  "nav": {
+    "solution": "Solution",
+    "pricing": "Pricing",
+    "docs": "Documentation",
+    "contact": "Contact",
+    "cta": "Request access"
+  },
+  "home": {
+    "metaTitle": "PayBrain — Accept mobile money, simply",
+    "metaDescription": "Mobile money payment aggregation platform for Central Africa. One integration, multiple operators.",
+    "heroBadge": "Payment infrastructure",
+    "heroTitle": "Accept mobile money, frictionlessly",
+    "heroSubtitle": "One API to accept payments from your customers, whatever their operator. Reliable, secure, built for Central Africa.",
+    "heroCtaPrimary": "Request access",
+    "heroCtaSecondary": "Read the docs",
+    "feature1Title": "A single integration",
+    "feature1Text": "Connect multiple operators through one clear, versioned REST API.",
+    "feature2Title": "End-to-end security",
+    "feature2Text": "HMAC-signed webhooks, idempotency, encryption of sensitive data.",
+    "feature3Title": "Real time",
+    "feature3Text": "Live transaction statuses and reliable webhook notifications with retry.",
+    "trustTitle": "Built for demanding merchants",
+    "trustText": "Clear dashboard, API keys, webhook logs, reconciliation. Everything you need to operate with confidence."
+  },
+  "solution": {
+    "metaTitle": "Solution — PayBrain",
+    "title": "A complete payment infrastructure",
+    "subtitle": "From payment initiation to settlement, PayBrain handles the full lifecycle.",
+    "block1Title": "Acceptance",
+    "block1Text": "Initiate payments and generate hosted payment links in a few lines.",
+    "block2Title": "Notifications",
+    "block2Text": "Signed outbound webhooks, with scheduled retries and queryable logs.",
+    "block3Title": "Control",
+    "block3Text": "Merchant dashboard: transactions, API keys, webhooks, profile."
+  },
+  "pricing": {
+    "metaTitle": "Pricing — PayBrain",
+    "title": "Simple pricing",
+    "subtitle": "No hidden fees. Pay as you go.",
+    "planStarterName": "Starter",
+    "planStarterPrice": "0",
+    "planStarterDesc": "To get started and test in sandbox.",
+    "planStarterF1": "Test environment",
+    "planStarterF2": "Full documentation",
+    "planStarterF3": "Community support",
+    "planProName": "Growth",
+    "planProPrice": "Custom",
+    "planProDesc": "For merchants in production.",
+    "planProF1": "Live payments",
+    "planProF2": "Unlimited webhooks & API keys",
+    "planProF3": "Priority support",
+    "perMonth": "/ month",
+    "cta": "Request access"
+  },
+  "docs": {
+    "metaTitle": "Documentation — PayBrain",
+    "title": "Developer documentation",
+    "subtitle": "Everything to integrate the API in minutes.",
+    "openapi": "Interactive OpenAPI reference",
+    "guide": "Developer guide (Quickstart, Auth, Webhooks)",
+    "cta": "Open the documentation"
+  },
+  "contact": {
+    "metaTitle": "Contact — PayBrain",
+    "title": "Let's talk about your project",
+    "subtitle": "A question, an access request? Write to us.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "send": "Send",
+    "sending": "Sending…",
+    "success": "Thank you, your message has been sent.",
+    "error": "Something went wrong, please try again."
+  },
+  "waitlist": {
+    "title": "Join the waitlist",
+    "subtitle": "Be notified at launch.",
+    "placeholder": "you@email.com",
+    "join": "Join",
+    "joining": "…",
+    "success": "You're in. See you soon!",
+    "error": "Could not sign up, please try again."
+  },
+  "legal": {
+    "mentionsTitle": "Legal notice",
+    "cguTitle": "Terms of use",
+    "privacyTitle": "Privacy policy",
+    "lastUpdate": "Last updated"
+  },
+  "footer": {
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "mentions": "Legal notice",
+    "cgu": "Terms",
+    "privacy": "Privacy",
+    "rights": "All rights reserved."
+  }
+}

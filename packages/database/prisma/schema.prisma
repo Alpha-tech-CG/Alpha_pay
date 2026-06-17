@@ -241,6 +241,27 @@ model IdempotencyRecord {
   @@map("idempotency_records")
 }
 
+// Liste d'attente du site marketing (ALP-133).
+model WaitlistEntry {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  locale    String   @default("fr")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("waitlist_entries")
+}
+
+// Messages du formulaire de contact (ALP-133).
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contact_messages")
+}
+
 // Grand livre comptable en partie double. Source de vérité financière :
 // immutable et auditable via chaînage cryptographique (cf. LedgerService).
 model LedgerAccount {
