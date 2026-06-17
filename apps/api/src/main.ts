@@ -1,18 +1,29 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { loadSecretsFromAws } from './secrets/secrets-loader';
+import { bodyGuard } from './common/security/body-guard';
+
+const MAX_BODY_BYTES = 8 * 1024;
 
 async function bootstrap() {
   await loadSecretsFromAws();
 
   // rawBody:true conserve le corps brut de la requête (req.rawBody) — indispensable
   // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
+
+  // Borne le parser JSON à 8 KiB : un body plus gros → 413 automatique (ALP-153).
+  app.useBodyParser('json', { limit: MAX_BODY_BYTES, strict: true });
+
+  // Rejet précoce : Content-Type non-JSON → 415, Content-Length > 8 KiB → 413,
+  // avant toute bufferisation/parsing (anti-DoS, ALP-153).
+  app.use(bodyGuard({ maxBytes: MAX_BODY_BYTES }));
 
   app.use(helmet());
   app.enableCors({ origin: '*', allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization'] });
