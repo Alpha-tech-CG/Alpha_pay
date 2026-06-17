@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { PrismaClient } from '@paybrain/database';
 import { PaymentsService } from '../payments/payments.service';
 import { CreatePaylinkDto } from './dto/create-paylink.dto';
+import { toCents, toMajor } from '../../common/money';
 
 @Injectable()
 export class PaylinksService {
@@ -16,7 +17,7 @@ export class PaylinksService {
       : null;
 
     const link = await this.prisma.paymentLink.create({
-      data: { merchantId, amount: dto.amount, currency: dto.currency, description: dto.description, expiresAt },
+      data: { merchantId, amount: toCents(dto.amount), currency: dto.currency, description: dto.description, expiresAt },
     });
 
     const baseUrl = process.env.CHECKOUT_URL ?? 'http://localhost:5174';
@@ -32,7 +33,7 @@ export class PaylinksService {
     if (!link) throw new NotFoundException('Lien introuvable');
     if (link.expiresAt && link.expiresAt < new Date()) throw new BadRequestException('Lien expiré');
 
-    return link;
+    return { ...link, amount: toMajor(link.amount) };
   }
 
   async pay(id: string, phone: string) {
@@ -41,7 +42,8 @@ export class PaylinksService {
 
     const result = await this.paymentsService.initiatePayment(
       {
-        amount: Number(link.amount),
+        // findById renvoie déjà le montant en unités majeures.
+        amount: link.amount,
         currency: link.currency,
         phone,
         externalId: `paylink-${link.id}`,

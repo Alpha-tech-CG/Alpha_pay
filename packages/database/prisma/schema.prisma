@@ -142,7 +142,8 @@ model Transaction {
   mtnReferenceId   String?           @map("mtn_reference_id")
   operator         Operator          @default(MTN)
   externalId       String            @map("external_id")
-  amount           Decimal           @db.Decimal(15, 2)
+  // Montant en centimes (BIGINT) — entier exact, zéro arrondi flottant (ALP-168).
+  amount           BigInt
   currency         String            @default("XAF")
   // PII chiffrée (ALP-164) : numéro jamais en clair en base.
   payerPhoneEnc    Bytes?            @map("payer_phone_enc")
@@ -216,7 +217,7 @@ model PaymentLink {
   id          String    @id @default(uuid())
   merchantId  String    @map("merchant_id")
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
-  amount      Decimal   @db.Decimal(15, 2)
+  amount      BigInt // centimes (ALP-168)
   currency    String    @default("XAF")
   description String
   expiresAt   DateTime? @map("expires_at")

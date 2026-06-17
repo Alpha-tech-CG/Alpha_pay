@@ -4,6 +4,7 @@ import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors'
 import { detectOperator, normalizePhone } from '@paybrain/shared';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
+import { toCents, toMajor } from '../../common/money';
 
 @Injectable()
 export class PaymentsService {
@@ -40,7 +41,7 @@ export class PaymentsService {
         merchantId,
         operator,
         externalId: dto.externalId,
-        amount: dto.amount,
+        amount: toCents(dto.amount),
         currency: dto.currency,
         // PII chiffrée (ALP-164) : le clair ne sert qu'à l'appel opérateur ci-dessous.
         payerPhoneEnc: new Uint8Array(encryptField(phone)),
@@ -107,6 +108,7 @@ export class PaymentsService {
       where: { mtnReferenceId: referenceId, merchantId },
     });
     if (!transaction) throw new BadRequestException('Transaction introuvable');
-    return transaction;
+    // Expose le montant en unités majeures (centimes en interne).
+    return { ...transaction, amount: toMajor(transaction.amount) };
   }
 }

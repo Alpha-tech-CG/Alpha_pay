@@ -1,4 +1,10 @@
 import 'reflect-metadata';
+
+// Sérialisation JSON des BigInt (montants en centimes, séquences ledger) — ALP-168.
+// Sûr : nos montants (≤ 5 000 000 * 100) restent bien sous Number.MAX_SAFE_INTEGER.
+(BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function () {
+  return Number(this as unknown as bigint);
+};
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';

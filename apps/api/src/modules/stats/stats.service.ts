@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
+import { toMajor } from '../../common/money';
 
 @Injectable()
 export class StatsService {
@@ -23,12 +24,12 @@ export class StatsService {
       totals: totals.map((t) => ({
         status: t.status,
         count: t._count.id,
-        volume: t._sum.amount ?? 0,
+        volume: t._sum.amount != null ? toMajor(t._sum.amount) : 0,
       })),
       // N'expose JAMAIS payerPhoneEnc/Hash : seulement le masque (ALP-164).
       recent: recent.map((t) => {
         const { payerPhoneEnc, payerPhoneHash, payerPhoneMask, merchant, ...rest } = t;
-        return { ...rest, merchantName: merchant.name, payerPhone: payerPhoneMask ?? '***' };
+        return { ...rest, amount: toMajor(t.amount), merchantName: merchant.name, payerPhone: payerPhoneMask ?? '***' };
       }),
     };
   }
