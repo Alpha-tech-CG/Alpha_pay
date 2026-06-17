@@ -68,8 +68,17 @@ aws secretsmanager put-secret-value --secret-id paybrain/prod/jwt-pepper \
 Générer aussi : `API_KEY_PEPPER` (≥32), `PII_ENCRYPTION_KEY` (base64 32 octets,
 KEK du chiffrement PII ALP-164), `MTN_WEBHOOK_SECRET`/`AIRTEL_WEBHOOK_SECRET`
 (`openssl rand -hex 32`).
-L'app les charge au boot via `loadSecretsFromAws()` (cf. `AWS_SECRETS_MANAGER_SECRET_ID`).
 ⚠️ **Roter** tous les secrets sandbox actuels chez les fournisseurs (MTN, Clerk).
+
+🟦 **Secret d'environnement applicatif** : l'app charge au boot **un seul** secret
+JSON via `loadSecretsFromAws()` — le secret `paybrain/<env>/env` créé par Terraform.
+Le remplir avec toutes les variables (DATABASE_URL en verify-full, MTN_*, JWT_SECRET,
+API_KEY_PEPPER, PII_ENCRYPTION_KEY, MTN_WEBHOOK_SECRET, ALLOWED_ORIGINS, …) :
+```bash
+aws secretsmanager put-secret-value --secret-id paybrain/prod/env \
+  --secret-string file://prod-env.json --profile paybrain --region eu-west-1
+```
+La task ECS reçoit `AWS_SECRETS_MANAGER_SECRET_ID` pointant vers ce secret.
 
 ---
 
@@ -99,15 +108,21 @@ DATABASE_URL="...verify-full..." node packages/database/sql/apply-triggers.mjs
 
 ---
 
-## 6. Déployer le service ECS Fargate — ALP-122
+## 6. Service ECS Fargate + ALB — ALP-122
 
-🟦 Créer la **task definition** (image ECR, port 3000, role
-`aws_iam_role.ecs_task`, secrets injectés depuis Secrets Manager, log group
-CloudWatch) puis le **service** (Fargate, derrière un ALB).
-Health check : `GET /health`. min 2 tâches, rolling update.
-> La task definition n'est pas encore dans le Terraform : l'ajouter
-> (`aws_ecs_task_definition` + `aws_ecs_service` + `aws_lb`) ou la créer en
-> console pour le premier déploiement.
+✅ **Déjà dans le Terraform** (`terraform/ecs.tf`) : ALB public, target group
+(health check `/health`), task definition Fargate (image ECR, logs CloudWatch),
+service ECS (2 tâches), rôle d'exécution, association WAF→ALB. Donc le
+`terraform apply` de l'étape 2 monte **tout**, y compris l'API en ligne.
+
+🟩 Après le 1ᵉʳ apply, forcer un déploiement avec l'image fraîchement poussée :
+```bash
+aws ecs update-service --cluster paybrain-cluster --service paybrain-api \
+  --force-new-deployment --profile paybrain --region eu-west-1
+```
+L'URL publique est dans l'output Terraform `alb_dns_name` (à pointer en CNAME
+depuis `api.paybrain.cg`). Le listener est en HTTP tant que `acm_certificate_arn`
+est vide ; fournir le certificat ACM active le HTTPS + la redirection 80→443.
 
 ---
 
