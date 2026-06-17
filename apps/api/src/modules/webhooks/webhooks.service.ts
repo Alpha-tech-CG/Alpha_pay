@@ -4,6 +4,7 @@ import { Operator, WebhookPayload } from '@paybrain/shared';
 import { createAirtelConnector, createMtnConnector } from '@paybrain/connectors';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
+import { ConcurrentModificationError, IllegalTransitionError, transitionStatus } from '../transactions/transaction-state';
 
 const STATUS_EVENT: Record<string, string> = {
   SUCCESSFUL: 'payment.succeeded',
@@ -91,10 +92,24 @@ export class WebhooksService {
       return { received: true };
     }
 
-    await this.prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { status: verifiedStatus, failureReason: payload.reason },
-    });
+    // Transition via la machine d'état stricte (ALP-167) : SERIALIZABLE + FOR UPDATE
+    // + version CAS. Une transition illégale (ex. depuis un état terminal) ou un
+    // conflit concurrent est ignoré gracieusement — le webhook reste idempotent.
+    try {
+      const result = await transitionStatus(this.prisma, transaction.id, verifiedStatus, {
+        reason: `webhook ${operator}`,
+        failureReason: payload.reason ?? null,
+      });
+      if (!result.changed) {
+        return { received: true };
+      }
+    } catch (err) {
+      if (err instanceof IllegalTransitionError || err instanceof ConcurrentModificationError) {
+        this.logger.warn(`Webhook ${operator} : ${err.message} (tx ${transaction.id})`);
+        return { received: true };
+      }
+      throw err;
+    }
 
     this.gateway.broadcast('transaction_update', {
       externalId: transaction.externalId,

@@ -149,10 +149,12 @@ model Transaction {
   payerMessage     String?           @map("payer_message")
   failureReason    String?           @map("failure_reason")
   retryCount       Int               @default(0) @map("retry_count")
+  version          Int               @default(0)
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
   webhookLogs      WebhookLog[]
   outboxEvents     OutboxEvent[]
+  audits           TransactionAudit[]
 
   @@unique([merchantId, externalId])
   @@index([status])
@@ -160,6 +162,20 @@ model Transaction {
   @@index([externalId])
   @@index([mtnReferenceId])
   @@map("transactions")
+}
+
+// Journal d'audit des transitions de statut de transaction (ALP-167).
+model TransactionAudit {
+  id            String      @id @default(uuid())
+  transactionId String      @map("transaction_id")
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  fromStatus    String      @map("from_status")
+  toStatus      String      @map("to_status")
+  reason        String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([transactionId])
+  @@map("transaction_audits")
 }
 
 model OutboxEvent {

@@ -20,6 +20,18 @@ describe('WebhooksService', () => {
       transaction: { findFirst: jest.fn(), update: jest.fn() },
       webhookLog: { create: jest.fn() },
       webhookInboundEvent: { create: jest.fn().mockResolvedValue({}) },
+      // Simule transitionStatus (ALP-167) : exécute le callback avec un tx mock.
+      $transaction: jest.fn(async (cb: any) => {
+        const tx = {
+          $queryRaw: jest.fn(async () => {
+            const t = await prisma.transaction.findFirst();
+            return [{ id: t.id, status: t.status, version: 0 }];
+          }),
+          transaction: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+          transactionAudit: { create: jest.fn().mockResolvedValue({}) },
+        };
+        return cb(tx);
+      }),
     };
     gateway = { broadcast: jest.fn() };
     mtnGetStatus = jest.fn();
@@ -60,10 +72,8 @@ describe('WebhooksService', () => {
     } as any);
 
     expect(mtnGetStatus).toHaveBeenCalledWith('ref-1');
-    expect(prisma.transaction.update).toHaveBeenCalledWith({
-      where: { id: 'tx-1' },
-      data: { status: 'FAILED', failureReason: undefined },
-    });
+    // La transition passe désormais par la machine d'état (SERIALIZABLE + FOR UPDATE).
+    expect(prisma.$transaction).toHaveBeenCalled();
     expect(gateway.broadcast).toHaveBeenCalledWith('transaction_update', {
       externalId: 'ext-1',
       status: 'FAILED',
