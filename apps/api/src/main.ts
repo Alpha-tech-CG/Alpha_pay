@@ -9,6 +9,7 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { loadSecretsFromAws } from './secrets/secrets-loader';
 import { bodyGuard } from './common/security/body-guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { buildCorsOptions } from './common/security/cors';
 
 const MAX_BODY_BYTES = 8 * 1024;
 
@@ -26,8 +27,14 @@ async function bootstrap() {
   // avant toute bufferisation/parsing (anti-DoS, ALP-153).
   app.use(bodyGuard({ maxBytes: MAX_BODY_BYTES }));
 
-  app.use(helmet());
-  app.enableCors({ origin: '*', allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization'] });
+  // En-têtes de sécurité, dont HSTS avec preload (ALP-155).
+  app.use(
+    helmet({
+      hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+    }),
+  );
+  // CORS sur allowlist explicite (ALLOWED_ORIGINS), jamais '*' (ALP-155).
+  app.enableCors(buildCorsOptions());
   app.useWebSocketAdapter(new WsAdapter(app));
   // forbidNonWhitelisted: tout champ inconnu fait échouer la requête en 400
   // (au lieu d'être silencieusement ignoré) — anti-injection (ALP-152).
