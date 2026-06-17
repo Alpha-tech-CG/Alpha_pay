@@ -20,6 +20,10 @@ async function bootstrap() {
   // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
 
+  // Derrière un unique LB/proxy (ALB/Cloudflare) : faire confiance au 1er hop
+  // pour que req.ip reflète l'IP client réelle (allowlist webhooks, ALP-160).
+  app.set('trust proxy', 1);
+
   // Borne le parser JSON à 8 KiB : un body plus gros → 413 automatique (ALP-153).
   app.useBodyParser('json', { limit: MAX_BODY_BYTES, strict: true });
 

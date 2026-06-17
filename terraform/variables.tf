@@ -12,6 +12,18 @@ variable "db_rotation_lambda_arn" {
   type        = string
 }
 
+variable "webhook_ip_allowlist_mtn" {
+  description = "Plages IP (CIDR) des callbacks MTN MoMo — à confirmer auprès de MTN (cf. docs/IP_ALLOWLIST.md)"
+  type        = list(string)
+  default     = []
+}
+
+variable "webhook_ip_allowlist_airtel" {
+  description = "Plages IP (CIDR) des callbacks Airtel — à confirmer auprès d'Airtel"
+  type        = list(string)
+  default     = []
+}
+
 variable "db_username" {
   description = "PostgreSQL username"
   sensitive   = true
