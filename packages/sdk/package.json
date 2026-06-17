@@ -1,0 +1,18 @@
+{
+  "name": "@paybrain/sdk",
+  "version": "1.0.0",
+  "description": "SDK TypeScript officiel pour l'API PayBrain (mobile money Congo)",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

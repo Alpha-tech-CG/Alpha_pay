@@ -24,6 +24,7 @@
     "@paybrain/connectors": "*",
     "@paybrain/database": "*",
     "@paybrain/shared": "*",
+    "@scalar/nestjs-api-reference": "^1.2.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "express-rate-limit": "^7.5.0",

@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import { AppModule } from './app.module';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 import { loadSecretsFromAws } from './secrets/secrets-loader';
 import { bodyGuard } from './common/security/body-guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -102,6 +103,13 @@ async function bootstrap() {
     .build();
   const openapi = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, openapi, { jsonDocumentUrl: 'docs/openapi.json' });
+
+  // Portail développeur Scalar (ALP-138) — rendu moderne sur /reference,
+  // basé sur la même spec OpenAPI.
+  app.use(
+    '/reference',
+    apiReference({ content: openapi, theme: 'purple' }),
+  );
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
