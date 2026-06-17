@@ -17,7 +17,11 @@ async function bootstrap() {
   app.use(helmet());
   app.enableCors({ origin: '*', allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization'] });
   app.useWebSocketAdapter(new WsAdapter(app));
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // forbidNonWhitelisted: tout champ inconnu fait échouer la requête en 400
+  // (au lieu d'être silencieusement ignoré) — anti-injection (ALP-152).
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
 
   // Limite globale : protège l'API contre un flood générique.
   app.use(

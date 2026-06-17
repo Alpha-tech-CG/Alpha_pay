@@ -1,5 +1,5 @@
 import { BadRequestException, CallHandler, ConflictException, ExecutionContext, UnprocessableEntityException } from '@nestjs/common';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
 
 const VALID_KEY = '11111111-1111-4111-8111-111111111111';
@@ -34,6 +34,17 @@ function createFakePrisma() {
         Object.assign(row, data);
         return row;
       }),
+      delete: jest.fn(async ({ where }: any) => {
+        const k = keyOf(where.merchantId_idempotencyKey_endpoint);
+        const row = rows.get(k);
+        if (!row) {
+          const err: any = new Error('not found');
+          err.code = 'P2025';
+          throw err;
+        }
+        rows.delete(k);
+        return row;
+      }),
     },
   };
 }
@@ -58,6 +69,7 @@ function makeContext(headers: Record<string, any>, body: any, merchantId = 'm1')
 }
 
 const handlerReturning = (value: unknown): CallHandler => ({ handle: () => of(value) });
+const handlerThrowing = (err: unknown): CallHandler => ({ handle: () => throwError(() => err) });
 
 async function run(interceptor: IdempotencyInterceptor, ctx: ExecutionContext, handler: CallHandler) {
   const obs = await interceptor.intercept(ctx, handler);
@@ -140,6 +152,13 @@ describe('IdempotencyInterceptor', () => {
     await expect(run(interceptor, second.ctx, handlerReturning({ referenceId: 'ref-1' }))).rejects.toBeInstanceOf(
       ConflictException,
     );
+  });
+
+  it('supprime l\'enregistrement si le handler échoue (clé non brûlée)', async () => {
+    const { ctx } = makeContext({ 'idempotency-key': VALID_KEY }, { amount: 100 });
+    await expect(run(interceptor, ctx, handlerThrowing(new Error('boom')))).rejects.toThrow('boom');
+    await new Promise(setImmediate); // laisse le tap error supprimer
+    expect(prisma.rows.size).toBe(0);
   });
 
   it('reprend la main si le verrou a expiré sans réponse (crash applicatif)', async () => {

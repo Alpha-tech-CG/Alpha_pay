@@ -144,8 +144,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
           await this.persistResponse(merchantId, key, endpoint, res.statusCode ?? 201, body);
         },
         error: async () => {
-          // Échec du handler : on libère le verrou pour autoriser une vraie reprise.
-          await this.releaseLock(merchantId, key, endpoint);
+          // Échec (validation 400, exception métier…) : rien de durable n'a eu lieu.
+          // On SUPPRIME l'enregistrement pour ne pas « brûler » la clé — un retry,
+          // y compris avec un body corrigé, ne doit pas tomber en collision 422.
+          await this.deleteRecord(merchantId, key, endpoint);
         },
       }),
     );
@@ -166,11 +168,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
       .catch(() => undefined);
   }
 
-  private async releaseLock(merchantId: string, key: string, endpoint: string): Promise<void> {
+  private async deleteRecord(merchantId: string, key: string, endpoint: string): Promise<void> {
     await this.prisma.idempotencyRecord
-      .update({
+      .delete({
         where: { merchantId_idempotencyKey_endpoint: { merchantId, idempotencyKey: key, endpoint } },
-        data: { lockedUntil: null },
       })
       .catch(() => undefined);
   }

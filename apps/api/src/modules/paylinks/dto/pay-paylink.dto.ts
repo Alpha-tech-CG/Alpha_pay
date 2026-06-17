@@ -1,6 +1,6 @@
-import { IsString } from 'class-validator';
+import { IsE164Phone } from '../../../common/validation/is-e164-phone.validator';
 
 export class PayPaylinkDto {
-  @IsString()
+  @IsE164Phone()
   phone!: string;
 }
