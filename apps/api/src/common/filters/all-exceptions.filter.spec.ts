@@ -88,4 +88,37 @@ describe('AllExceptionsFilter (ALP-154)', () => {
 
     expect(res.body).toMatchObject({ error: { code: 'reconciliation_failed' } });
   });
+
+  it('mappe un JSON malformé (entity.parse.failed) vers un 400 générique sans fuite', () => {
+    const { host, res } = makeHost();
+    const err: any = new Error('Expected property name or \'}\' in JSON at position 2');
+    err.type = 'entity.parse.failed';
+    filter.catch(err, host);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: { code: 'invalid_json', request_id: expect.any(String) } });
+    expect(JSON.stringify(res.body)).not.toContain('position');
+  });
+
+  it('mappe un parse JSON enveloppé en BadRequestException vers invalid_json', () => {
+    const { host, res } = makeHost();
+    filter.catch(new BadRequestException("Expected property name or '}' in JSON at position 2"), host);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: { code: 'invalid_json', request_id: expect.any(String) } });
+  });
+
+  it('ne confond pas un 400 métier légitime avec un parse error', () => {
+    const { host, res } = makeHost();
+    filter.catch(new BadRequestException({ code: 'idempotency_key_required', message: 'requis' }), host);
+
+    expect(res.body).toMatchObject({ code: 'idempotency_key_required' });
+  });
+
+  it('ne réécrit pas une réponse déjà émise (headersSent)', () => {
+    const { host, res } = makeHost();
+    (res as any).headersSent = true;
+    filter.catch(new Error('boom'), host);
+    expect(res.statusCode).toBe(0); // status() jamais appelé
+  });
 });

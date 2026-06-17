@@ -2,6 +2,19 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 
+const JSON_PARSE_SIGNATURE = /in JSON|Unexpected token|Expected (?:property name|double-quoted|',')|Unterminated string/i;
+
+/** Détecte une erreur de parsing JSON, brute (body-parser) ou enveloppée. */
+function isJsonParseError(exception: unknown): boolean {
+  if ((exception as any)?.type === 'entity.parse.failed') return true;
+  if (exception instanceof HttpException && exception.getStatus() === HttpStatus.BAD_REQUEST) {
+    const resp = exception.getResponse() as any;
+    const message = typeof resp === 'string' ? resp : resp?.message;
+    return typeof message === 'string' && JSON_PARSE_SIGNATURE.test(message);
+  }
+  return false;
+}
+
 /**
  * Filtre d'exception global (ALP-154).
  *
@@ -20,8 +33,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const res = ctx.getResponse<Response>();
     const req = ctx.getRequest<Request>();
 
+    // Une réponse a déjà été émise (ex. garde webhook qui termine en 401 vide) :
+    // ne pas tenter d'écrire une seconde fois.
+    if (res.headersSent) return;
+
     const requestId = (req.headers['x-request-id'] as string) || randomUUID();
     res.setHeader('X-Request-Id', requestId);
+
+    // JSON malformé (body-parser) : 400 générique, sans fuiter le message du
+    // parser (position, structure attendue) — cf. ALP-154/ALP-159. Selon la
+    // version, l'erreur arrive soit brute (type entity.parse.failed), soit
+    // déjà enveloppée en BadRequestException dont le message expose le détail.
+    if (isJsonParseError(exception)) {
+      res.status(HttpStatus.BAD_REQUEST).json({ error: { code: 'invalid_json', request_id: requestId } });
+      return;
+    }
 
     const status =
       exception instanceof HttpException
