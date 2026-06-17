@@ -9,6 +9,7 @@ import { OutboxModule } from './modules/outbox/outbox.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { WebhooksOutModule } from './modules/webhooks-out/webhooks-out.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { DatabaseModule } from './database.module';
     LedgerModule,
     ApiKeysModule,
     WebhooksOutModule,
+    ReconciliationModule,
   ],
 })
 export class AppModule {}

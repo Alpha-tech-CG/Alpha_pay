@@ -61,6 +61,13 @@ enum WebhookDeliveryStatus {
   FAILED
 }
 
+enum ReconciliationDiscrepancyType {
+  LEDGER_NOT_IN_STATEMENT
+  STATEMENT_NOT_IN_LEDGER
+  AMOUNT_MISMATCH
+  DUPLICATE
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -281,6 +288,40 @@ model ContactMessage {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("contact_messages")
+}
+
+// Réconciliation : un run rapproche un relevé opérateur du ledger interne (ALP-140).
+model ReconciliationRun {
+  id                String   @id @default(uuid())
+  operator          Operator
+  statementDate     DateTime @map("statement_date")
+  statementLines    Int      @map("statement_lines")
+  matchedCount      Int      @map("matched_count")
+  discrepancyCount  Int      @map("discrepancy_count")
+  totalStatement    BigInt   @map("total_statement") // centimes
+  totalLedger       BigInt   @map("total_ledger") // centimes
+  maxDiscrepancy    BigInt   @map("max_discrepancy") // centimes
+  alert             Boolean  @default(false) // true si écart > seuil P1
+  reportJson        Json     @map("report_json")
+  createdAt         DateTime @default(now()) @map("created_at")
+  discrepancies     ReconciliationDiscrepancy[]
+
+  @@index([operator, statementDate])
+  @@map("reconciliation_runs")
+}
+
+model ReconciliationDiscrepancy {
+  id              String                        @id @default(uuid())
+  runId           String                        @map("run_id")
+  run             ReconciliationRun             @relation(fields: [runId], references: [id])
+  type            ReconciliationDiscrepancyType
+  reference       String
+  ledgerAmount    BigInt?                       @map("ledger_amount") // centimes
+  statementAmount BigInt?                       @map("statement_amount") // centimes
+  details         String?
+
+  @@index([runId])
+  @@map("reconciliation_discrepancies")
 }
 
 // Grand livre comptable en partie double. Source de vérité financière :
