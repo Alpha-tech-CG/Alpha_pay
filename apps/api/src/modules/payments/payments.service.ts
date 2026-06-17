@@ -3,6 +3,7 @@ import { PrismaClient } from '@paybrain/database';
 import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors';
 import { detectOperator, normalizePhone } from '@paybrain/shared';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -41,7 +42,10 @@ export class PaymentsService {
         externalId: dto.externalId,
         amount: dto.amount,
         currency: dto.currency,
-        payerPhone: phone,
+        // PII chiffrée (ALP-164) : le clair ne sert qu'à l'appel opérateur ci-dessous.
+        payerPhoneEnc: new Uint8Array(encryptField(phone)),
+        payerPhoneHash: new Uint8Array(deterministicHash(phone)),
+        payerPhoneMask: maskPhone(phone),
         status: 'PENDING',
         payerMessage: dto.description,
       },

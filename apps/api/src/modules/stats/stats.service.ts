@@ -25,7 +25,11 @@ export class StatsService {
         count: t._count.id,
         volume: t._sum.amount ?? 0,
       })),
-      recent: recent.map((t) => ({ ...t, merchantName: t.merchant.name })),
+      // N'expose JAMAIS payerPhoneEnc/Hash : seulement le masque (ALP-164).
+      recent: recent.map((t) => {
+        const { payerPhoneEnc, payerPhoneHash, payerPhoneMask, merchant, ...rest } = t;
+        return { ...rest, merchantName: merchant.name, payerPhone: payerPhoneMask ?? '***' };
+      }),
     };
   }
 }

@@ -144,7 +144,10 @@ model Transaction {
   externalId       String            @map("external_id")
   amount           Decimal           @db.Decimal(15, 2)
   currency         String            @default("XAF")
-  payerPhone       String            @map("payer_phone")
+  // PII chiffrée (ALP-164) : numéro jamais en clair en base.
+  payerPhoneEnc    Bytes?            @map("payer_phone_enc")
+  payerPhoneHash   Bytes?            @map("payer_phone_hash")
+  payerPhoneMask   String?           @map("payer_phone_mask")
   status           TransactionStatus @default(PENDING)
   payerMessage     String?           @map("payer_message")
   failureReason    String?           @map("failure_reason")
@@ -161,6 +164,7 @@ model Transaction {
   @@index([merchantId])
   @@index([externalId])
   @@index([mtnReferenceId])
+  @@index([payerPhoneHash])
   @@map("transactions")
 }
 
