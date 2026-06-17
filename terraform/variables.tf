@@ -8,8 +8,9 @@ variable "environment" {
 }
 
 variable "db_rotation_lambda_arn" {
-  description = "ARN de la Lambda de rotation RDS PostgreSQL single-user, déployée via l'AWS Serverless Application Repository (app SecretsManagerRDSPostgreSQLRotationSingleUser)"
+  description = "ARN de la Lambda de rotation RDS PostgreSQL single-user (AWS SAR). Vide tant que la rotation n'est pas activée (Option A)."
   type        = string
+  default     = ""
 }
 
 variable "webhook_ip_allowlist_mtn" {

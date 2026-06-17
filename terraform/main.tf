@@ -45,7 +45,10 @@ resource "aws_ecr_repository" "api" {
 # --- ECS Cluster ---
 resource "aws_ecs_cluster" "main" {
   name = "paybrain-cluster"
-  setting { name = "containerInsights" value = "enabled" }
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
   tags = { Project = "PayBrain" }
 }
 
@@ -90,7 +93,12 @@ resource "aws_security_group" "rds" {
 resource "aws_security_group" "ecs_tasks" {
   name   = "paybrain-ecs-tasks-sg"
   vpc_id = module.vpc.vpc_id
-  egress { from_port = 0 to_port = 0 protocol = "-1" cidr_blocks = ["0.0.0.0/0"] }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 # --- Secrets Manager ---
@@ -117,14 +125,15 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
 # (app "SecretsManagerRDSPostgreSQLRotationSingleUser") plutôt que packagée
 # ici, pour rester sur le binaire maintenu par AWS plutôt qu'un artefact
 # applicatif à reconstruire à chaque rotation de runtime.
-resource "aws_secretsmanager_secret_rotation" "db_credentials" {
-  secret_id           = aws_secretsmanager_secret.db_credentials.id
-  rotation_lambda_arn = var.db_rotation_lambda_arn
-
-  rotation_rules {
-    automatically_after_days = 30
-  }
-}
+# Rotation désactivée pour le 1er déploiement (Option A, cf. docs/DEPLOYMENT.md) :
+# la Lambda SAR de rotation n'est pas encore déployée. Réactiver ensuite.
+# resource "aws_secretsmanager_secret_rotation" "db_credentials" {
+#   secret_id           = aws_secretsmanager_secret.db_credentials.id
+#   rotation_lambda_arn = var.db_rotation_lambda_arn
+#   rotation_rules {
+#     automatically_after_days = 30
+#   }
+# }
 
 resource "aws_secretsmanager_secret" "jwt_pepper" {
   name = "paybrain/${var.environment}/jwt-pepper"

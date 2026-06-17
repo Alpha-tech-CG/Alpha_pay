@@ -1,0 +1,8 @@
+# État et fichiers locaux Terraform — JAMAIS committer (contiennent des secrets).
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+plan.out
