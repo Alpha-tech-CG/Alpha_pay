@@ -30,7 +30,7 @@ export class ApiKeysService {
         name: dto.name,
         mode: mode === 'live' ? 'LIVE' : 'TEST',
         prefix,
-        hashedSecret: hashApiKeySecret(secret),
+        hashedSecret: await hashApiKeySecret(secret),
         scopes: dto.scopes ?? [],
         ipAllowlist: dto.ipAllowlist ?? [],
       },

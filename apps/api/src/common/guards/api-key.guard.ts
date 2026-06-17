@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
-import { parseApiKey, verifyApiKeySecret } from '../security/api-key';
+import { parseApiKey, verifyAgainstDummy, verifyApiKeySecret } from '../security/api-key';
 import { isIpAllowed } from '../security/ip-allowlist';
 
 @Injectable()
@@ -20,11 +20,16 @@ export class ApiKeyGuard implements CanActivate {
         where: { prefix: parsed.prefix },
         include: { merchant: { select: { id: true, name: true, isActive: true } } },
       });
+      // Préfixe inconnu : on vérifie quand même contre un hash factice pour ne
+      // pas révéler l'existence de la clé par le temps de réponse (anti-timing).
+      if (!record) {
+        await verifyAgainstDummy(parsed.secret);
+        throw new UnauthorizedException('Clé API invalide');
+      }
       if (
-        record &&
         !record.revokedAt &&
         record.merchant.isActive &&
-        verifyApiKeySecret(parsed.secret, record.hashedSecret)
+        (await verifyApiKeySecret(parsed.secret, record.hashedSecret))
       ) {
         if (record.ipAllowlist.length > 0) {
           const ip = request.ip ?? request.socket?.remoteAddress ?? '';
