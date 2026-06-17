@@ -67,8 +67,11 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
 
-  skip_final_snapshot = false
-  deletion_protection = true
+  # Mode test pour le 1er déploiement : RDS supprimable sans friction
+  # (terraform destroy). À durcir en prod (deletion_protection=true,
+  # skip_final_snapshot=false) une fois l'environnement stable.
+  skip_final_snapshot = true
+  deletion_protection = false
   multi_az            = false
 
   tags = { Project = "PayBrain" }
