@@ -10,7 +10,9 @@ import { loadSecretsFromAws } from './secrets/secrets-loader';
 async function bootstrap() {
   await loadSecretsFromAws();
 
-  const app = await NestFactory.create(AppModule);
+  // rawBody:true conserve le corps brut de la requête (req.rawBody) — indispensable
+  // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(helmet());
   app.enableCors({ origin: '*', allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization'] });

@@ -19,6 +19,7 @@ describe('WebhooksService', () => {
     prisma = {
       transaction: { findFirst: jest.fn(), update: jest.fn() },
       webhookLog: { create: jest.fn() },
+      webhookInboundEvent: { create: jest.fn().mockResolvedValue({}) },
     };
     gateway = { broadcast: jest.fn() };
     mtnGetStatus = jest.fn();
@@ -102,6 +103,27 @@ describe('WebhooksService', () => {
 
     expect(prisma.transaction.update).not.toHaveBeenCalled();
     expect(gateway.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('déduplique un event déjà reçu (P2002) sans retraiter (ALP-157)', async () => {
+    const dupErr: any = new Error('unique');
+    dupErr.code = 'P2002';
+    prisma.webhookInboundEvent.create.mockRejectedValue(dupErr);
+
+    const result = await service.handleWebhook('MTN', {
+      financialTransactionId: 'ref-dup',
+      status: 'SUCCESSFUL',
+    } as any);
+
+    expect(result).toEqual({ received: true, duplicate: true });
+    expect(prisma.transaction.findFirst).not.toHaveBeenCalled();
+    expect(prisma.transaction.update).not.toHaveBeenCalled();
+  });
+
+  it('ignore un webhook sans identifiant d\'event exploitable', async () => {
+    const result = await service.handleWebhook('MTN', { status: 'SUCCESSFUL' } as any);
+    expect(result).toEqual({ received: true });
+    expect(prisma.webhookInboundEvent.create).not.toHaveBeenCalled();
   });
 
   it('routes AIRTEL callbacks to the Airtel connector, not MTN', async () => {

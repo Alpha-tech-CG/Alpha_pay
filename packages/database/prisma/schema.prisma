@@ -39,6 +39,12 @@ enum EntryDirection {
   CREDIT
 }
 
+enum WebhookInboundStatus {
+  RECEIVED
+  PROCESSED
+  DUPLICATE
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -122,6 +128,41 @@ model PaymentLink {
   createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("payment_links")
+}
+
+// Déduplication des webhooks entrants (ALP-157 + ALP-158).
+// Garantit qu'un même event operator ne déclenche le traitement qu'une seule fois.
+model WebhookInboundEvent {
+  id              String               @id @default(uuid())
+  operator        Operator
+  providerEventId String               @map("provider_event_id")
+  signatureHex    String               @map("signature_hex")
+  timestampEpoch  Int                  @map("timestamp_epoch")
+  rawPayload      Json                 @map("raw_payload")
+  status          WebhookInboundStatus @default(RECEIVED)
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  @@unique([operator, providerEventId])
+  @@map("webhook_inbound_events")
+}
+
+// Idempotence sur POST /payments (ALP-156).
+// Mémorise la réponse 24h pour rejouer à l'identique si le marchand retente.
+model IdempotencyRecord {
+  id             String    @id @default(uuid())
+  merchantId     String    @map("merchant_id")
+  idempotencyKey String    @map("idempotency_key")
+  endpoint       String
+  requestHash    Bytes     @map("request_hash")
+  lockedUntil    DateTime? @map("locked_until")
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  expiresAt      DateTime  @map("expires_at")
+
+  @@unique([merchantId, idempotencyKey, endpoint])
+  @@index([expiresAt])
+  @@map("idempotency_records")
 }
 
 // Grand livre comptable en partie double. Source de vérité financière :

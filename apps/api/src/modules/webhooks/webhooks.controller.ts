@@ -1,33 +1,25 @@
-import { Body, Controller, NotFoundException, Param, Post } from '@nestjs/common';
-import { timingSafeEqual } from 'crypto';
+import { BadRequestException, Body, Controller, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service';
 import { WebhookPayload } from '@paybrain/shared';
+import { WebhookHmacGuard } from './guards/webhook-hmac.guard';
 
-function isValidSecret(provided: string, expected: string | undefined): boolean {
-  if (!expected) return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
+/**
+ * Webhooks entrants opérateur. Sécurisés par HMAC SHA-256 (ALP-158) :
+ * la signature `X-Signature-256` sur `${X-Timestamp}.${rawBody}` est vérifiée
+ * en amont par WebhookHmacGuard. Toute requête non signée correctement → 401.
+ */
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
-  @Post('mtn/:secret')
-  handleMtn(@Param('secret') secret: string, @Body() payload: WebhookPayload) {
-    if (!isValidSecret(secret, process.env.MTN_WEBHOOK_SECRET)) {
-      throw new NotFoundException();
+  @Post(':operator')
+  @HttpCode(200)
+  @UseGuards(WebhookHmacGuard)
+  async handle(@Param('operator') operator: string, @Body() payload: WebhookPayload) {
+    const normalized = operator.toUpperCase();
+    if (normalized !== 'MTN' && normalized !== 'AIRTEL') {
+      throw new BadRequestException('Opérateur inconnu');
     }
-    return this.webhooksService.handleWebhook('MTN', payload);
-  }
-
-  @Post('airtel/:secret')
-  handleAirtel(@Param('secret') secret: string, @Body() payload: WebhookPayload) {
-    if (!isValidSecret(secret, process.env.AIRTEL_WEBHOOK_SECRET)) {
-      throw new NotFoundException();
-    }
-    return this.webhooksService.handleWebhook('AIRTEL', payload);
+    return this.webhooksService.handleWebhook(normalized, payload);
   }
 }
