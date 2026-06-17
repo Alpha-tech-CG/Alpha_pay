@@ -2,17 +2,8 @@
 
 body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  background: #0f1117;
-  color: #e2e8f0;
+  /* Thème clair par défaut (ALP-134) ; ThemeProvider ajuste bg/couleur au montage. */
+  background: #f6f7fb;
+  color: #1a2133;
   min-height: 100vh;
-}
-
-:root {
-  --blue: #3b82f6;
-  --green: #22c55e;
-  --red: #ef4444;
-  --orange: #f59e0b;
-  --gray: #64748b;
-  --card: #1e2433;
-  --border: #2d3748;
 }
