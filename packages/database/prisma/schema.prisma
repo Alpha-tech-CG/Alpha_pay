@@ -80,6 +80,21 @@ enum NotificationStatus {
   SKIPPED
 }
 
+enum SettlementFrequency {
+  DAILY
+  T1
+  T2
+  WEEKLY
+}
+
+enum SettlementStatus {
+  PENDING_VALIDATION
+  INITIATED
+  SENT
+  CONFIRMED
+  FAILED
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -300,6 +315,56 @@ model ContactMessage {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("contact_messages")
+}
+
+// Reversement aux marchands : configuration + batches (ALP-141).
+model MerchantSettlementConfig {
+  id            String              @id @default(uuid())
+  merchantId    String              @unique @map("merchant_id")
+  frequency     SettlementFrequency @default(T1)
+  minAmountCents BigInt             @default(0) @map("min_amount_cents")
+  commissionBps Int                 @default(150) @map("commission_bps") // 1.5%
+  dayOfWeek     Int?                @map("day_of_week") // 1=lundi (fréquence WEEKLY)
+  enabled       Boolean             @default(true)
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@map("merchant_settlement_configs")
+}
+
+model SettlementBatch {
+  id                       String           @id @default(uuid())
+  batchNumber              String           @unique @map("batch_number")
+  merchantId               String           @map("merchant_id")
+  periodStart              DateTime         @map("period_start")
+  periodEnd                DateTime         @map("period_end")
+  currency                 String           @default("XAF")
+  grossCents               BigInt           @map("gross_cents")
+  commissionCents          BigInt           @map("commission_cents")
+  holdsCents               BigInt           @default(0) @map("holds_cents")
+  netCents                 BigInt           @map("net_cents")
+  status                   SettlementStatus @default(INITIATED)
+  requiresDoubleValidation Boolean          @default(false) @map("requires_double_validation")
+  validatedBy              String[]         @default([]) @map("validated_by")
+  sentAt                   DateTime?        @map("sent_at")
+  confirmedAt              DateTime?        @map("confirmed_at")
+  createdAt                DateTime         @default(now()) @map("created_at")
+  audits                   SettlementAudit[]
+
+  @@index([merchantId, status])
+  @@map("settlement_batches")
+}
+
+model SettlementAudit {
+  id        String          @id @default(uuid())
+  batchId   String          @map("batch_id")
+  batch     SettlementBatch @relation(fields: [batchId], references: [id])
+  action    String
+  actor     String
+  details   String?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([batchId])
+  @@map("settlement_audits")
 }
 
 // Notifications multi-canal (ALP-143).

@@ -1,0 +1,81 @@
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { SettlementService } from './settlement.service';
+
+function deps(overrides: any = {}) {
+  const batches: Record<string, any> = {};
+  const prisma = {
+    merchantSettlementConfig: { findUnique: jest.fn().mockResolvedValue(overrides.config ?? null) },
+    transaction: { findMany: jest.fn().mockResolvedValue(overrides.txns ?? []) },
+    settlementBatch: {
+      create: jest.fn(async ({ data }: any) => {
+        const b = { id: 'b1', ...data, validatedBy: data.validatedBy ?? [] };
+        batches[b.id] = b;
+        return b;
+      }),
+      findUnique: jest.fn(async ({ where }: any) => batches[where.id] ?? overrides.batch ?? null),
+      update: jest.fn(async ({ where, data }: any) => {
+        batches[where.id] = { ...(batches[where.id] ?? overrides.batch), ...data };
+        return batches[where.id];
+      }),
+    },
+    merchant: { findUnique: jest.fn().mockResolvedValue({ email: 'm@paybrain.cg' }) },
+  };
+  const ledger = { postEntry: jest.fn().mockResolvedValue('tx') };
+  const notifications = { send: jest.fn().mockResolvedValue({ ok: true }) };
+  const webhooks = { dispatch: jest.fn().mockResolvedValue(0) };
+  const svc = new SettlementService(prisma as any, ledger as any, notifications as any, webhooks as any);
+  return { svc, prisma, ledger, notifications, webhooks, batches };
+}
+
+const P0 = new Date('2026-06-01');
+const P1 = new Date('2026-06-02');
+
+describe('SettlementService (ALP-141)', () => {
+  it('calcule le net (gross − commission 1.5%) et trace au ledger', async () => {
+    const { svc, ledger } = deps({ txns: [{ amount: 100000n, currency: 'XAF' }, { amount: 100000n, currency: 'XAF' }] });
+    const res = await svc.run('m1', P0, P1);
+    // gross 200000, commission 1.5% = 3000, net = 197000
+    expect(res).toMatchObject({ created: true, netCents: '197000', status: 'INITIATED' });
+    expect(ledger.postEntry).toHaveBeenCalled();
+  });
+
+  it('ne crée pas de batch si net < seuil minimum', async () => {
+    const { svc } = deps({ txns: [{ amount: 1000n, currency: 'XAF' }], config: { commissionBps: 150, minAmountCents: 999999n } });
+    const res = await svc.run('m1', P0, P1);
+    expect(res.created).toBe(false);
+  });
+
+  it('exige une double validation au-dessus du seuil', async () => {
+    const { svc } = deps({ txns: [{ amount: 60_000_000n, currency: 'XAF' }] }); // net > 500k FCFA
+    const res: any = await svc.run('m1', P0, P1);
+    expect(res.requiresDoubleValidation).toBe(true);
+    expect(res.status).toBe('PENDING_VALIDATION');
+  });
+
+  it('4-eyes : refuse le même validateur deux fois, passe INITIATED avec 2 distincts', async () => {
+    const { svc, batches } = deps();
+    batches['bX'] = { id: 'bX', status: 'PENDING_VALIDATION', requiresDoubleValidation: true, validatedBy: [] };
+    const r1 = await svc.validate('bX', 'alice');
+    expect(r1.status).toBe('PENDING_VALIDATION');
+    await expect(svc.validate('bX', 'alice')).rejects.toBeInstanceOf(ForbiddenException);
+    const r2 = await svc.validate('bX', 'bob');
+    expect(r2.status).toBe('INITIATED');
+  });
+
+  it('flux send -> SENT puis confirm -> CONFIRMED + notifie le marchand', async () => {
+    const { svc, batches, notifications, webhooks } = deps();
+    batches['bS'] = { id: 'bS', status: 'INITIATED', netCents: 197000n, currency: 'XAF', batchNumber: 'STL-1', merchantId: 'm1' };
+    const sent = await svc.send('bS');
+    expect(sent.status).toBe('SENT');
+    const confirmed = await svc.confirm('bS');
+    expect(confirmed.status).toBe('CONFIRMED');
+    expect(notifications.send).toHaveBeenCalled();
+    expect(webhooks.dispatch).toHaveBeenCalled();
+  });
+
+  it('confirm refuse un batch non envoyé', async () => {
+    const { svc, batches } = deps();
+    batches['bI'] = { id: 'bI', status: 'INITIATED' };
+    await expect(svc.confirm('bI')).rejects.toBeInstanceOf(BadRequestException);
+  });
+});

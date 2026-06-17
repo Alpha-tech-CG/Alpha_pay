@@ -11,6 +11,7 @@ import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { WebhooksOutModule } from './modules/webhooks-out/webhooks-out.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { NotificationModule } from './modules/notifications/notification.module';
+import { SettlementModule } from './modules/settlement/settlement.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { DatabaseModule } from './database.module';
     WebhooksOutModule,
     ReconciliationModule,
     NotificationModule,
+    SettlementModule,
   ],
 })
 export class AppModule {}
