@@ -1,0 +1,192 @@
+# Runbook de déploiement — PayBrain (Phase 1 → prod, puis Phase 2)
+
+Procédure pas à pas pour déployer l'infrastructure, finaliser les tickets Phase 1
+encore « In Progress » (bloqués sur l'infra/externe) et préparer la Phase 2.
+
+> Convention : 🟦 = à faire dans la console/CLI AWS · 🟩 = commande locale ·
+> ⚠️ = point sensible (argent, sécurité, irréversible).
+
+---
+
+## 0. Pré-requis (une fois)
+
+| Outil | Vérif |
+|-------|-------|
+| AWS CLI v2 | `aws --version` |
+| Terraform ≥ 1.5 | `terraform version` |
+| Docker | `docker version` (à installer — absent en dev local) |
+| Node 20+ / npm | `node -v` |
+
+🟦 **Étendre les permissions IAM du déployeur.** L'utilisateur actuel
+`paybrain-terraform-deployer` n'a que `SecretsManager/KMS/CloudWatch`. Pour le
+`terraform apply` complet il faut, le temps du déploiement, attacher
+`AdministratorAccess` (puis le restreindre après le premier apply), ou a minima :
+`AmazonVPCFullAccess`, `AmazonECS_FullAccess`, `AmazonRDSFullAccess`,
+`AmazonEC2ContainerRegistryFullAccess`, `IAMFullAccess`, `AmazonS3FullAccess`,
+`AWSWAFv2FullAccess`, `CloudWatchLogsFullAccess`, `SecretsManagerReadWrite`.
+
+---
+
+## 1. Backend Terraform (S3) — ALP-122
+
+🟦 Créer le bucket d'état (région `eu-west-1`, déclaré dans `terraform/main.tf`) :
+```bash
+aws s3 mb s3://paybrain-terraform-state --region eu-west-1 --profile paybrain
+aws s3api put-bucket-versioning --bucket paybrain-terraform-state \
+  --versioning-configuration Status=Enabled --profile paybrain
+```
+
+---
+
+## 2. Provisionner l'infra cœur (VPC, RDS, ECS, ECR, Secrets) — ALP-122 / ALP-139
+
+🟩 Depuis `terraform/` :
+```bash
+cd terraform
+terraform init
+# Variables sensibles (ne pas committer) : db_username, db_password,
+# db_rotation_lambda_arn (ARN SAR), webhook_ip_allowlist_mtn/airtel.
+terraform plan  -var-file=prod.tfvars
+terraform apply -var-file=prod.tfvars   # ⚠️ crée RDS + NAT Gateway (coûts AWS)
+```
+Sortants utiles : ARN ECR, endpoint RDS, ARNs Secrets Manager, IAM role ECS task.
+
+> Rotation auto 30 j des creds DB : déployer d'abord l'app SAR
+> `SecretsManagerRDSPostgreSQLRotationSingleUser`, puis passer son ARN dans
+> `db_rotation_lambda_arn`.
+
+---
+
+## 3. Remplir les secrets (Secrets Manager) — ALP-139 / ALP-163
+
+🟦 Pour chaque secret créé par Terraform (`paybrain/prod/db-credentials`,
+`jwt-pepper`, `connector-hmac-secrets`, `clerk-keys`, `sms-email-keys`) :
+```bash
+aws secretsmanager put-secret-value --secret-id paybrain/prod/jwt-pepper \
+  --secret-string "$(openssl rand -base64 48)" --profile paybrain
+```
+Générer aussi : `API_KEY_PEPPER` (≥32), `PII_ENCRYPTION_KEY` (base64 32 octets,
+KEK du chiffrement PII ALP-164), `MTN_WEBHOOK_SECRET`/`AIRTEL_WEBHOOK_SECRET`
+(`openssl rand -hex 32`).
+L'app les charge au boot via `loadSecretsFromAws()` (cf. `AWS_SECRETS_MANAGER_SECRET_ID`).
+⚠️ **Roter** tous les secrets sandbox actuels chez les fournisseurs (MTN, Clerk).
+
+---
+
+## 4. Construire et pousser l'image API (ECR)
+
+🟩 (`apps/api/Dockerfile` embarque déjà le CA bundle RDS pour le TLS verify-full,
+ALP-165) :
+```bash
+aws ecr get-login-password --region eu-west-1 --profile paybrain \
+  | docker login --username AWS --password-stdin <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com
+docker build -t paybrain-api -f apps/api/Dockerfile .
+docker tag paybrain-api:latest <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-api:latest
+docker push <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-api:latest
+```
+
+---
+
+## 5. Base de données : schéma + immutabilité ledger
+
+🟩 Avec le `DATABASE_URL` prod (TLS verify-full — cf. `docs/DB_TLS.md`) :
+```bash
+DATABASE_URL="postgresql://USER:PASS@HOST:5432/paybrain?sslmode=verify-full&sslrootcert=/etc/ssl/rds-ca-bundle.pem" \
+  npx prisma db push --schema=packages/database/prisma/schema.prisma
+# Triggers anti-UPDATE/DELETE + vue account_balances (ALP-166) :
+DATABASE_URL="...verify-full..." node packages/database/sql/apply-triggers.mjs
+```
+
+---
+
+## 6. Déployer le service ECS Fargate — ALP-122
+
+🟦 Créer la **task definition** (image ECR, port 3000, role
+`aws_iam_role.ecs_task`, secrets injectés depuis Secrets Manager, log group
+CloudWatch) puis le **service** (Fargate, derrière un ALB).
+Health check : `GET /health`. min 2 tâches, rolling update.
+> La task definition n'est pas encore dans le Terraform : l'ajouter
+> (`aws_ecs_task_definition` + `aws_ecs_service` + `aws_lb`) ou la créer en
+> console pour le premier déploiement.
+
+---
+
+## 7. WAF — allowlist IP webhooks — ALP-160
+
+🟦 Récupérer les **vraies plages IP MTN/Airtel** (canal partenaire) → les mettre
+dans `webhook_ip_allowlist_mtn/airtel` puis :
+```bash
+terraform apply -var-file=prod.tfvars   # applique terraform/waf.tf (IP set + Web ACL)
+```
+🟦 Associer le Web ACL à l'ALB (décommenter `aws_wafv2_web_acl_association`).
+Définir aussi `MTN_WEBHOOK_IP_ALLOWLIST`/`AIRTEL_WEBHOOK_IP_ALLOWLIST` (couche app).
+
+---
+
+## 8. DNS + TLS
+
+🟦 `api.paybrain.cg` → ALB (certificat ACM), `app.paybrain.cg` (dashboard),
+`paybrain.cg` (marketing). Mettre `ALLOWED_ORIGINS` (ALP-155) =
+`https://app.paybrain.cg,https://paybrain.cg`.
+
+---
+
+## 9. Dashboard + Site marketing — ALP-134 / ALP-133
+
+🟦 **Dashboard** (Vite) : build statique → Cloudflare Pages / S3+CloudFront.
+Variables : `VITE_CLERK_PUBLISHABLE_KEY`. Clerk : passer l'instance en
+**production** (clés `pk_live_…`).
+🟦 **Marketing** (Next.js) : `apps/marketing` → Vercel ou Cloudflare Pages.
+Variables : `DATABASE_URL` (waitlist/contact), `NEXT_PUBLIC_POSTHOG_KEY` +
+`NEXT_PUBLIC_POSTHOG_HOST` (provisionner l'instance PostHog auto-hébergée).
+Lancer un audit **Lighthouse** (objectif > 90).
+
+---
+
+## 10. SDK TypeScript — ALP-138
+
+🟩 Publier le client sur npm (org `@paybrain`) :
+```bash
+cd packages/sdk && npm run build && npm publish --access public
+```
+🟦 Héberger la doc : importer `https://api.paybrain.cg/docs/openapi.json` dans
+Scalar/Mintlify, ou exposer `/reference` (déjà servi par l'API).
+
+---
+
+## 11. Observabilité — ALP-123 (Phase 0)
+
+🟦 Sentry (DSN backend + Next.js), Grafana Cloud + Loki (logs JSON), Prometheus
+(Container Insights), Better Stack (uptime sur `/health`). Câbler l'alerte
+« webhook valide HMAC mais IP hors liste » (faux positif WAF, cf.
+`docs/IP_ALLOWLIST.md`) et l'alerte email d'échec webhook (accroche déjà posée
+dans `WebhookDeliveryService`, branchera ALP-143).
+
+---
+
+## 12. Vérification post-déploiement (smoke tests prod)
+
+- `GET https://api.paybrain.cg/health` → 200
+- `GET /docs` et `/reference` → portails servis
+- `POST /payments` (clé live + Idempotency-Key) → transaction créée, PII chiffrée
+- Webhook signé → 200 ; non signé → 401 ; IP hors plage → bloqué WAF
+- `GET /internal/ledger/verify` → `{ valid: true }`
+- Dashboard : login Clerk, transactions visibles (montants en unités majeures)
+- Marketing : `/fr` et `/en`, waitlist → ligne en DB, `sitemap.xml`/`robots.txt`
+
+---
+
+## 13. Clôturer la Phase 1 et passer à la Phase 2
+
+Une fois déployé, repasser en **Done** dans Linear les tickets dont le seul reste
+était l'infra : ALP-122 (Phase 0), ALP-123 (Phase 0). ALP-133/138/160/139 sont
+déjà Done côté code ; ajouter un commentaire « déployé en prod le <date> ».
+
+**Phase 2 — Pilote** (par priorité) :
+1. ALP-140 — Moteur de réconciliation (cron + à la demande)
+2. ALP-141 — Settlement / payout engine
+3. ALP-142 — KYC pipeline (Smile Identity)
+4. ALP-143 — Notifications SMS (Africa's Talking) + email (Postmark)
+5. ALP-144 — Back-office admin (RBAC, IP allowlist)
+6. ALP-145 — Onboarder 5–10 marchands pilotes (ops)
+7. ALP-146 — Audit sécurité externe (pen test) avant fonds réels
