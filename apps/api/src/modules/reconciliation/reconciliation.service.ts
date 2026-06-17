@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Operator, PrismaClient, ReconciliationDiscrepancyType } from '@paybrain/database';
 import { StatementLine } from './statement-parser';
+import { NotificationService } from '../notifications/notification.service';
 
 // Seuil d'alerte P1 : 100 000 FCFA = 10 000 000 centimes (ALP-140).
 const ALERT_THRESHOLD_CENTS = 100_000n * 100n;
@@ -17,7 +18,10 @@ interface DiscrepancyDraft {
 export class ReconciliationService {
   private readonly logger = new Logger(ReconciliationService.name);
 
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /**
    * Rapproche un relevé opérateur du ledger interne pour une date donnée.
@@ -158,14 +162,21 @@ export class ReconciliationService {
     });
 
     if (alert) {
-      // Alerte P1 — à router vers l'ops (email/Slack) une fois ALP-143 dispo.
       this.logger.error(`ALERTE P1 réconciliation ${operator} ${report.statementDate} : écart max ${maxDiscrepancy} centimes (run ${run.id})`);
+      // Alerte ops par email (ALP-143).
+      await this.notifications.send({
+        channel: 'EMAIL',
+        to: process.env.OPS_EMAIL ?? 'ops@paybrain.cg',
+        template: 'reconciliation.alert',
+        category: 'reconciliation_alert',
+        data: { operator, date: report.statementDate, maxDiscrepancy: maxDiscrepancy.toString(), discrepancyCount: discrepancies.length, runId: run.id },
+      });
     } else {
       this.logger.log(`Réconciliation ${operator} ${report.statementDate} : ${discrepancies.length} écart(s) (run ${run.id})`);
     }
 
-    // TODO(ALP-143 + S3) : email récap à l'ops + archivage PDF/JSON du rapport en
-    // S3 (rétention 5 ans). Le rapport JSON est déjà persisté en base.
+    // TODO(S3) : archivage PDF/JSON du rapport en S3 (rétention 5 ans). Le rapport
+    // JSON est déjà persisté en base.
     return { runId: run.id, ...report };
   }
 }

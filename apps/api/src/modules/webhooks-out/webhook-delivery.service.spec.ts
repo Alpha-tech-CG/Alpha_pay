@@ -17,7 +17,7 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
     const prisma = createPrisma(ENDPOINT);
     const fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 200, text: async () => 'ok' });
     global.fetch = fetchMock as any;
-    const svc = new WebhookDeliveryService(prisma as any);
+    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
 
     const res = await svc.attempt({ ...baseDelivery });
 
@@ -34,7 +34,7 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   it('reprogramme un retry sur échec (status PENDING, nextRetryAt futur)', async () => {
     const prisma = createPrisma(ENDPOINT);
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'boom' }) as any;
-    const svc = new WebhookDeliveryService(prisma as any);
+    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
 
     await svc.attempt({ ...baseDelivery, attempts: 0 });
 
@@ -47,7 +47,7 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   it('1er retry programmé à 30s (barème exact, pas d\'off-by-one)', async () => {
     const prisma = createPrisma(ENDPOINT);
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500, text: async () => 'boom' }) as any;
-    const svc = new WebhookDeliveryService(prisma as any);
+    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
 
     const before = Date.now();
     await svc.attempt({ ...baseDelivery, attempts: 0 });
@@ -60,7 +60,7 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   it('marque FAILED une fois le barème épuisé (après le 6e délai)', async () => {
     const prisma = createPrisma(ENDPOINT);
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, text: async () => 'down' }) as any;
-    const svc = new WebhookDeliveryService(prisma as any);
+    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
 
     await svc.attempt({ ...baseDelivery, attempts: 6 }); // 6 -> attempts 7, hors barème
 
@@ -72,7 +72,7 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   it('gère un timeout réseau (fetch rejette) en reprogrammant', async () => {
     const prisma = createPrisma(ENDPOINT);
     global.fetch = jest.fn().mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' })) as any;
-    const svc = new WebhookDeliveryService(prisma as any);
+    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
 
     await svc.attempt({ ...baseDelivery, attempts: 0 });
 

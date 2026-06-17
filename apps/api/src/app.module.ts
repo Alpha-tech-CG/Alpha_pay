@@ -10,6 +10,7 @@ import { LedgerModule } from './modules/ledger/ledger.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { WebhooksOutModule } from './modules/webhooks-out/webhooks-out.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { NotificationModule } from './modules/notifications/notification.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { DatabaseModule } from './database.module';
     ApiKeysModule,
     WebhooksOutModule,
     ReconciliationModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}

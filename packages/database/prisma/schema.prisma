@@ -68,6 +68,18 @@ enum ReconciliationDiscrepancyType {
   DUPLICATE
 }
 
+enum NotificationChannel {
+  SMS
+  EMAIL
+  WEBHOOK
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -288,6 +300,34 @@ model ContactMessage {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("contact_messages")
+}
+
+// Notifications multi-canal (ALP-143).
+model NotificationLog {
+  id            String              @id @default(uuid())
+  channel       NotificationChannel
+  recipient     String
+  template      String
+  templateVersion String            @map("template_version")
+  category      String
+  status        NotificationStatus
+  error         String?
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@index([channel, status])
+  @@map("notification_logs")
+}
+
+// Préférences marchand : opt-out par (catégorie, canal). Absence = opt-in.
+model NotificationPreference {
+  id         String              @id @default(uuid())
+  merchantId String              @map("merchant_id")
+  category   String
+  channel    NotificationChannel
+  optedOut   Boolean             @default(false) @map("opted_out")
+
+  @@unique([merchantId, category, channel])
+  @@map("notification_preferences")
 }
 
 // Réconciliation : un run rapproche un relevé opérateur du ledger interne (ALP-140).

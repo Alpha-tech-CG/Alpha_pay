@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { signWebhookPayload } from '../../common/security/hmac';
+import { NotificationService } from '../notifications/notification.service';
 
 // Retry exponentiel exigé par ALP-132 (secondes) : délai APRÈS chaque échec.
 const RETRY_SCHEDULE_SEC = [30, 120, 600, 3600, 21600, 86400]; // 30s, 2m, 10m, 1h, 6h, 24h
@@ -11,7 +12,10 @@ const HTTP_TIMEOUT_MS = 10_000;
 export class WebhookDeliveryService {
   private readonly logger = new Logger(WebhookDeliveryService.name);
 
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly notifications: NotificationService,
+  ) {}
 
   /**
    * Crée une livraison PENDING par endpoint actif du marchand abonné à l'event.
@@ -121,11 +125,21 @@ export class WebhookDeliveryService {
     });
   }
 
-  /**
-   * Alerte le marchand après échec définitif. Aucun service email n'existe encore
-   * (ALP-143) : on logge en attendant, point d'accroche pour brancher l'email.
-   */
+  /** Alerte le marchand par email après échec définitif (ALP-143). */
   private async alertMerchant(endpointId: string, reason: string) {
-    this.logger.error(`Webhook endpoint ${endpointId} en échec définitif (${reason}) — alerte email à envoyer (ALP-143)`);
+    this.logger.error(`Webhook endpoint ${endpointId} en échec définitif (${reason})`);
+    const endpoint = await this.prisma.webhookEndpoint.findUnique({
+      where: { id: endpointId },
+      include: { merchant: { select: { id: true, email: true } } },
+    });
+    if (!endpoint?.merchant?.email) return;
+    await this.notifications.send({
+      channel: 'EMAIL',
+      to: endpoint.merchant.email,
+      template: 'webhook.failed',
+      category: 'webhook_failure',
+      merchantId: endpoint.merchant.id,
+      data: { url: endpoint.url, attempts: RETRY_SCHEDULE_SEC.length + 1, reason },
+    });
   }
 }

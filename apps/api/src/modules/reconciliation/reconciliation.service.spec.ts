@@ -26,7 +26,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
     const prisma = createPrisma([
       { id: 't1', mtnReferenceId: 'ref-1', externalId: 'ext-1', amount: 10000n },
     ]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [line('ref-1', 10000n)], DATE);
     expect(res.discrepancyCount).toBe(0);
     expect(res.matchedCount).toBe(1);
@@ -35,7 +35,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
 
   it('détecte STATEMENT_NOT_IN_LEDGER', async () => {
     const prisma = createPrisma([]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [line('inconnu', 5000n)], DATE);
     expect(res.discrepancies.some((d) => d.type === 'STATEMENT_NOT_IN_LEDGER')).toBe(true);
   });
@@ -44,7 +44,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
     const prisma = createPrisma([
       { id: 't1', mtnReferenceId: 'ref-1', externalId: 'ext-1', amount: 10000n },
     ]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [], DATE);
     expect(res.discrepancies.some((d) => d.type === 'LEDGER_NOT_IN_STATEMENT')).toBe(true);
   });
@@ -53,7 +53,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
     const prisma = createPrisma([
       { id: 't1', mtnReferenceId: 'ref-1', externalId: 'ext-1', amount: 10000n },
     ]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [line('ref-1', 9000n)], DATE);
     expect(res.discrepancies.some((d) => d.type === 'AMOUNT_MISMATCH')).toBe(true);
   });
@@ -62,7 +62,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
     const prisma = createPrisma([
       { id: 't1', mtnReferenceId: 'ref-1', externalId: 'ext-1', amount: 10000n },
     ]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [line('ref-1', 10000n), line('ref-1', 10000n)], DATE);
     expect(res.discrepancies.some((d) => d.type === 'DUPLICATE')).toBe(true);
   });
@@ -72,7 +72,7 @@ describe('ReconciliationService.reconcile (ALP-140)', () => {
     const prisma = createPrisma([
       { id: 't1', mtnReferenceId: 'ref-1', externalId: 'ext-1', amount: 20_000_000n },
     ]);
-    const svc = new ReconciliationService(prisma as any);
+    const svc = new ReconciliationService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
     const res = await svc.reconcile('MTN', [], DATE);
     expect(res.alert).toBe(true);
   });
