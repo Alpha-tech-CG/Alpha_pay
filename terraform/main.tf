@@ -169,6 +169,7 @@ data "aws_iam_policy_document" "ecs_task_secrets_read" {
       aws_secretsmanager_secret.connector_hmac_secrets.arn,
       aws_secretsmanager_secret.clerk_keys.arn,
       aws_secretsmanager_secret.sms_email_keys.arn,
+      aws_secretsmanager_secret.app_env.arn,
     ]
   }
 }

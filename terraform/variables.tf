@@ -25,6 +25,12 @@ variable "webhook_ip_allowlist_airtel" {
   default     = []
 }
 
+variable "acm_certificate_arn" {
+  description = "ARN du certificat ACM pour HTTPS sur l'ALB. Vide = listener HTTP only (avant d'avoir le domaine)."
+  type        = string
+  default     = ""
+}
+
 variable "db_username" {
   description = "PostgreSQL username"
   sensitive   = true
