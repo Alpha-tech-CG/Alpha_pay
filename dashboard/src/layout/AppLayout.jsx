@@ -25,6 +25,7 @@ export default function AppLayout({ children }) {
   const nav = (
     <nav>
       <NavItem to="/" label={tr('nav.dashboard')} active={location.pathname === '/'} />
+      <NavItem to="/developers" label={tr('nav.developers')} active={location.pathname === '/developers'} />
       <NavItem to="/profile" label={tr('nav.profile')} active={location.pathname === '/profile'} />
     </nav>
   )

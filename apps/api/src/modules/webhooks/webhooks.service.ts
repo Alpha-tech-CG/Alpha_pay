@@ -3,6 +3,14 @@ import { PrismaClient } from '@paybrain/database';
 import { Operator, WebhookPayload } from '@paybrain/shared';
 import { createAirtelConnector, createMtnConnector } from '@paybrain/connectors';
 import { WebhooksGateway } from './webhooks.gateway';
+import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
+
+const STATUS_EVENT: Record<string, string> = {
+  SUCCESSFUL: 'payment.succeeded',
+  FAILED: 'payment.failed',
+  REJECTED: 'payment.failed',
+  PENDING: 'payment.pending',
+};
 
 @Injectable()
 export class WebhooksService {
@@ -13,6 +21,7 @@ export class WebhooksService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly gateway: WebhooksGateway,
+    private readonly webhookDelivery: WebhookDeliveryService,
   ) {}
 
   async handleWebhook(operator: Operator, payload: WebhookPayload, eventTimestamp = Math.floor(Date.now() / 1000)) {
@@ -92,6 +101,20 @@ export class WebhooksService {
       status: verifiedStatus,
       reason: payload.reason,
     });
+
+    // Notifie le marchand via ses webhooks sortants (ALP-132).
+    const event = STATUS_EVENT[verifiedStatus];
+    if (event) {
+      await this.webhookDelivery.dispatch(transaction.merchantId, event, {
+        type: event,
+        externalId: transaction.externalId,
+        referenceId: transaction.mtnReferenceId,
+        status: verifiedStatus,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        reason: payload.reason,
+      }).catch((err) => this.logger.error(`Dispatch webhook sortant échoué: ${err?.message}`));
+    }
 
     return { received: true };
   }

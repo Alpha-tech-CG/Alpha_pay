@@ -27,7 +27,8 @@ describe('WebhooksService', () => {
     (createMtnConnector as jest.Mock).mockReturnValue({ getStatus: mtnGetStatus });
     (createAirtelConnector as jest.Mock).mockReturnValue({ getStatus: airtelGetStatus });
 
-    service = new WebhooksService(prisma, gateway as unknown as WebhooksGateway);
+    const webhookDelivery = { dispatch: jest.fn().mockResolvedValue(0) };
+    service = new WebhooksService(prisma, gateway as unknown as WebhooksGateway, webhookDelivery as any);
   });
 
   it('ignores a callback for a transaction it does not know about', async () => {

@@ -24,6 +24,15 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
       return next();
     }
 
+    const len = Number.parseInt(String(req.headers['content-length'] ?? '0'), 10);
+    const hasBody = (Number.isFinite(len) && len > 0) || req.headers['transfer-encoding'] != null;
+
+    // Requête mutante sans corps (ex. POST /:id/test, /:id/rotate) : rien à
+    // typer ni à borner, on laisse passer.
+    if (!hasBody) {
+      return next();
+    }
+
     const contentType = String(req.headers['content-type'] ?? '')
       .split(';')[0]
       .trim()
@@ -32,7 +41,6 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
       return res.status(415).json({ code: 'unsupported_media_type', message: 'Content-Type application/json requis.' });
     }
 
-    const len = Number.parseInt(String(req.headers['content-length'] ?? '0'), 10);
     if (Number.isFinite(len) && len > maxBytes) {
       return res.status(413).json({ code: 'payload_too_large', message: `Corps limité à ${maxBytes} octets.` });
     }

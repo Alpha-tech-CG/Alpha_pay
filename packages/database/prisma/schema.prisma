@@ -45,6 +45,22 @@ enum WebhookInboundStatus {
   DUPLICATE
 }
 
+enum ApiKeyMode {
+  TEST
+  LIVE
+}
+
+enum WebhookEndpointStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
 model Merchant {
   id           String        @id @default(uuid())
   name         String
@@ -55,8 +71,68 @@ model Merchant {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   transactions Transaction[]
   paymentLinks PaymentLink[]
+  apiKeys      ApiKey[]
+  webhookEndpoints WebhookEndpoint[]
 
   @@map("merchants")
+}
+
+// Clés API marchand (ALP-136). Secret haché (scrypt) — affiché une seule fois
+// à la création. Lookup par prefix unique, puis vérification du secret.
+model ApiKey {
+  id           String     @id @default(uuid())
+  merchantId   String     @map("merchant_id")
+  merchant     Merchant   @relation(fields: [merchantId], references: [id])
+  name         String
+  mode         ApiKeyMode @default(TEST)
+  prefix       String     @unique
+  hashedSecret String     @map("hashed_secret")
+  scopes       String[]   @default([])
+  ipAllowlist  String[]   @default([]) @map("ip_allowlist")
+  lastUsedAt   DateTime?  @map("last_used_at")
+  revokedAt    DateTime?  @map("revoked_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([merchantId])
+  @@map("api_keys")
+}
+
+// Endpoints webhook sortants déclarés par le marchand (ALP-132 / ALP-136).
+model WebhookEndpoint {
+  id         String                @id @default(uuid())
+  merchantId String                @map("merchant_id")
+  merchant   Merchant              @relation(fields: [merchantId], references: [id])
+  url        String
+  events     String[]              @default([])
+  secret     String // secret de signature HMAC propre à l'endpoint
+  status     WebhookEndpointStatus @default(ACTIVE)
+  createdAt  DateTime              @default(now()) @map("created_at")
+  deliveries WebhookDelivery[]
+
+  @@index([merchantId])
+  @@map("webhook_endpoints")
+}
+
+// Tentatives de livraison webhook sortantes (ALP-132). Payload + réponse stockés
+// pour debug ; retry programmé via nextRetryAt (30s, 2m, 10m, 1h, 6h, 24h).
+model WebhookDelivery {
+  id             String                @id @default(uuid())
+  endpointId     String                @map("endpoint_id")
+  endpoint       WebhookEndpoint       @relation(fields: [endpointId], references: [id])
+  event          String
+  webhookId      String                @unique @map("webhook_id")
+  payload        Json
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempts       Int                   @default(0)
+  responseStatus Int?                  @map("response_status")
+  responseBody   String?               @map("response_body")
+  lastError      String?               @map("last_error")
+  nextRetryAt    DateTime              @default(now()) @map("next_retry_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  @@index([status, nextRetryAt])
+  @@index([endpointId])
+  @@map("webhook_deliveries")
 }
 
 model Transaction {

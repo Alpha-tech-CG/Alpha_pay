@@ -36,6 +36,12 @@ describe('bodyGuard (ALP-153)', () => {
     expect(next).toHaveBeenCalled();
   });
 
+  it('laisse passer un POST sans corps (ex. /:id/test, /:id/rotate)', () => {
+    const { next, res } = run('POST', {})
+    expect(next).toHaveBeenCalled()
+    expect(res.statusCode).toBe(200)
+  })
+
   it('rejette un Content-Type text/plain en 415', () => {
     const { next, res } = run('POST', { 'content-type': 'text/plain', 'content-length': '10' });
     expect(next).not.toHaveBeenCalled();

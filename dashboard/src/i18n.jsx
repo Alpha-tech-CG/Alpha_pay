@@ -3,6 +3,7 @@ import { createContext, useContext, useMemo, useState } from 'react'
 const DICT = {
   fr: {
     'nav.dashboard': 'Tableau de bord',
+    'nav.developers': 'Développeurs',
     'nav.profile': 'Profil',
     'nav.signout': 'Déconnexion',
     'common.loading': 'Chargement…',
@@ -44,6 +45,7 @@ const DICT = {
   },
   en: {
     'nav.dashboard': 'Dashboard',
+    'nav.developers': 'Developers',
     'nav.profile': 'Profile',
     'nav.signout': 'Sign out',
     'common.loading': 'Loading…',

@@ -7,6 +7,8 @@ import { PaylinksModule } from './modules/paylinks/paylinks.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
+import { ApiKeysModule } from './modules/api-keys/api-keys.module';
+import { WebhooksOutModule } from './modules/webhooks-out/webhooks-out.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -20,6 +22,8 @@ import { DatabaseModule } from './database.module';
     StatsModule,
     OutboxModule,
     LedgerModule,
+    ApiKeysModule,
+    WebhooksOutModule,
   ],
 })
 export class AppModule {}
