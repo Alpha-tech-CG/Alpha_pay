@@ -1,4 +1,5 @@
 import { WebhookDeliveryService } from './webhook-delivery.service';
+import { encryptField } from '../../common/security/pii-crypto';
 
 function createPrisma(endpoint: any) {
   return {
@@ -58,15 +59,20 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   });
 
   it('marque FAILED une fois le barème épuisé (après le 6e délai)', async () => {
-    const prisma = createPrisma(ENDPOINT);
+    const prisma = createPrisma({
+      ...ENDPOINT,
+      merchant: { id: 'm1', emailEncrypted: encryptField('ops@merchant.test') },
+    });
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, text: async () => 'down' }) as any;
-    const svc = new WebhookDeliveryService(prisma as any, { send: jest.fn().mockResolvedValue({ ok: true }) } as any);
+    const notifications = { send: jest.fn().mockResolvedValue({ ok: true }) };
+    const svc = new WebhookDeliveryService(prisma as any, notifications as any);
 
     await svc.attempt({ ...baseDelivery, attempts: 6 }); // 6 -> attempts 7, hors barème
 
     const data = prisma.webhookDelivery.update.mock.calls[0][0].data;
     expect(data.status).toBe('FAILED');
     expect(data.attempts).toBe(7);
+    expect(notifications.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'ops@merchant.test' }));
   });
 
   it('gère un timeout réseau (fetch rejette) en reprogrammant', async () => {

@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "db:migrate": "turbo run db:migrate --filter=@paybrain/database",
+    "db:push": "turbo run db:push --filter=@paybrain/database",
     "db:generate": "turbo run db:generate --filter=@paybrain/database"
   },
   "devDependencies": {

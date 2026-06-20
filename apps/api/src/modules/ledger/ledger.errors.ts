@@ -11,3 +11,10 @@ export class EmptyEntryError extends Error {
     this.name = 'EmptyEntryError';
   }
 }
+
+export class InvalidAmountError extends Error {
+  constructor() {
+    super('amountCents doit etre un entier positif exprimant des centimes');
+    this.name = 'InvalidAmountError';
+  }
+}

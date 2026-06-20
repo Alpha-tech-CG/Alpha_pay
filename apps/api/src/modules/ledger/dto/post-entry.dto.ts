@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsIn, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 export class JournalLineDto {
   @IsString()
@@ -8,9 +8,9 @@ export class JournalLineDto {
   @IsIn(['DEBIT', 'CREDIT'])
   direction!: 'DEBIT' | 'CREDIT';
 
-  @IsNumber()
-  @Min(0.01)
-  amount!: number;
+  @IsInt()
+  @Min(1)
+  amountCents!: number;
 
   @IsString()
   currency!: string;

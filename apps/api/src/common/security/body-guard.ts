@@ -1,50 +1,55 @@
-import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from "express";
 
-const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH"]);
 
 export interface BodyGuardOptions {
   /** Taille maximale du corps en octets (défaut 8 KiB). */
   maxBytes?: number;
+  /** Chemins fournisseur autorisés à envoyer un formulaire URL-encodé. */
+  formUrlencodedPaths?: string[];
 }
 
-/**
- * Durcissement HTTP des requêtes mutantes (ALP-153) :
- *   - Content-Type ≠ application/json → 415 unsupported_media_type
- *   - Content-Length > maxBytes → 413 payload_too_large (rejet AVANT parsing)
- *
- * Le rejet sur Content-Length évite de bufferiser un payload de 1 Mo juste pour
- * le refuser ensuite. La limite du body-parser JSON (8kb) reste la deuxième
- * barrière pour les requêtes sans Content-Length honnête (chunked).
- */
+/** Borne et contrôle le type des corps HTTP avant leur traitement métier. */
 export function bodyGuard(options: BodyGuardOptions = {}) {
   const maxBytes = options.maxBytes ?? 8 * 1024;
+  const formUrlencodedPaths = options.formUrlencodedPaths ?? [];
 
-  return function bodyGuardMiddleware(req: Request, res: Response, next: NextFunction) {
-    if (!MUTATING_METHODS.has(req.method)) {
-      return next();
-    }
+  return function bodyGuardMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    if (!MUTATING_METHODS.has(req.method)) return next();
 
-    const len = Number.parseInt(String(req.headers['content-length'] ?? '0'), 10);
-    const hasBody = (Number.isFinite(len) && len > 0) || req.headers['transfer-encoding'] != null;
+    const len = Number.parseInt(
+      String(req.headers["content-length"] ?? "0"),
+      10,
+    );
+    const hasBody =
+      (Number.isFinite(len) && len > 0) ||
+      req.headers["transfer-encoding"] != null;
+    if (!hasBody) return next();
 
-    // Requête mutante sans corps (ex. POST /:id/test, /:id/rotate) : rien à
-    // typer ni à borner, on laisse passer.
-    if (!hasBody) {
-      return next();
-    }
-
-    const contentType = String(req.headers['content-type'] ?? '')
-      .split(';')[0]
+    const contentType = String(req.headers["content-type"] ?? "")
+      .split(";")[0]
       .trim()
       .toLowerCase();
-    if (contentType !== 'application/json') {
-      return res.status(415).json({ code: 'unsupported_media_type', message: 'Content-Type application/json requis.' });
-    }
+    const formAllowed =
+      contentType === "application/x-www-form-urlencoded" &&
+      formUrlencodedPaths.some((path) => req.path?.startsWith(path));
 
+    if (contentType !== "application/json" && !formAllowed) {
+      return res.status(415).json({
+        code: "unsupported_media_type",
+        message: "Content-Type application/json requis.",
+      });
+    }
     if (Number.isFinite(len) && len > maxBytes) {
-      return res.status(413).json({ code: 'payload_too_large', message: `Corps limité à ${maxBytes} octets.` });
+      return res.status(413).json({
+        code: "payload_too_large",
+        message: `Corps limité à ${maxBytes} octets.`,
+      });
     }
-
     next();
   };
 }

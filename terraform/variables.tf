@@ -5,6 +5,47 @@ variable "aws_region" {
 variable "environment" {
   description = "Environnement (prod, staging, dev) — utilisé pour préfixer les noms de secrets/rôles"
   default     = "prod"
+
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "environment doit etre dev, staging ou prod."
+  }
+}
+
+variable "vpc_cidr" {
+  description = "CIDR isole de l'environnement"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "db_instance_class" {
+  description = "Classe RDS de l'environnement"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "api_desired_count" {
+  description = "Nombre de tasks API"
+  type        = number
+  default     = 1
+}
+
+variable "api_cpu" {
+  description = "CPU Fargate de l'API"
+  type        = number
+  default     = 256
+}
+
+variable "api_memory" {
+  description = "Memoire Fargate de l'API en MiB"
+  type        = number
+  default     = 512
+}
+
+variable "api_image_tag" {
+  description = "Tag d'image initial; le pipeline remplace ensuite l'image par le SHA Git"
+  type        = string
+  default     = "latest"
 }
 
 variable "db_rotation_lambda_arn" {

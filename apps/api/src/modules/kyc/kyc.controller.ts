@@ -2,7 +2,7 @@ import { Body, Controller, Get, Inject, Post, Req, UseGuards } from '@nestjs/com
 import { PrismaClient } from '@paybrain/database';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { KycService } from './kyc.service';
-import { AddKycDocumentDto } from './dto/kyc.dto';
+import { AddKycDocumentDto, CreateKycUploadDto } from './dto/kyc.dto';
 
 // Endpoints marchand : soumission de son propre dossier KYC.
 @Controller('v1/kyc')
@@ -22,6 +22,11 @@ export class KycController {
   @Post('documents')
   addDocument(@Body() dto: AddKycDocumentDto, @Req() req: any) {
     return this.kyc.addDocument(req.merchant.id, dto.type, dto.s3Key);
+  }
+
+  @Post('documents/upload-url')
+  createUploadUrl(@Body() dto: CreateKycUploadDto, @Req() req: any) {
+    return this.kyc.createUploadUrl(req.merchant.id, dto.type, dto.contentType);
   }
 
   @Post('submit')

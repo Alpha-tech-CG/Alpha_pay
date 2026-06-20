@@ -1,6 +1,10 @@
-import { decryptField, deterministicHash, encryptField, maskEmail, maskPhone } from './pii-crypto';
+import { decryptField, deterministicHash, encryptField, maskEmail, maskPhone, normalizeEmail } from './pii-crypto';
 
 describe('pii-crypto (ALP-164)', () => {
+  it('normalise les emails avant chiffrement et indexation', () => {
+    expect(normalizeEmail('  Jean.Dupont@Example.COM ')).toBe('jean.dupont@example.com');
+  });
+
   it('chiffre puis déchiffre (roundtrip AES-256-GCM enveloppe)', () => {
     const blob = encryptField('+242066123456');
     expect(Buffer.isBuffer(blob)).toBe(true);

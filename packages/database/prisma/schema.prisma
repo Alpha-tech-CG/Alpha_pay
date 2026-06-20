@@ -17,6 +17,7 @@ enum TransactionStatus {
 enum Operator {
   MTN
   AIRTEL
+  BANK
 }
 
 enum OutboxStatus {
@@ -76,6 +77,7 @@ enum NotificationChannel {
 
 enum NotificationStatus {
   SENT
+  DELIVERED
   FAILED
   SKIPPED
 }
@@ -93,6 +95,11 @@ enum SettlementStatus {
   SENT
   CONFIRMED
   FAILED
+}
+
+enum SettlementPayoutMethod {
+  BANK
+  MOMO
 }
 
 enum KycStatus {
@@ -114,16 +121,17 @@ enum KycDocumentType {
 }
 
 model Merchant {
-  id           String        @id @default(uuid())
-  name         String
-  email        String        @unique
-  apiKey       String        @unique @map("api_key")
-  isActive     Boolean       @default(true) @map("is_active")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  transactions Transaction[]
-  paymentLinks PaymentLink[]
-  apiKeys      ApiKey[]
+  id               String            @id @default(uuid())
+  name             String
+  emailEncrypted   Bytes             @map("email_encrypted")
+  emailHash        Bytes             @unique @map("email_hash")
+  apiKey           String            @unique @map("api_key")
+  isActive         Boolean           @default(true) @map("is_active")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  transactions     Transaction[]
+  paymentLinks     PaymentLink[]
+  apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
 
   @@map("merchants")
@@ -188,29 +196,29 @@ model WebhookDelivery {
 }
 
 model Transaction {
-  id               String            @id @default(uuid())
-  merchantId       String            @map("merchant_id")
-  merchant         Merchant          @relation(fields: [merchantId], references: [id])
-  mtnReferenceId   String?           @map("mtn_reference_id")
-  operator         Operator          @default(MTN)
-  externalId       String            @map("external_id")
+  id             String             @id @default(uuid())
+  merchantId     String             @map("merchant_id")
+  merchant       Merchant           @relation(fields: [merchantId], references: [id])
+  mtnReferenceId String?            @map("mtn_reference_id")
+  operator       Operator           @default(MTN)
+  externalId     String             @map("external_id")
   // Montant en centimes (BIGINT) — entier exact, zéro arrondi flottant (ALP-168).
-  amount           BigInt
-  currency         String            @default("XAF")
+  amount         BigInt
+  currency       String             @default("XAF")
   // PII chiffrée (ALP-164) : numéro jamais en clair en base.
-  payerPhoneEnc    Bytes?            @map("payer_phone_enc")
-  payerPhoneHash   Bytes?            @map("payer_phone_hash")
-  payerPhoneMask   String?           @map("payer_phone_mask")
-  status           TransactionStatus @default(PENDING)
-  payerMessage     String?           @map("payer_message")
-  failureReason    String?           @map("failure_reason")
-  retryCount       Int               @default(0) @map("retry_count")
-  version          Int               @default(0)
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
-  webhookLogs      WebhookLog[]
-  outboxEvents     OutboxEvent[]
-  audits           TransactionAudit[]
+  payerPhoneEnc  Bytes?             @map("payer_phone_enc")
+  payerPhoneHash Bytes?             @map("payer_phone_hash")
+  payerPhoneMask String?            @map("payer_phone_mask")
+  status         TransactionStatus  @default(PENDING)
+  payerMessage   String?            @map("payer_message")
+  failureReason  String?            @map("failure_reason")
+  retryCount     Int                @default(0) @map("retry_count")
+  version        Int                @default(0)
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  webhookLogs    WebhookLog[]
+  outboxEvents   OutboxEvent[]
+  audits         TransactionAudit[]
 
   @@unique([merchantId, externalId])
   @@index([status])
@@ -254,13 +262,13 @@ model OutboxEvent {
 }
 
 model WebhookLog {
-  id               String      @id @default(uuid())
-  transactionId    String?     @map("transaction_id")
-  transaction      Transaction? @relation(fields: [transactionId], references: [id])
-  mtnReferenceId   String?     @map("mtn_reference_id")
-  event            String
-  payload          Json
-  processedAt      DateTime    @default(now()) @map("processed_at")
+  id             String       @id @default(uuid())
+  transactionId  String?      @map("transaction_id")
+  transaction    Transaction? @relation(fields: [transactionId], references: [id])
+  mtnReferenceId String?      @map("mtn_reference_id")
+  event          String
+  payload        Json
+  processedAt    DateTime     @default(now()) @map("processed_at")
 
   @@map("webhooks_log")
 }
@@ -337,18 +345,22 @@ model ContactMessage {
 
 // Pipeline KYC marchand (ALP-142). Conservation 10 ans (réglementaire).
 model KycCase {
-  id              String         @id @default(uuid())
-  merchantId      String         @unique @map("merchant_id")
-  status          KycStatus      @default(NOT_STARTED)
-  smileScore      Int?           @map("smile_score")
-  screeningHit    Boolean        @default(false) @map("screening_hit")
+  id              String        @id @default(uuid())
+  merchantId      String        @unique @map("merchant_id")
+  status          KycStatus     @default(NOT_STARTED)
+  smileScore      Int?          @map("smile_score")
+  smileJobId      String?       @unique @map("smile_job_id")
+  screeningHit    Boolean       @default(false) @map("screening_hit")
+  screeningLists  String[]      @default([]) @map("screening_lists")
+  lastScreenedAt  DateTime?     @map("last_screened_at")
   decision        String?
-  decidedBy       String?        @map("decided_by")
-  decidedAt       DateTime?      @map("decided_at")
-  rejectionReason String?        @map("rejection_reason")
-  reKycDueAt      DateTime?      @map("re_kyc_due_at")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
+  decidedBy       String?       @map("decided_by")
+  decidedAt       DateTime?     @map("decided_at")
+  rejectionReason String?       @map("rejection_reason")
+  reKycDueAt      DateTime?     @map("re_kyc_due_at")
+  reKycStartedAt  DateTime?     @map("re_kyc_started_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
   documents       KycDocument[]
   events          KycEvent[]
 
@@ -383,35 +395,43 @@ model KycEvent {
 
 // Reversement aux marchands : configuration + batches (ALP-141).
 model MerchantSettlementConfig {
-  id            String              @id @default(uuid())
-  merchantId    String              @unique @map("merchant_id")
-  frequency     SettlementFrequency @default(T1)
-  minAmountCents BigInt             @default(0) @map("min_amount_cents")
-  commissionBps Int                 @default(150) @map("commission_bps") // 1.5%
-  dayOfWeek     Int?                @map("day_of_week") // 1=lundi (fréquence WEEKLY)
-  enabled       Boolean             @default(true)
-  createdAt     DateTime            @default(now()) @map("created_at")
+  id                         String                 @id @default(uuid())
+  merchantId                 String                 @unique @map("merchant_id")
+  frequency                  SettlementFrequency    @default(T1)
+  minAmountCents             BigInt                 @default(0) @map("min_amount_cents")
+  commissionBps              Int                    @default(150) @map("commission_bps") // 1.5%
+  dayOfWeek                  Int?                   @map("day_of_week") // 1=lundi (fréquence WEEKLY)
+  enabled                    Boolean                @default(true)
+  payoutMethod               SettlementPayoutMethod @default(MOMO) @map("payout_method")
+  payoutProvider             String?                @map("payout_provider")
+  payoutDestinationEncrypted Bytes?                 @map("payout_destination_encrypted")
+  createdAt                  DateTime               @default(now()) @map("created_at")
 
   @@map("merchant_settlement_configs")
 }
 
 model SettlementBatch {
-  id                       String           @id @default(uuid())
-  batchNumber              String           @unique @map("batch_number")
-  merchantId               String           @map("merchant_id")
-  periodStart              DateTime         @map("period_start")
-  periodEnd                DateTime         @map("period_end")
-  currency                 String           @default("XAF")
-  grossCents               BigInt           @map("gross_cents")
-  commissionCents          BigInt           @map("commission_cents")
-  holdsCents               BigInt           @default(0) @map("holds_cents")
-  netCents                 BigInt           @map("net_cents")
-  status                   SettlementStatus @default(INITIATED)
-  requiresDoubleValidation Boolean          @default(false) @map("requires_double_validation")
-  validatedBy              String[]         @default([]) @map("validated_by")
-  sentAt                   DateTime?        @map("sent_at")
-  confirmedAt              DateTime?        @map("confirmed_at")
-  createdAt                DateTime         @default(now()) @map("created_at")
+  id                       String            @id @default(uuid())
+  batchNumber              String            @unique @map("batch_number")
+  merchantId               String            @map("merchant_id")
+  periodStart              DateTime          @map("period_start")
+  periodEnd                DateTime          @map("period_end")
+  currency                 String            @default("XAF")
+  grossCents               BigInt            @map("gross_cents")
+  commissionCents          BigInt            @map("commission_cents")
+  holdsCents               BigInt            @default(0) @map("holds_cents")
+  netCents                 BigInt            @map("net_cents")
+  status                   SettlementStatus  @default(INITIATED)
+  requiresDoubleValidation Boolean           @default(false) @map("requires_double_validation")
+  validatedBy              String[]          @default([]) @map("validated_by")
+  sentAt                   DateTime?         @map("sent_at")
+  confirmedAt              DateTime?         @map("confirmed_at")
+  failedAt                 DateTime?         @map("failed_at")
+  failureReason            String?           @map("failure_reason")
+  payoutProvider           String?           @map("payout_provider")
+  externalReference        String?           @map("external_reference")
+  receiptPdfKey            String?           @map("receipt_pdf_key")
+  createdAt                DateTime          @default(now()) @map("created_at")
   audits                   SettlementAudit[]
 
   @@index([merchantId, status])
@@ -433,17 +453,23 @@ model SettlementAudit {
 
 // Notifications multi-canal (ALP-143).
 model NotificationLog {
-  id            String              @id @default(uuid())
-  channel       NotificationChannel
-  recipient     String
-  template      String
-  templateVersion String            @map("template_version")
-  category      String
-  status        NotificationStatus
-  error         String?
-  createdAt     DateTime            @default(now()) @map("created_at")
+  id                String              @id @default(uuid())
+  channel           NotificationChannel
+  recipient         String
+  template          String
+  templateVersion   String              @map("template_version")
+  category          String
+  status            NotificationStatus
+  provider          String?
+  providerMessageId String?             @map("provider_message_id")
+  attempts          Int                 @default(1)
+  error             String?
+  deliveredAt       DateTime?           @map("delivered_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
 
   @@index([channel, status])
+  @@index([provider, providerMessageId])
   @@map("notification_logs")
 }
 
@@ -461,19 +487,22 @@ model NotificationPreference {
 
 // Réconciliation : un run rapproche un relevé opérateur du ledger interne (ALP-140).
 model ReconciliationRun {
-  id                String   @id @default(uuid())
-  operator          Operator
-  statementDate     DateTime @map("statement_date")
-  statementLines    Int      @map("statement_lines")
-  matchedCount      Int      @map("matched_count")
-  discrepancyCount  Int      @map("discrepancy_count")
-  totalStatement    BigInt   @map("total_statement") // centimes
-  totalLedger       BigInt   @map("total_ledger") // centimes
-  maxDiscrepancy    BigInt   @map("max_discrepancy") // centimes
-  alert             Boolean  @default(false) // true si écart > seuil P1
-  reportJson        Json     @map("report_json")
-  createdAt         DateTime @default(now()) @map("created_at")
-  discrepancies     ReconciliationDiscrepancy[]
+  id               String                      @id @default(uuid())
+  operator         Operator
+  statementDate    DateTime                    @map("statement_date")
+  statementLines   Int                         @map("statement_lines")
+  matchedCount     Int                         @map("matched_count")
+  discrepancyCount Int                         @map("discrepancy_count")
+  totalStatement   BigInt                      @map("total_statement") // centimes
+  totalLedger      BigInt                      @map("total_ledger") // centimes
+  maxDiscrepancy   BigInt                      @map("max_discrepancy") // centimes
+  alert            Boolean                     @default(false) // true si écart > seuil P1
+  reportJson       Json                        @map("report_json")
+  reportJsonKey    String?                     @map("report_json_key")
+  reportPdfKey     String?                     @map("report_pdf_key")
+  archivedAt       DateTime?                   @map("archived_at")
+  createdAt        DateTime                    @default(now()) @map("created_at")
+  discrepancies    ReconciliationDiscrepancy[]
 
   @@index([operator, statementDate])
   @@map("reconciliation_runs")
@@ -496,11 +525,11 @@ model ReconciliationDiscrepancy {
 // Grand livre comptable en partie double. Source de vérité financière :
 // immutable et auditable via chaînage cryptographique (cf. LedgerService).
 model LedgerAccount {
-  id         String         @id @default(uuid())
-  merchantId String?        @map("merchant_id")
+  id         String                  @id @default(uuid())
+  merchantId String?                 @map("merchant_id")
   name       String
   type       AccountType
-  createdAt  DateTime       @default(now()) @map("created_at")
+  createdAt  DateTime                @default(now()) @map("created_at")
   entries    JournalEntry[]
   snapshots  LedgerBalanceSnapshot[]
 
@@ -517,7 +546,7 @@ model JournalEntry {
   accountId     String         @map("account_id")
   account       LedgerAccount  @relation(fields: [accountId], references: [id])
   direction     EntryDirection
-  amount        Decimal        @db.Decimal(15, 2)
+  amount        BigInt
   currency      String
   description   String?
   prevHash      String         @map("prev_hash")
@@ -534,7 +563,7 @@ model LedgerBalanceSnapshot {
   id           String        @id @default(uuid())
   accountId    String        @map("account_id")
   account      LedgerAccount @relation(fields: [accountId], references: [id])
-  balance      Decimal       @db.Decimal(15, 2)
+  balance      BigInt
   asOfSequence BigInt        @map("as_of_sequence")
   createdAt    DateTime      @default(now()) @map("created_at")
 

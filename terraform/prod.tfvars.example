@@ -1,0 +1,7 @@
+environment       = "prod"
+vpc_cidr          = "10.30.0.0/16"
+db_instance_class = "db.t3.small"
+api_desired_count = 2
+db_username       = "<TO_BE_FILLED>"
+db_password       = "<TO_BE_FILLED>"
+acm_certificate_arn = ""

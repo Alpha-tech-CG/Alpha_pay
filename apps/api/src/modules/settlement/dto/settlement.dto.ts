@@ -1,4 +1,13 @@
-import { IsBoolean, IsIn, IsInt, IsISO8601, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+} from "class-validator";
 
 export class RunSettlementDto {
   @IsString()
@@ -20,8 +29,8 @@ export class ValidateSettlementDto {
 
 export class SettlementConfigDto {
   @IsOptional()
-  @IsIn(['DAILY', 'T1', 'T2', 'WEEKLY'])
-  frequency?: 'DAILY' | 'T1' | 'T2' | 'WEEKLY';
+  @IsIn(["DAILY", "T1", "T2", "WEEKLY"])
+  frequency?: "DAILY" | "T1" | "T2" | "WEEKLY";
 
   @IsOptional()
   @IsInt()
@@ -41,4 +50,18 @@ export class SettlementConfigDto {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
+
+  @IsOptional()
+  @IsIn(["BANK", "MOMO"])
+  payoutMethod?: "BANK" | "MOMO";
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  payoutProvider?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(5)
+  payoutDestination?: string;
 }

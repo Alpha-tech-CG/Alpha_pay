@@ -7,8 +7,16 @@ terraform {
   }
   backend "s3" {
     bucket = "paybrain-terraform-state"
-    key    = "prod/terraform.tfstate"
     region = "eu-west-1"
+  }
+}
+
+locals {
+  name_prefix = "paybrain-${var.environment}"
+  common_tags = {
+    Project     = "PayBrain"
+    Environment = var.environment
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -21,43 +29,43 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name = "paybrain-vpc"
-  cidr = "10.0.0.0/16"
+  name = "${local.name_prefix}-vpc"
+  cidr = var.vpc_cidr
 
   azs             = ["${var.aws_region}a", "${var.aws_region}b"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
+  private_subnets = [cidrsubnet(var.vpc_cidr, 8, 1), cidrsubnet(var.vpc_cidr, 8, 2)]
+  public_subnets  = [cidrsubnet(var.vpc_cidr, 8, 101), cidrsubnet(var.vpc_cidr, 8, 102)]
 
   enable_nat_gateway = true
   single_nat_gateway = true
 
-  tags = { Project = "PayBrain" }
+  tags = local.common_tags
 }
 
 # --- ECR ---
 resource "aws_ecr_repository" "api" {
-  name                 = "paybrain-api"
+  name                 = "${local.name_prefix}-api"
   image_tag_mutability = "MUTABLE"
   image_scanning_configuration { scan_on_push = true }
-  tags = { Project = "PayBrain" }
+  tags = local.common_tags
 }
 
 # --- ECS Cluster ---
 resource "aws_ecs_cluster" "main" {
-  name = "paybrain-cluster"
+  name = "${local.name_prefix}-cluster"
   setting {
     name  = "containerInsights"
     value = "enabled"
   }
-  tags = { Project = "PayBrain" }
+  tags = local.common_tags
 }
 
 # --- RDS PostgreSQL ---
 resource "aws_db_instance" "postgres" {
-  identifier        = "paybrain-db"
+  identifier        = "${local.name_prefix}-db"
   engine            = "postgres"
   engine_version    = "17"
-  instance_class    = "db.t3.micro"
+  instance_class    = var.db_instance_class
   allocated_storage = 20
 
   db_name  = "paybrain"
@@ -70,20 +78,21 @@ resource "aws_db_instance" "postgres" {
   # Mode test pour le 1er déploiement : RDS supprimable sans friction
   # (terraform destroy). À durcir en prod (deletion_protection=true,
   # skip_final_snapshot=false) une fois l'environnement stable.
-  skip_final_snapshot = true
-  deletion_protection = false
-  multi_az            = false
+  skip_final_snapshot       = var.environment != "prod"
+  final_snapshot_identifier = var.environment == "prod" ? "${local.name_prefix}-final" : null
+  deletion_protection       = var.environment == "prod"
+  multi_az                  = var.environment == "prod"
 
-  tags = { Project = "PayBrain" }
+  tags = local.common_tags
 }
 
 resource "aws_db_subnet_group" "main" {
-  name       = "paybrain-db-subnet"
+  name       = "${local.name_prefix}-db-subnet"
   subnet_ids = module.vpc.private_subnets
 }
 
 resource "aws_security_group" "rds" {
-  name   = "paybrain-rds-sg"
+  name   = "${local.name_prefix}-rds-sg"
   vpc_id = module.vpc.vpc_id
   ingress {
     from_port       = 5432
@@ -94,7 +103,7 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_security_group" "ecs_tasks" {
-  name   = "paybrain-ecs-tasks-sg"
+  name   = "${local.name_prefix}-ecs-tasks-sg"
   vpc_id = module.vpc.vpc_id
   egress {
     from_port   = 0
@@ -161,8 +170,8 @@ resource "aws_secretsmanager_secret" "sms_email_keys" {
 # rien d'autre dans Secrets Manager. ---
 data "aws_iam_policy_document" "ecs_task_secrets_read" {
   statement {
-    sid       = "ReadPaybrainSecretsOnly"
-    actions   = ["secretsmanager:GetSecretValue"]
+    sid     = "ReadPaybrainSecretsOnly"
+    actions = ["secretsmanager:GetSecretValue"]
     resources = [
       aws_secretsmanager_secret.db_credentials.arn,
       aws_secretsmanager_secret.jwt_pepper.arn,
@@ -195,4 +204,3 @@ resource "aws_iam_role" "ecs_task" {
     }]
   })
 }
-

@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { AccountType, Prisma, PrismaClient } from '@paybrain/database';
-import { EmptyEntryError, UnbalancedEntryError } from './ledger.errors';
+import { EmptyEntryError, InvalidAmountError, UnbalancedEntryError } from './ledger.errors';
 
 export interface JournalLine {
   accountId: string;
   direction: 'DEBIT' | 'CREDIT';
-  amount: number;
+  amountCents: bigint | number;
   currency: string;
   description?: string;
 }
@@ -49,11 +49,12 @@ export class LedgerService {
             let prevHash = last?.hash ?? GENESIS_HASH;
 
             for (const line of resolvedLines) {
+              const amountCents = this.toCents(line.amountCents);
               const content = [
                 transactionId,
                 line.accountId,
                 line.direction,
-                line.amount.toFixed(2),
+                amountCents.toString(),
                 line.currency,
                 line.description ?? '',
               ].join('|');
@@ -64,7 +65,7 @@ export class LedgerService {
                   transactionId,
                   accountId: line.accountId,
                   direction: line.direction,
-                  amount: line.amount,
+                  amount: amountCents,
                   currency: line.currency,
                   description: line.description,
                   prevHash,
@@ -122,21 +123,30 @@ export class LedgerService {
   }
 
   private assertBalanced(lines: JournalLine[]): void {
-    const sums = new Map<string, { debit: number; credit: number }>();
+    const sums = new Map<string, { debit: bigint; credit: bigint }>();
     for (const line of lines) {
-      const s = sums.get(line.currency) ?? { debit: 0, credit: 0 };
-      if (line.direction === 'DEBIT') s.debit += line.amount;
-      else s.credit += line.amount;
+      const s = sums.get(line.currency) ?? { debit: 0n, credit: 0n };
+      const amountCents = this.toCents(line.amountCents);
+      if (line.direction === 'DEBIT') s.debit += amountCents;
+      else s.credit += amountCents;
       sums.set(line.currency, s);
     }
     for (const [currency, s] of sums) {
-      // Comparaison en centimes pour éviter les erreurs d'arrondi flottant.
-      const debitCents = Math.round(s.debit * 100);
-      const creditCents = Math.round(s.credit * 100);
-      if (debitCents !== creditCents) {
-        throw new UnbalancedEntryError(currency, s.debit.toFixed(2), s.credit.toFixed(2));
+      if (s.debit !== s.credit) {
+        throw new UnbalancedEntryError(currency, s.debit.toString(), s.credit.toString());
       }
     }
+  }
+
+  private toCents(amountCents: bigint | number): bigint {
+    if (typeof amountCents === 'bigint') {
+      if (amountCents <= 0n) throw new InvalidAmountError();
+      return amountCents;
+    }
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
+      throw new InvalidAmountError();
+    }
+    return BigInt(amountCents);
   }
 
   /**
@@ -144,9 +154,9 @@ export class LedgerService {
    * disponible (s'il existe) et n'agrège que les lignes postérieures, pour
    * éviter de rescanner tout l'historique à chaque lecture.
    */
-  async getAccountBalance(accountIdOrName: string): Promise<number> {
+  async getAccountBalance(accountIdOrName: string): Promise<bigint> {
     const resolved = await this.resolveExistingAccountId(accountIdOrName);
-    if (!resolved) return 0;
+    if (!resolved) return 0n;
     const accountId = resolved;
 
     const snapshot = await this.prisma.ledgerBalanceSnapshot.findFirst({
@@ -163,8 +173,8 @@ export class LedgerService {
       this.prisma.journalEntry.aggregate({ where: { ...where, direction: 'DEBIT' }, _sum: { amount: true } }),
     ]);
 
-    const base = snapshot ? Number(snapshot.balance) : 0;
-    return base + Number(credits._sum.amount ?? 0) - Number(debits._sum.amount ?? 0);
+    const base = snapshot ? BigInt(snapshot.balance) : 0n;
+    return base + BigInt(credits._sum.amount ?? 0) - BigInt(debits._sum.amount ?? 0);
   }
 
   async takeSnapshot(accountIdOrName: string): Promise<void> {
@@ -206,7 +216,7 @@ export class LedgerService {
         entry.transactionId,
         entry.accountId,
         entry.direction,
-        Number(entry.amount).toFixed(2),
+        BigInt(entry.amount).toString(),
         entry.currency,
         entry.description ?? '',
       ].join('|');

@@ -1,7 +1,7 @@
 import * as fc from 'fast-check';
 import { createHash, randomUUID } from 'crypto';
 import { GENESIS_HASH, LedgerService } from './ledger.service';
-import { EmptyEntryError, UnbalancedEntryError } from './ledger.errors';
+import { EmptyEntryError, InvalidAmountError, UnbalancedEntryError } from './ledger.errors';
 
 /**
  * In-memory fake Prisma client that models just enough of the schema to
@@ -59,7 +59,7 @@ function createFakePrisma(): any {
       aggregate: async ({ where }: any) => {
         let rows = journalEntries.filter((r) => r.accountId === where.accountId && r.direction === where.direction);
         if (where.sequence?.gt !== undefined) rows = rows.filter((r) => r.sequence > where.sequence.gt);
-        const sum = rows.reduce((acc, r) => acc + Number(r.amount), 0);
+        const sum = rows.reduce((acc, r) => acc + BigInt(r.amount), 0n);
         return { _sum: { amount: rows.length ? sum : null } };
       },
     },
@@ -103,19 +103,31 @@ describe('LedgerService', () => {
     await expect(service.postEntry([])).rejects.toThrow(EmptyEntryError);
   });
 
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid amountCents: %s',
+    async (amountCents) => {
+      await expect(
+        service.postEntry([
+          { accountId: 'a', direction: 'DEBIT', amountCents, currency: 'EUR' },
+          { accountId: 'b', direction: 'CREDIT', amountCents, currency: 'EUR' },
+        ]),
+      ).rejects.toThrow(InvalidAmountError);
+    },
+  );
+
   it('rejects an unbalanced batch (sum debit !== sum credit)', async () => {
     await expect(
       service.postEntry([
-        { accountId: 'a', direction: 'DEBIT', amount: 100, currency: 'EUR' },
-        { accountId: 'b', direction: 'CREDIT', amount: 99, currency: 'EUR' },
+        { accountId: 'a', direction: 'DEBIT', amountCents: 10000, currency: 'EUR' },
+        { accountId: 'b', direction: 'CREDIT', amountCents: 9900, currency: 'EUR' },
       ]),
     ).rejects.toThrow(UnbalancedEntryError);
   });
 
   it('accepts a balanced batch and persists one row per line', async () => {
     const txId = await service.postEntry([
-      { accountId: 'merchant-wallet', direction: 'DEBIT', amount: 100, currency: 'EUR' },
-      { accountId: 'platform-revenue', direction: 'CREDIT', amount: 100, currency: 'EUR' },
+      { accountId: 'merchant-wallet', direction: 'DEBIT', amountCents: 10000, currency: 'EUR' },
+      { accountId: 'platform-revenue', direction: 'CREDIT', amountCents: 10000, currency: 'EUR' },
     ]);
 
     const rows = await prisma.journalEntry.findMany({});
@@ -125,8 +137,8 @@ describe('LedgerService', () => {
 
   it('chains the first entry off the genesis hash', async () => {
     await service.postEntry([
-      { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-      { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+      { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+      { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
     ]);
 
     const rows = await prisma.journalEntry.findMany({});
@@ -135,12 +147,12 @@ describe('LedgerService', () => {
 
   it('chains each subsequent entry off the previous entry hash', async () => {
     await service.postEntry([
-      { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-      { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+      { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+      { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
     ]);
     await service.postEntry([
-      { accountId: 'a', direction: 'CREDIT', amount: 5, currency: 'EUR' },
-      { accountId: 'b', direction: 'DEBIT', amount: 5, currency: 'EUR' },
+      { accountId: 'a', direction: 'CREDIT', amountCents: 500, currency: 'EUR' },
+      { accountId: 'b', direction: 'DEBIT', amountCents: 500, currency: 'EUR' },
     ]);
 
     const rows = await prisma.journalEntry.findMany({});
@@ -153,8 +165,8 @@ describe('LedgerService', () => {
     prisma.__forceSerializationFailureOnce();
 
     const txId = await service.postEntry([
-      { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-      { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+      { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+      { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
     ]);
 
     expect(txId).toBeDefined();
@@ -165,42 +177,42 @@ describe('LedgerService', () => {
   describe('getAccountBalance', () => {
     it('computes SUM(credit - debit) for an account', async () => {
       await service.postEntry([
-        { accountId: 'wallet', direction: 'CREDIT', amount: 100, currency: 'EUR' },
-        { accountId: 'revenue', direction: 'DEBIT', amount: 100, currency: 'EUR' },
+        { accountId: 'wallet', direction: 'CREDIT', amountCents: 10000, currency: 'EUR' },
+        { accountId: 'revenue', direction: 'DEBIT', amountCents: 10000, currency: 'EUR' },
       ]);
       await service.postEntry([
-        { accountId: 'wallet', direction: 'DEBIT', amount: 30, currency: 'EUR' },
-        { accountId: 'revenue', direction: 'CREDIT', amount: 30, currency: 'EUR' },
+        { accountId: 'wallet', direction: 'DEBIT', amountCents: 3000, currency: 'EUR' },
+        { accountId: 'revenue', direction: 'CREDIT', amountCents: 3000, currency: 'EUR' },
       ]);
 
-      expect(await service.getAccountBalance('wallet')).toBe(70);
-      expect(await service.getAccountBalance('revenue')).toBe(-70);
+      expect(await service.getAccountBalance('wallet')).toBe(7000n);
+      expect(await service.getAccountBalance('revenue')).toBe(-7000n);
     });
 
     it('uses the latest snapshot as a base and only sums entries after it', async () => {
       await service.postEntry([
-        { accountId: 'wallet', direction: 'CREDIT', amount: 100, currency: 'EUR' },
-        { accountId: 'revenue', direction: 'DEBIT', amount: 100, currency: 'EUR' },
+        { accountId: 'wallet', direction: 'CREDIT', amountCents: 10000, currency: 'EUR' },
+        { accountId: 'revenue', direction: 'DEBIT', amountCents: 10000, currency: 'EUR' },
       ]);
       await service.takeSnapshot('wallet');
       await service.postEntry([
-        { accountId: 'wallet', direction: 'CREDIT', amount: 20, currency: 'EUR' },
-        { accountId: 'revenue', direction: 'DEBIT', amount: 20, currency: 'EUR' },
+        { accountId: 'wallet', direction: 'CREDIT', amountCents: 2000, currency: 'EUR' },
+        { accountId: 'revenue', direction: 'DEBIT', amountCents: 2000, currency: 'EUR' },
       ]);
 
-      expect(await service.getAccountBalance('wallet')).toBe(120);
+      expect(await service.getAccountBalance('wallet')).toBe(12000n);
     });
   });
 
   describe('verifyChain', () => {
     it('reports a valid chain when nothing has been tampered with', async () => {
       await service.postEntry([
-        { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-        { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+        { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+        { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
       ]);
       await service.postEntry([
-        { accountId: 'a', direction: 'CREDIT', amount: 5, currency: 'EUR' },
-        { accountId: 'b', direction: 'DEBIT', amount: 5, currency: 'EUR' },
+        { accountId: 'a', direction: 'CREDIT', amountCents: 500, currency: 'EUR' },
+        { accountId: 'b', direction: 'DEBIT', amountCents: 500, currency: 'EUR' },
       ]);
 
       const result = await service.verifyChain();
@@ -210,12 +222,12 @@ describe('LedgerService', () => {
 
     it('detects a tampered amount (hash mismatch)', async () => {
       await service.postEntry([
-        { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-        { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+        { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+        { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
       ]);
 
       const rows = await prisma.journalEntry.findMany({});
-      rows[0].amount = 999; // simulates a direct DB tamper, bypassing the service
+      rows[0].amount = 99900n; // simulates a direct DB tamper, bypassing the service
 
       const result = await service.verifyChain();
       expect(result.valid).toBe(false);
@@ -224,12 +236,12 @@ describe('LedgerService', () => {
 
     it('detects a broken prevHash link', async () => {
       await service.postEntry([
-        { accountId: 'a', direction: 'DEBIT', amount: 10, currency: 'EUR' },
-        { accountId: 'b', direction: 'CREDIT', amount: 10, currency: 'EUR' },
+        { accountId: 'a', direction: 'DEBIT', amountCents: 1000, currency: 'EUR' },
+        { accountId: 'b', direction: 'CREDIT', amountCents: 1000, currency: 'EUR' },
       ]);
       await service.postEntry([
-        { accountId: 'a', direction: 'CREDIT', amount: 5, currency: 'EUR' },
-        { accountId: 'b', direction: 'DEBIT', amount: 5, currency: 'EUR' },
+        { accountId: 'a', direction: 'CREDIT', amountCents: 500, currency: 'EUR' },
+        { accountId: 'b', direction: 'DEBIT', amountCents: 500, currency: 'EUR' },
       ]);
 
       const rows = await prisma.journalEntry.findMany({});
@@ -245,18 +257,18 @@ describe('LedgerService', () => {
     const accountIdArb = fc.constantFrom('acc-1', 'acc-2', 'acc-3', 'acc-4');
     const lineArb = fc.record({
       accountId: accountIdArb,
-      amount: fc.integer({ min: 1, max: 100_000 }).map((cents) => cents / 100),
+      amountCents: fc.integer({ min: 1, max: 100_000 }),
     });
 
     it('any balanced random batch posts successfully and the chain stays valid', async () => {
       await fc.assert(
         fc.asyncProperty(fc.array(lineArb, { minLength: 1, maxLength: 6 }), async (debitLines) => {
-          const total = debitLines.reduce((s, l) => s + l.amount, 0);
+          const total = debitLines.reduce((s, l) => s + l.amountCents, 0);
           if (total === 0) return true; // évite le cas dégénéré (montant total nul)
 
           const lines = [
             ...debitLines.map((l) => ({ ...l, direction: 'DEBIT' as const, currency: 'EUR' })),
-            { accountId: 'balancing-account', direction: 'CREDIT' as const, amount: total, currency: 'EUR' },
+            { accountId: 'balancing-account', direction: 'CREDIT' as const, amountCents: total, currency: 'EUR' },
           ];
 
           const service2 = new LedgerService(createFakePrisma());
@@ -275,7 +287,7 @@ describe('LedgerService', () => {
             fc.record({
               fromAccount: accountIdArb,
               toAccount: accountIdArb,
-              amount: fc.integer({ min: 1, max: 10_000 }).map((cents) => cents / 100),
+              amountCents: fc.integer({ min: 1, max: 10_000 }),
             }),
             { minLength: 1, maxLength: 10 },
           ),
@@ -288,17 +300,17 @@ describe('LedgerService', () => {
               touchedAccounts.add(t.fromAccount);
               touchedAccounts.add(t.toAccount);
               await service2.postEntry([
-                { accountId: t.fromAccount, direction: 'CREDIT', amount: t.amount, currency: 'EUR' },
-                { accountId: t.toAccount, direction: 'DEBIT', amount: t.amount, currency: 'EUR' },
+                { accountId: t.fromAccount, direction: 'CREDIT', amountCents: t.amountCents, currency: 'EUR' },
+                { accountId: t.toAccount, direction: 'DEBIT', amountCents: t.amountCents, currency: 'EUR' },
               ]);
             }
 
-            let total = 0;
+            let total = 0n;
             for (const accountId of touchedAccounts) {
               total += await service2.getAccountBalance(accountId);
             }
 
-            return Math.abs(total) < 1e-9;
+            return total === 0n;
           },
         ),
         { numRuns: 50 },
@@ -308,12 +320,11 @@ describe('LedgerService', () => {
     it('chain verification recomputes the same hash function used at write time', async () => {
       await fc.assert(
         fc.asyncProperty(lineArb, fc.constantFrom('balancer'), async (line, balancer) => {
-          if (line.amount === 0) return true;
           const fakePrisma = createFakePrisma();
           const service2 = new LedgerService(fakePrisma);
           const txId = await service2.postEntry([
-            { accountId: line.accountId, direction: 'DEBIT', amount: line.amount, currency: 'EUR' },
-            { accountId: balancer, direction: 'CREDIT', amount: line.amount, currency: 'EUR' },
+            { accountId: line.accountId, direction: 'DEBIT', amountCents: line.amountCents, currency: 'EUR' },
+            { accountId: balancer, direction: 'CREDIT', amountCents: line.amountCents, currency: 'EUR' },
           ]);
 
           const resolvedAccount = await fakePrisma.ledgerAccount.findFirst({
@@ -323,7 +334,7 @@ describe('LedgerService', () => {
             txId,
             resolvedAccount.id,
             'DEBIT',
-            line.amount.toFixed(2),
+            line.amountCents.toString(),
             'EUR',
             '',
           ].join('|');

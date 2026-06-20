@@ -9,7 +9,7 @@
 
 resource "aws_wafv2_ip_set" "operator_webhooks" {
   name               = "paybrain-${var.environment}-operator-webhook-ips"
-  description        = "Plages IP autorisées pour les callbacks MTN/Airtel"
+  description        = "Plages IP autorisees pour les callbacks MTN/Airtel"
   scope              = "REGIONAL"
   ip_address_version = "IPV4"
   # Placeholders — à remplacer par les plages réelles MTN/Airtel.
@@ -18,7 +18,7 @@ resource "aws_wafv2_ip_set" "operator_webhooks" {
 
 resource "aws_wafv2_web_acl" "api" {
   name        = "paybrain-${var.environment}-api-acl"
-  description = "WAF de l'API PayBrain"
+  description = "WAF API PayBrain"
   scope       = "REGIONAL"
 
   default_action {

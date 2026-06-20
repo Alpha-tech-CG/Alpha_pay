@@ -15,7 +15,10 @@ RUN npm ci
 FROM deps AS builder
 COPY . .
 RUN npx prisma generate --schema=packages/database/prisma/schema.prisma
-RUN npm run build --filter=@paybrain/api
+RUN npm run build --workspace @paybrain/shared \
+  && npm run build --workspace @paybrain/database \
+  && npm run build --workspace @paybrain/connectors \
+  && npm run build --workspace @paybrain/api
 
 # Production image
 FROM node:20-alpine AS runner
@@ -32,9 +35,20 @@ RUN adduser --system --uid 1001 nestjs
 
 COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./prisma
+# npm workspaces sont des liens dans node_modules/@paybrain. Copier leurs
+# artefacts garde ces liens valides dans l'image finale.
+COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/package.json ./packages/database/package.json
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/dist ./packages/database/dist
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
+COPY --from=builder --chown=nestjs:nodejs /app/packages/database/sql ./packages/database/sql
+COPY --from=builder --chown=nestjs:nodejs /app/packages/connectors/package.json ./packages/connectors/package.json
+COPY --from=builder --chown=nestjs:nodejs /app/packages/connectors/dist ./packages/connectors/dist
 
 USER nestjs
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 
 CMD ["node", "dist/main"]

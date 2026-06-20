@@ -17,7 +17,7 @@ export class LedgerController {
   @Get('accounts/:accountId/balance')
   async getBalance(@Param('accountId') accountId: string) {
     const balance = await this.ledgerService.getAccountBalance(accountId);
-    return { accountId, balance };
+    return { accountId, balanceCents: balance.toString() };
   }
 
   @Post()

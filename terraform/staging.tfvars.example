@@ -1,0 +1,6 @@
+environment       = "staging"
+vpc_cidr          = "10.20.0.0/16"
+db_instance_class = "db.t3.micro"
+api_desired_count = 1
+db_username       = "<TO_BE_FILLED>"
+db_password       = "<TO_BE_FILLED>"

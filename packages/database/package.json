@@ -10,12 +10,16 @@
     "lint": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push --skip-generate",
     "db:migrate:dev": "prisma migrate dev",
+    "db:ledger-cents": "node sql/migrate-ledger-to-cents.mjs",
+    "db:merchant-email": "node sql/migrate-merchant-email.mjs",
     "db:studio": "prisma studio",
     "db:triggers": "node sql/apply-triggers.mjs",
     "db:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@paybrain/shared": "*",
     "@prisma/client": "^6.9.0"
   },
   "devDependencies": {

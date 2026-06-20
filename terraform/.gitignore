@@ -4,5 +4,6 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
+!*.tfvars.example
 crash.log
 plan.out

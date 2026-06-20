@@ -84,7 +84,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain_test
 
       - name: Run migrations
-        run: npm run db:migrate
+        run: npm run db:push
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain_test
 

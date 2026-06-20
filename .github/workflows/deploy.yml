@@ -1,23 +1,33 @@
 name: Deploy to AWS ECS
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 env:
   AWS_REGION: eu-west-1
-  ECR_REPOSITORY_API: paybrain-api
-  ECS_CLUSTER: paybrain-cluster
-  ECS_SERVICE_API: paybrain-api-service
+  ECR_REPOSITORY_API: paybrain-prod-api
+  ECS_CLUSTER: paybrain-prod-cluster
+  ECS_SERVICE_API: paybrain-prod-api
+  ECS_CONTAINER_API: paybrain-api
+  ECS_FALLBACK_DESIRED_COUNT: 2
 
 jobs:
   deploy:
-    name: Deploy
+    name: Deploy production
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment: production
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -30,20 +40,125 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push API image
+      - name: Build and push API image
         id: build-api
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY_API:$IMAGE_TAG -f apps/api/Dockerfile .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY_API:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY_API:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_API:$IMAGE_TAG"
+          docker build --pull -t "$IMAGE" -f apps/api/Dockerfile .
+          docker push "$IMAGE"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Download active ECS task definition
+        id: active-service
+        run: |
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_API" \
+            --query 'services[0].desiredCount' \
+            --output text)
+          test "$DESIRED_COUNT" != "None"
+          if [ "$DESIRED_COUNT" -lt 1 ]; then
+            DESIRED_COUNT="$ECS_FALLBACK_DESIRED_COUNT"
+          fi
+          echo "desired-count=$DESIRED_COUNT" >> "$GITHUB_OUTPUT"
+
+          TASK_DEFINITION=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_API" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+          test "$TASK_DEFINITION" != "None"
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_DEFINITION" \
+            --query taskDefinition > task-definition.json
+
+      - name: Render API image into task definition
+        id: render-api
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.ECS_CONTAINER_API }}
+          image: ${{ steps.build-api.outputs.image }}
+
+      - name: Run database migration task
+        env:
+          RENDERED_TASK_DEFINITION: ${{ steps.render-api.outputs.task-definition }}
+        run: |
+          # Migration incompatible avec l'ancien client Prisma : courte fenetre
+          # de maintenance pour eviter des lectures pendant le contract schema.
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE_API" \
+            --desired-count 0 > /dev/null
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_API"
+
+          jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy
+          )' "$RENDERED_TASK_DEFINITION" > migration-task-definition.json
+
+          MIGRATION_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --cli-input-json file://migration-task-definition.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          NETWORK_CONFIGURATION=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_API" \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+          OVERRIDES=$(jq -cn --arg name "$ECS_CONTAINER_API" \
+            '{containerOverrides: [{name: $name, command: ["node", "dist/scripts/migrate"]}]}')
+
+          MIGRATION_TASK=$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --task-definition "$MIGRATION_TASK_DEFINITION" \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK_CONFIGURATION" \
+            --overrides "$OVERRIDES" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+          test "$MIGRATION_TASK" != "None"
+
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$MIGRATION_TASK"
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$MIGRATION_TASK" \
+            --query "tasks[0].containers[?name=='$ECS_CONTAINER_API'].exitCode | [0]" \
+            --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            aws ecs describe-tasks \
+              --cluster "$ECS_CLUSTER" \
+              --tasks "$MIGRATION_TASK" \
+              --query 'tasks[0].{stopCode:stopCode,stoppedReason:stoppedReason,containers:containers[*].{name:name,exitCode:exitCode,reason:reason}}'
+            exit 1
+          fi
 
       - name: Deploy to ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
-          task-definition: terraform/ecs-task-def.json
+          task-definition: ${{ steps.render-api.outputs.task-definition }}
           service: ${{ env.ECS_SERVICE_API }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+      - name: Restore API capacity
+        env:
+          DESIRED_COUNT: ${{ steps.active-service.outputs.desired-count }}
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE_API" \
+            --desired-count "$DESIRED_COUNT" > /dev/null
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE_API"

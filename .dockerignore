@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+.turbo
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+terraform/.terraform
+terraform/*.tfstate*
+terraform/*.tfvars
+.env
+.env.*
+coverage
+paybrain
+securite

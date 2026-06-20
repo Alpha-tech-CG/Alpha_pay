@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { signWebhookPayload } from '../../common/security/hmac';
+import { decryptField } from '../../common/security/pii-crypto';
 import { NotificationService } from '../notifications/notification.service';
 
 // Retry exponentiel exigé par ALP-132 (secondes) : délai APRÈS chaque échec.
@@ -130,12 +131,12 @@ export class WebhookDeliveryService {
     this.logger.error(`Webhook endpoint ${endpointId} en échec définitif (${reason})`);
     const endpoint = await this.prisma.webhookEndpoint.findUnique({
       where: { id: endpointId },
-      include: { merchant: { select: { id: true, email: true } } },
+      include: { merchant: { select: { id: true, emailEncrypted: true } } },
     });
-    if (!endpoint?.merchant?.email) return;
+    if (!endpoint?.merchant?.emailEncrypted) return;
     await this.notifications.send({
       channel: 'EMAIL',
-      to: endpoint.merchant.email,
+      to: decryptField(endpoint.merchant.emailEncrypted),
       template: 'webhook.failed',
       category: 'webhook_failure',
       merchantId: endpoint.merchant.id,

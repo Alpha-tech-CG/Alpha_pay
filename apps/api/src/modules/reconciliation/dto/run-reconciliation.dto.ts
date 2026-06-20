@@ -1,8 +1,8 @@
-import { IsIn, IsISO8601, IsString, MinLength } from 'class-validator';
+import { IsIn, IsISO8601, IsString, MinLength } from "class-validator";
 
 export class RunReconciliationDto {
-  @IsIn(['MTN', 'AIRTEL'])
-  operator!: 'MTN' | 'AIRTEL';
+  @IsIn(["MTN", "AIRTEL"])
+  operator!: "MTN" | "AIRTEL";
 
   @IsISO8601()
   statementDate!: string;

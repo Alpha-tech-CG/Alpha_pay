@@ -43,13 +43,18 @@ aws s3api put-bucket-versioning --bucket paybrain-terraform-state \
 🟩 Depuis `terraform/` :
 ```bash
 cd terraform
-terraform init
+cp prod.tfvars.example prod.tfvars
+terraform init -reconfigure -backend-config=backends/prod.hcl
 # Variables sensibles (ne pas committer) : db_username, db_password,
 # db_rotation_lambda_arn (ARN SAR), webhook_ip_allowlist_mtn/airtel.
 terraform plan  -var-file=prod.tfvars
-terraform apply -var-file=prod.tfvars   # ⚠️ crée RDS + NAT Gateway (coûts AWS)
+terraform apply -var-file=prod.tfvars   # ⚠️ crée RDS Multi-AZ + NAT Gateway (coûts AWS)
 ```
 Sortants utiles : ARN ECR, endpoint RDS, ARNs Secrets Manager, IAM role ECS task.
+
+Pour `dev` ou `staging`, utiliser le couple correspondant
+`backends/<env>.hcl` + `<env>.tfvars.example`. Les noms AWS, le state, le VPC,
+RDS, ECS et les secrets sont isolés par environnement.
 
 > Rotation auto 30 j des creds DB : déployer d'abord l'app SAR
 > `SecretsManagerRDSPostgreSQLRotationSingleUser`, puis passer son ARN dans
@@ -90,16 +95,27 @@ ALP-165) :
 aws ecr get-login-password --region eu-west-1 --profile paybrain \
   | docker login --username AWS --password-stdin <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com
 docker build -t paybrain-api -f apps/api/Dockerfile .
-docker tag paybrain-api:latest <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-api:latest
-docker push <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-api:latest
+docker tag paybrain-api:latest <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-prod-api:latest
+docker push <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-prod-api:latest
 ```
 
 ---
 
 ## 5. Base de données : schéma + immutabilité ledger
 
+Le pipeline de production ouvre une courte fenêtre de maintenance : il ramène
+le service à zéro tâche, exécute `dist/scripts/migrate` dans une tâche ECS
+ponctuelle, déploie la nouvelle définition puis restaure la capacité initiale.
+Un échec de conversion, de `prisma db push` ou des triggers bloque le
+déploiement et laisse le service arrêté pour éviter de relancer une ancienne
+version sur un schéma partiellement migré.
+
 🟩 Avec le `DATABASE_URL` prod (TLS verify-full — cf. `docs/DB_TLS.md`) :
 ```bash
+# Base existante uniquement : convertir les anciennes unites majeures en centimes BIGINT.
+DATABASE_URL="...verify-full..." npm run db:ledger-cents --workspace @paybrain/database
+# Chiffrer les emails marchands avant suppression de la colonne en clair.
+DATABASE_URL="...verify-full..." PII_ENCRYPTION_KEY="...base64..." npm run db:merchant-email --workspace @paybrain/database
 DATABASE_URL="postgresql://USER:PASS@HOST:5432/paybrain?sslmode=verify-full&sslrootcert=/etc/ssl/rds-ca-bundle.pem" \
   npx prisma db push --schema=packages/database/prisma/schema.prisma
 # Triggers anti-UPDATE/DELETE + vue account_balances (ALP-166) :
@@ -117,7 +133,7 @@ service ECS (2 tâches), rôle d'exécution, association WAF→ALB. Donc le
 
 🟩 Après le 1ᵉʳ apply, forcer un déploiement avec l'image fraîchement poussée :
 ```bash
-aws ecs update-service --cluster paybrain-cluster --service paybrain-api \
+aws ecs update-service --cluster paybrain-prod-cluster --service paybrain-prod-api \
   --force-new-deployment --profile paybrain --region eu-west-1
 ```
 L'URL publique est dans l'output Terraform `alb_dns_name` (à pointer en CNAME
@@ -133,7 +149,7 @@ dans `webhook_ip_allowlist_mtn/airtel` puis :
 ```bash
 terraform apply -var-file=prod.tfvars   # applique terraform/waf.tf (IP set + Web ACL)
 ```
-🟦 Associer le Web ACL à l'ALB (décommenter `aws_wafv2_web_acl_association`).
+Le Web ACL est associé à l'ALB par `terraform/ecs.tf`.
 Définir aussi `MTN_WEBHOOK_IP_ALLOWLIST`/`AIRTEL_WEBHOOK_IP_ALLOWLIST` (couche app).
 
 ---
