@@ -30,6 +30,30 @@ export class KycProviderService {
     return { jobId: body.jobId };
   }
 
+  /**
+   * Récupère le résultat AUTORITATIF d'un job Smile (ALP-VULN).
+   *
+   * Le webhook entrant ne sert que de déclencheur : on ne fait jamais confiance
+   * au score/flags transportés dans son corps. On interroge Smile par jobId pour
+   * obtenir la décision réelle (même principe que le webhook opérateur).
+   */
+  async getJobStatus(jobId: string): Promise<SmileCallbackResult> {
+    const url = process.env.SMILE_API_URL;
+    const apiKey = process.env.SMILE_API_KEY;
+    if (!url || !apiKey) throw new ServiceUnavailableException('Smile Identity non configuré');
+    const response = await fetch(`${url.replace(/\/$/, '')}/jobs/${encodeURIComponent(jobId)}`, {
+      headers: { authorization: `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new ServiceUnavailableException(`Smile Identity indisponible (${response.status})`);
+    const body = (await response.json()) as Partial<SmileCallbackResult>;
+    return {
+      jobId,
+      score: typeof body.score === 'number' ? body.score : 0,
+      documentVerified: body.documentVerified === true,
+      biometricVerified: body.biometricVerified === true,
+    };
+  }
+
   async screenSanctions(fullName: string): Promise<ScreeningResult> {
     const url = process.env.SANCTIONS_API_URL;
     const token = process.env.SANCTIONS_API_TOKEN;

@@ -78,13 +78,17 @@ export class KycService {
     const kycCase = await this.prisma.kycCase.findUnique({ where: { smileJobId: result.jobId } });
     if (!kycCase) throw new NotFoundException('Job Smile inconnu');
     if (kycCase.status === 'APPROVED' || kycCase.status === 'REJECTED') return this.getCaseById(kycCase.id);
-    await this.prisma.kycCase.update({ where: { id: kycCase.id }, data: { smileScore: result.score } });
+
+    // On ne fait JAMAIS confiance au score/flags du corps du webhook : on
+    // ré-interroge Smile par jobId pour la décision autoritative (ALP-VULN).
+    const verified = await this.providers.getJobStatus(result.jobId);
+    await this.prisma.kycCase.update({ where: { id: kycCase.id }, data: { smileScore: verified.score } });
     const autoApprove = !kycCase.screeningHit
-      && result.score >= SMILE_AUTO_APPROVE
-      && result.documentVerified
-      && result.biometricVerified;
+      && verified.score >= SMILE_AUTO_APPROVE
+      && verified.documentVerified
+      && verified.biometricVerified;
     if (autoApprove) await this.approve(kycCase.id, kycCase.merchantId, 'smile-webhook');
-    else await this.transition(kycCase.id, 'IN_REVIEW', 'smile-webhook', `score ${result.score}; revue manuelle requise`);
+    else await this.transition(kycCase.id, 'IN_REVIEW', 'smile-webhook', `score ${verified.score}; revue manuelle requise`);
     return this.getCaseById(kycCase.id);
   }
 

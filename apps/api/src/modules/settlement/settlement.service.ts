@@ -15,9 +15,26 @@ import { toMajor } from "../../common/money";
 import { decryptField, encryptField } from "../../common/security/pii-crypto";
 import { PayoutProviderService } from "./payout-provider.service";
 import { SettlementReceiptService } from "./settlement-receipt.service";
+import { safeEqual } from "../../common/security/hmac";
 
 // Seuil au-delà duquel la double validation (4-eyes) est requise.
 const DOUBLE_VALIDATION_THRESHOLD_CENTS = 500_000n * 100n; // 500 000 FCFA
+
+/**
+ * Liste des validateurs autorisés et de leur secret propre, depuis
+ * SETTLEMENT_VALIDATORS ("alice:secretA,bob:secretB"). Chaque validateur
+ * présente SON secret : un détenteur du token interne partagé ne peut plus
+ * inventer deux noms distincts pour contourner le 4-eyes (ALP-VULN).
+ */
+function authorizedValidators(): Map<string, string> {
+  const raw = process.env.SETTLEMENT_VALIDATORS ?? "";
+  const map = new Map<string, string>();
+  for (const pair of raw.split(",").map((p) => p.trim()).filter(Boolean)) {
+    const idx = pair.indexOf(":");
+    if (idx > 0) map.set(pair.slice(0, idx).trim(), pair.slice(idx + 1).trim());
+  }
+  return map;
+}
 
 function encryptDestination(value: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(encryptField(value));
@@ -218,8 +235,29 @@ export class SettlementService {
     };
   }
 
+  /**
+   * Authentifie un validateur contre SETTLEMENT_VALIDATORS (secret propre,
+   * comparaison à temps constant). En production, la liste est obligatoire ;
+   * en dev/test sans configuration, on n'impose pas l'authentification (le
+   * filtrage reste assuré par l'InternalGuard en amont).
+   */
+  private assertAuthorizedValidator(validatorId: string, token: string | undefined) {
+    const validators = authorizedValidators();
+    if (validators.size === 0) {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("SETTLEMENT_VALIDATORS requis en production (4-eyes)");
+      }
+      return; // dev/test : pas de liste configurée
+    }
+    const secret = validators.get(validatorId);
+    if (!secret || !safeEqual(Buffer.from(token ?? ""), Buffer.from(secret))) {
+      throw new ForbiddenException("Validateur non autorisé");
+    }
+  }
+
   /** Double validation (4-eyes) : 2 validateurs distincts requis si seuil dépassé. */
-  async validate(batchId: string, validatorId: string) {
+  async validate(batchId: string, validatorId: string, validatorToken?: string) {
+    this.assertAuthorizedValidator(validatorId, validatorToken);
     const batch = await this.requireBatch(batchId);
     if (batch.status !== "PENDING_VALIDATION") {
       throw new BadRequestException(

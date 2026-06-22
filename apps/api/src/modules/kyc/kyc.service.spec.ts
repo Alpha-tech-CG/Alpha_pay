@@ -34,6 +34,8 @@ function dependencies(screening = { hit: false, lists: [] as string[] }) {
   const providers = {
     screenSanctions: jest.fn().mockResolvedValue(screening),
     startSmileVerification: jest.fn().mockResolvedValue({ jobId: 'smile-1' }),
+    // Résultat autoritatif ré-interrogé (le webhook n'est qu'un déclencheur).
+    getJobStatus: jest.fn().mockResolvedValue({ jobId: 'smile-1', score: 95, documentVerified: true, biometricVerified: true }),
   };
   const storage = { verifyUploadedDocument: jest.fn().mockResolvedValue(undefined), createUploadUrl: jest.fn() };
   return { providers, storage };

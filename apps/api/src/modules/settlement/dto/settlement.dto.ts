@@ -21,12 +21,6 @@ export class RunSettlementDto {
   periodEnd!: string;
 }
 
-export class ValidateSettlementDto {
-  @IsString()
-  @MinLength(1)
-  validatorId!: string;
-}
-
 export class SettlementConfigDto {
   @IsOptional()
   @IsIn(["DAILY", "T1", "T2", "WEEKLY"])

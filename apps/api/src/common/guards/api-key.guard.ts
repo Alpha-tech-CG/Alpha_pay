@@ -44,14 +44,9 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('Clé API invalide');
     }
 
-    // 2. Compat : clé legacy stockée en clair sur Merchant.apiKey.
-    const merchant = await this.prisma.merchant.findUnique({
-      where: { apiKey, isActive: true },
-      select: { id: true, name: true },
-    });
-    if (!merchant) throw new UnauthorizedException('Clé API invalide');
-
-    request.merchant = merchant;
-    return true;
+    // Format non reconnu : aucune clé legacy en clair n'est plus acceptée
+    // (ALP-VULN : la comparaison en clair contournait hachage, révocation,
+    // scopes et IP allowlist). Toute clé doit passer par le format haché pk_*.
+    throw new UnauthorizedException('Clé API invalide');
   }
 }

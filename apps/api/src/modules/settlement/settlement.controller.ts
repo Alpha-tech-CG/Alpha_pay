@@ -2,9 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Post,
   Put,
+  UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import { InternalGuard } from "../../common/guards/internal.guard";
@@ -12,7 +14,6 @@ import { SettlementService } from "./settlement.service";
 import {
   RunSettlementDto,
   SettlementConfigDto,
-  ValidateSettlementDto,
 } from "./dto/settlement.dto";
 
 @Controller("internal/settlements")
@@ -40,8 +41,16 @@ export class SettlementController {
   }
 
   @Post(":id/validate")
-  validate(@Param("id") id: string, @Body() dto: ValidateSettlementDto) {
-    return this.settlement.validate(id, dto.validatorId);
+  validate(
+    @Param("id") id: string,
+    @Headers("x-validator-id") validatorId: string,
+    @Headers("x-validator-token") validatorToken: string,
+  ) {
+    // L'identité du validateur est un credential (en-tête), jamais une simple
+    // chaîne du corps : couplée à SETTLEMENT_VALIDATORS, elle garantit deux
+    // validateurs réellement distincts pour le 4-eyes (ALP-VULN).
+    if (!validatorId) throw new UnauthorizedException("X-Validator-Id requis");
+    return this.settlement.validate(id, validatorId, validatorToken);
   }
 
   @Post(":id/send")
