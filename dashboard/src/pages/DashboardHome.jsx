@@ -186,40 +186,44 @@ export default function DashboardHome() {
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 15, marginRight: 8 }}>Transactions récentes</span>
-          {['ALL', 'PENDING', 'SUCCESSFUL', 'FAILED', 'REJECTED'].map((s) => (
-            <button key={s} onClick={() => setFilter(s)} style={{
-              padding: '4px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
-              background: filter === s ? t.primary : t.surfaceAlt, color: filter === s ? t.primaryText : t.textMuted,
-            }}>{s}</button>
-          ))}
+          <span style={{ fontWeight: 700, fontSize: 16 }}>Transactions récentes</span>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: t.textMuted }}>{filtered.length} résultats</span>
+          <div style={{ flexBasis: '100%', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+            {['ALL', 'PENDING', 'SUCCESSFUL', 'FAILED', 'REJECTED'].map((s) => (
+              <button key={s} onClick={() => setFilter(s)} style={{
+                padding: '5px 14px', borderRadius: 9999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                background: filter === s ? t.primary : t.surfaceAlt, color: filter === s ? t.primaryText : t.textMuted,
+              }}>{s === 'ALL' ? 'Tout' : <Badge status={s} />}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: t.surfaceAlt }}>
-                {['Marchand', 'Ext. ID', 'Montant', 'Téléphone', 'Statut', 'Date'].map((h) => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: t.textMuted, letterSpacing: 1, borderBottom: `1px solid ${t.border}` }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: 48, textAlign: 'center', color: t.textMuted }}>Aucune transaction</td></tr>
-              )}
-              {filtered.map((x) => (
-                <tr key={x.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                  <td style={{ padding: '10px 16px', fontSize: 13, color: t.textMuted }}>{x.merchantName || '—'}</td>
-                  <td style={{ padding: '10px 16px', fontSize: 11, fontFamily: 'monospace', color: t.textMuted }}>{x.externalId}</td>
-                  <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700 }}>{Number(x.amount).toLocaleString('fr-FR')}<span style={{ fontSize: 11, color: t.textMuted, marginLeft: 4 }}>{x.currency}</span></td>
-                  <td style={{ padding: '10px 16px', fontSize: 12, fontFamily: 'monospace', color: t.textMuted }}>{x.payerPhone}</td>
-                  <td style={{ padding: '10px 16px' }}><Badge status={x.status} /></td>
-                  <td style={{ padding: '10px 16px', fontSize: 11, color: t.textMuted }}>{new Date(x.createdAt).toLocaleString('fr-FR')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          {filtered.length === 0 && (
+            <div style={{ padding: 48, textAlign: 'center', color: t.textMuted, fontSize: 14 }}>Aucune transaction</div>
+          )}
+          {filtered.map((x) => (
+            <div key={x.id} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px',
+              borderBottom: `1px solid ${t.border}`,
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                background: `${t.status[x.status] || t.primary}1f`, color: t.status[x.status] || t.primary,
+                display: 'grid', placeItems: 'center', fontSize: 17,
+              }}>{x.status === 'SUCCESSFUL' ? '✓' : x.status === 'PENDING' ? '⏳' : '✕'}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.merchantName || 'Marchand'}</div>
+                <div style={{ fontSize: 12, color: t.textMuted, fontFamily: 'monospace' }}>{x.externalId}</div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: t.text }}>
+                  {Number(x.amount).toLocaleString('fr-FR')}<span style={{ fontSize: 11, color: t.textMuted, marginLeft: 3 }}>{x.currency}</span>
+                </div>
+                <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{new Date(x.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+              <div style={{ flexShrink: 0 }}><Badge status={x.status} /></div>
+            </div>
+          ))}
         </div>
       </Card>
     </>

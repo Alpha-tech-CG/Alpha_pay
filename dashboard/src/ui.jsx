@@ -60,13 +60,18 @@ export function Select(props) {
   )
 }
 
+// Pastille de statut façon Stitch : fond teinté 12 %, texte de la même couleur,
+// forme pilule (rounded-full).
+const STATUS_LABEL = {
+  SUCCESSFUL: 'Réussi', PENDING: 'En attente', FAILED: 'Échoué', REJECTED: 'Rejeté',
+}
 export function Badge({ status }) {
   const { status: colors } = useTheme()
   const c = colors[status] || '#64748b'
   return (
     <span style={{
-      color: c, border: `1px solid ${c}`, borderRadius: 6,
-      padding: '2px 10px', fontSize: 12, fontWeight: 700,
-    }}>{status}</span>
+      color: c, background: `${c}1f`, borderRadius: 9999,
+      padding: '3px 11px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+    }}>{STATUS_LABEL[status] || status}</span>
   )
 }
