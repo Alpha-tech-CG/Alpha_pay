@@ -1,10 +1,7 @@
 import axios from 'axios'
 
-// Clé API marchand pour le dashboard. À terme, dérivée de la session marchand ;
-// pour le MVP elle reste partagée (cf. clé éducative).
-export const API_KEY = 'paybrain-key-alpha-educ-2026'
-
+// La clé API marchand n'est JAMAIS dans le navigateur : le proxy Vite (dev) /
+// le BFF (prod) l'injecte côté serveur sur chaque requête /api (cf. charte AuthN).
 export const api = axios.create({
   baseURL: '/api',
-  headers: { 'X-API-Key': API_KEY },
 })

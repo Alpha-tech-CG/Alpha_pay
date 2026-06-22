@@ -1,28 +1,29 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
+// Identité « Lumina Finance » (design Stitch) : émeraude sur fond clair.
 // Thème clair par défaut (cf. ALP-134), dark optionnel.
 const LIGHT = {
   mode: 'light',
-  bg: '#f6f7fb',
+  bg: '#f7f9f8',
   surface: '#ffffff',
-  surfaceAlt: '#f1f3f9',
-  border: '#e2e6ef',
-  text: '#1a2133',
-  textMuted: '#64748b',
-  primary: '#3b56f0',
+  surfaceAlt: '#ecf6f1',
+  border: '#e6ece9',
+  text: '#151c27',
+  textMuted: '#5c6b63',
+  primary: '#059669',
   primaryText: '#ffffff',
-  shadow: '0 1px 3px rgba(20,30,60,0.08)',
+  shadow: '0 4px 6px rgba(16,24,40,0.03)',
 }
 const DARK = {
   mode: 'dark',
-  bg: '#0f1117',
-  surface: '#1e2433',
-  surfaceAlt: '#161b2a',
-  border: '#2d3748',
-  text: '#e2e8f0',
-  textMuted: '#64748b',
-  primary: '#3b82f6',
-  primaryText: '#ffffff',
+  bg: '#0c1512',
+  surface: '#11201b',
+  surfaceAlt: '#0e1a16',
+  border: '#1f3a30',
+  text: '#e7f1ec',
+  textMuted: '#7e948a',
+  primary: '#10b981',
+  primaryText: '#04140d',
   shadow: '0 1px 3px rgba(0,0,0,0.4)',
 }
 

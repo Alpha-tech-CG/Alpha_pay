@@ -7,8 +7,9 @@ import { Card, Button, Field, Input, Select, Badge } from '../ui'
 
 const API = '/api'
 const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
-const API_KEY = 'paybrain-key-alpha-educ-2026'
-const headers = { 'X-API-Key': API_KEY }
+// La clé API marchand est injectée par le proxy (jamais dans le navigateur).
+// On ne garde ici que les en-têtes non sensibles (ex. Idempotency-Key au POST).
+const headers = {}
 
 function StatCard({ label, value, sub, color }) {
   const { t } = useTheme()
