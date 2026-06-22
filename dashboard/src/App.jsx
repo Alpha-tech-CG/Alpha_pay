@@ -3,6 +3,7 @@ import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
 import { SignInPage, SignUpPage } from './auth/AuthPages'
 import AppLayout from './layout/AppLayout'
 import DashboardHome from './pages/DashboardHome'
+import Payments from './pages/Payments'
 import Developers from './pages/Developers'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
@@ -37,6 +38,7 @@ export default function App() {
 
       {/* App protégée avec layout */}
       <Route path="/" element={<Protected><AppLayout><DashboardHome /></AppLayout></Protected>} />
+      <Route path="/payments" element={<Protected><AppLayout><Payments /></AppLayout></Protected>} />
       <Route path="/developers" element={<Protected><AppLayout><Developers /></AppLayout></Protected>} />
       <Route path="/profile" element={<Protected><AppLayout><Profile /></AppLayout></Protected>} />
 
