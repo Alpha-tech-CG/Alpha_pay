@@ -13,6 +13,7 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
 import { NotificationModule } from './modules/notifications/notification.module';
 import { SettlementModule } from './modules/settlement/settlement.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { UssdModule } from './modules/ussd/ussd.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { DatabaseModule } from './database.module';
     NotificationModule,
     SettlementModule,
     KycModule,
+    UssdModule,
   ],
 })
 export class AppModule {}

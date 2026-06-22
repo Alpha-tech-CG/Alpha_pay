@@ -43,7 +43,7 @@ async function bootstrap() {
   app.use(
     bodyGuard({
       maxBytes: MAX_BODY_BYTES,
-      formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
+      formUrlencodedPaths: ["/webhooks/notifications/africastalking", "/ussd"],
     }),
   );
 

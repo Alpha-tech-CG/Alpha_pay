@@ -279,6 +279,7 @@ model PaymentLink {
   amount      BigInt // centimes (ALP-168)
   currency    String    @default("XAF")
   description String
+  code        String?   @unique @map("ussd_code") // code court composable en USSD (téléphones à touches)
   expiresAt   DateTime? @map("expires_at")
   usedAt      DateTime? @map("used_at")
   createdAt   DateTime  @default(now()) @map("created_at")
