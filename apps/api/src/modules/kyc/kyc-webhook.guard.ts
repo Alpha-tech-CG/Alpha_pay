@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
-import { timingSafeEqual } from 'crypto';
+import { safeEqual } from '../../common/security/hmac';
 
 @Injectable()
 export class SmileWebhookGuard implements CanActivate {
@@ -7,9 +7,10 @@ export class SmileWebhookGuard implements CanActivate {
     const expected = process.env.SMILE_WEBHOOK_SECRET;
     const supplied = context.switchToHttp().getRequest().headers['x-smile-signature'];
     if (!expected || typeof supplied !== 'string') throw new UnauthorizedException('Signature Smile absente');
-    const left = Buffer.from(supplied);
-    const right = Buffer.from(expected);
-    if (left.length !== right.length || !timingSafeEqual(left, right)) throw new UnauthorizedException('Signature Smile invalide');
+    // safeEqual masque la différence de longueur (pas de fuite timing sur la taille du secret).
+    if (!safeEqual(Buffer.from(supplied), Buffer.from(expected))) {
+      throw new UnauthorizedException('Signature Smile invalide');
+    }
     return true;
   }
 }

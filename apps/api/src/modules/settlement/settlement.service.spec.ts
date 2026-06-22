@@ -36,7 +36,24 @@ function deps(overrides: any = {}) {
         };
         return batches[where.id];
       }),
+      updateMany: jest.fn(async ({ where, data }: any) => {
+        const b = batches[where.id] ?? overrides.batch;
+        if (!b) return { count: 0 };
+        const curV = b.version ?? 0;
+        const wantV = where.version ?? 0;
+        if (curV !== wantV) return { count: 0 };
+        if (where.status && b.status !== where.status) return { count: 0 };
+        const excluded = where.NOT?.validatedBy?.has;
+        if (excluded && (b.validatedBy ?? []).includes(excluded)) return { count: 0 };
+        batches[where.id] = {
+          ...b,
+          ...data,
+          version: curV + 1,
+        };
+        return { count: 1 };
+      }),
     },
+    settlementAudit: { create: jest.fn().mockResolvedValue({}) },
     merchant: {
       findUnique: jest
         .fn()

@@ -423,6 +423,7 @@ model SettlementBatch {
   status                   SettlementStatus  @default(INITIATED)
   requiresDoubleValidation Boolean           @default(false) @map("requires_double_validation")
   validatedBy              String[]          @default([]) @map("validated_by")
+  version                  Int               @default(0)
   sentAt                   DateTime?         @map("sent_at")
   confirmedAt              DateTime?         @map("confirmed_at")
   failedAt                 DateTime?         @map("failed_at")

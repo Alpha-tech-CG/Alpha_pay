@@ -107,7 +107,12 @@ async function bootstrap() {
     }),
   );
 
-  // Documentation OpenAPI + playground interactif sur /docs (ALP-138).
+  // Documentation OpenAPI + playground interactif (ALP-138).
+  // Désactivée en production par défaut (réduit la divulgation de la surface
+  // d'API) ; réactivable explicitement via ENABLE_API_DOCS=true.
+  const docsEnabled =
+    process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "true";
+  if (docsEnabled) {
   const swaggerConfig = new DocumentBuilder()
     .setTitle("PayBrain API")
     .setDescription(
@@ -137,6 +142,7 @@ async function bootstrap() {
   // Portail développeur Scalar (ALP-138) — rendu moderne sur /reference,
   // basé sur la même spec OpenAPI.
   app.use("/reference", apiReference({ content: openapi, theme: "purple" }));
+  }
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);

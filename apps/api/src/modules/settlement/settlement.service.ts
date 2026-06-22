@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -272,18 +273,38 @@ export class SettlementService {
     const validatedBy = [...batch.validatedBy, validatorId];
     const enough =
       validatedBy.length >= (batch.requiresDoubleValidation ? 2 : 1);
+    const nextStatus: SettlementStatus = enough
+      ? "INITIATED"
+      : "PENDING_VALIDATION";
 
-    const updated = await this.prisma.settlementBatch.update({
-      where: { id: batchId },
+    // CAS atomique (ALP-VULN #6) : l'UPDATE ne s'applique que si la version, le
+    // statut et l'absence de ce validateur tiennent TOUJOURS au moment de
+    // l'écriture. Deux requêtes concurrentes ne peuvent pas pousser le même
+    // validateur ni dépasser le compte attendu — la perdante tombe en 409.
+    const updated = await this.prisma.settlementBatch.updateMany({
+      where: {
+        id: batchId,
+        version: batch.version,
+        status: "PENDING_VALIDATION",
+        NOT: { validatedBy: { has: validatorId } },
+      },
       data: {
         validatedBy,
-        status: enough ? "INITIATED" : "PENDING_VALIDATION",
-        audits: { create: { action: "VALIDATED", actor: validatorId } },
+        status: nextStatus,
+        version: { increment: 1 },
       },
+    });
+    if (updated.count === 0) {
+      throw new ConflictException(
+        "Validation concurrente détectée — réessayez",
+      );
+    }
+    await this.prisma.settlementAudit.create({
+      data: { batchId, action: "VALIDATED", actor: validatorId },
     });
     return {
       id: batchId,
-      status: updated.status,
+      status: nextStatus,
       validators: validatedBy.length,
     };
   }
