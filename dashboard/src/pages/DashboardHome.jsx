@@ -22,6 +22,38 @@ function StatCard({ label, value, sub, color }) {
   )
 }
 
+// Hero card façon Stitch : volume total encaissé (émeraude) + ventilation opérateur.
+function HeroBalance({ volume, byOperator }) {
+  const { t } = useTheme()
+  const op = (name) => byOperator.find((o) => o.operator === name)
+  const sub = (name, label) => {
+    const o = op(name)
+    return (
+      <div style={{ flex: 1, background: 'rgba(255,255,255,0.14)', borderRadius: 12, padding: '12px 14px' }}>
+        <div style={{ fontSize: 12, opacity: 0.85, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff', opacity: 0.9 }} />{label}
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>{(o ? Number(o.volume) : 0).toLocaleString('fr-FR')}</div>
+      </div>
+    )
+  }
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${t.primary} 0%, #047857 100%)`, color: '#fff',
+      borderRadius: 18, padding: '22px 24px', marginBottom: 24,
+      boxShadow: '0 10px 24px rgba(5,150,105,0.18)',
+    }}>
+      <div style={{ fontSize: 12, letterSpacing: 1.5, opacity: 0.85, fontWeight: 700, textTransform: 'uppercase' }}>Volume total encaissé</div>
+      <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.02em', margin: '6px 0 4px' }}>{volume}</div>
+      <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 16 }}>transactions réussies · toutes devises</div>
+      <div style={{ display: 'flex', gap: 12 }}>
+        {sub('MTN', 'MTN MoMo')}
+        {sub('AIRTEL', 'Airtel Money')}
+      </div>
+    </div>
+  )
+}
+
 function PaymentForm({ onPaymentInitiated }) {
   const [form, setForm] = useState({ amount: '', currency: 'EUR', phone: '', externalId: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
@@ -115,7 +147,7 @@ function PaylinkForm() {
 export default function DashboardHome() {
   const { t } = useTheme()
   const { t: tr } = useT()
-  const [stats, setStats] = useState({ totals: [], recent: [] })
+  const [stats, setStats] = useState({ totals: [], recent: [], byOperator: [] })
   const [filter, setFilter] = useState('ALL')
   const [wsStatus, setWsStatus] = useState('connecting')
   const [flash, setFlash] = useState(null)
@@ -173,6 +205,8 @@ export default function DashboardHome() {
           </div>
         </Card>
       )}
+
+      <HeroBalance volume={volume} byOperator={stats.byOperator || []} />
 
       <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
         <StatCard label="Total transactions" value={total} sub="toutes périodes" />

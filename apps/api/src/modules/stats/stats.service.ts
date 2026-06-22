@@ -7,9 +7,16 @@ export class StatsService {
   constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
 
   async getStats() {
-    const [totals, recent] = await Promise.all([
+    const [totals, byOperator, recent] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['status'],
+        _count: { id: true },
+        _sum: { amount: true },
+      }),
+      // Volume encaissé (SUCCESSFUL) ventilé par opérateur — alimente la hero card.
+      this.prisma.transaction.groupBy({
+        by: ['operator'],
+        where: { status: 'SUCCESSFUL' },
         _count: { id: true },
         _sum: { amount: true },
       }),
@@ -25,6 +32,11 @@ export class StatsService {
         status: t.status,
         count: t._count.id,
         volume: t._sum.amount != null ? toMajor(t._sum.amount) : 0,
+      })),
+      byOperator: byOperator.map((o) => ({
+        operator: o.operator,
+        count: o._count.id,
+        volume: o._sum.amount != null ? toMajor(o._sum.amount) : 0,
       })),
       // N'expose JAMAIS payerPhoneEnc/Hash : seulement le masque (ALP-164).
       recent: recent.map((t) => {
