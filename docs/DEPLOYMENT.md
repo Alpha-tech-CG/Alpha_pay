@@ -106,21 +106,23 @@ docker push <ACCOUNT>.dkr.ecr.eu-west-1.amazonaws.com/paybrain-prod-api:latest
 Le pipeline de production ouvre une courte fenêtre de maintenance : il ramène
 le service à zéro tâche, exécute `dist/scripts/migrate` dans une tâche ECS
 ponctuelle, déploie la nouvelle définition puis restaure la capacité initiale.
-Un échec de conversion, de `prisma db push` ou des triggers bloque le
-déploiement et laisse le service arrêté pour éviter de relancer une ancienne
-version sur un schéma partiellement migré.
+Un échec de `prisma migrate deploy` (schéma ou triggers) bloque le déploiement
+et laisse le service arrêté pour éviter de relancer une ancienne version sur un
+schéma partiellement migré.
 
 🟩 Avec le `DATABASE_URL` prod (TLS verify-full — cf. `docs/DB_TLS.md`) :
 ```bash
-# Base existante uniquement : convertir les anciennes unites majeures en centimes BIGINT.
-DATABASE_URL="...verify-full..." npm run db:ledger-cents --workspace @paybrain/database
-# Chiffrer les emails marchands avant suppression de la colonne en clair.
-DATABASE_URL="...verify-full..." PII_ENCRYPTION_KEY="...base64..." npm run db:merchant-email --workspace @paybrain/database
+# Schéma complet + immutabilité ledger (triggers anti-UPDATE/DELETE + vue
+# account_balances) en UNE commande — migrations versionnées dans
+# packages/database/prisma/migrations/ (0_init, 1_ledger_immutability).
 DATABASE_URL="postgresql://USER:PASS@HOST:5432/paybrain?sslmode=verify-full&sslrootcert=/etc/ssl/rds-ca-bundle.pem" \
-  npx prisma db push --schema=packages/database/prisma/schema.prisma
-# Triggers anti-UPDATE/DELETE + vue account_balances (ALP-166) :
-DATABASE_URL="...verify-full..." node packages/database/sql/apply-triggers.mjs
+  npm run db:migrate --workspace @paybrain/database   # = prisma migrate deploy
 ```
+
+> Reprise d'une ANCIENNE base (pré-centimes / email en clair) uniquement — **pas
+> pour une base neuve** : lancer d'abord les scripts de migration de données
+> `db:ledger-cents` puis `db:merchant-email` (avec `PII_ENCRYPTION_KEY`) avant
+> `migrate deploy`.
 
 ---
 
