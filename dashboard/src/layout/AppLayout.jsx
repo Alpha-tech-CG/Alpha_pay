@@ -16,18 +16,62 @@ function NavItem({ to, label, active }) {
   )
 }
 
+const ICONS = {
+  dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+  payments: 'M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8',
+  developers: 'M8 9l-3 3 3 3M16 9l3 3-3 3',
+  profile: 'M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+}
+function TabIcon({ d }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  )
+}
+
+// Barre d'onglets mobile (signature du design Stitch). Masquée en desktop (sidebar).
+function BottomNav({ tabs, path }) {
+  const { t } = useTheme()
+  return (
+    <nav className="pb-bottomnav" style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, height: 62, zIndex: 35,
+      background: t.surface, borderTop: `1px solid ${t.border}`,
+      display: 'none', alignItems: 'stretch',
+    }}>
+      {tabs.map((tab) => {
+        const active = path === tab.to
+        return (
+          <Link key={tab.to} to={tab.to} style={{
+            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 3, textDecoration: 'none', color: active ? t.primary : t.textMuted, fontSize: 11, fontWeight: 600,
+          }}>
+            <TabIcon d={ICONS[tab.icon]} />
+            {tab.label}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
+
 export default function AppLayout({ children }) {
   const { t, mode, toggle } = useTheme()
   const { t: tr, locale, toggle: toggleLocale } = useT()
   const location = useLocation()
   const [open, setOpen] = useState(false)
 
+  const tabs = [
+    { to: '/', icon: 'dashboard', label: tr('nav.dashboard') },
+    { to: '/payments', icon: 'payments', label: tr('nav.payments') },
+    { to: '/developers', icon: 'developers', label: tr('nav.developers') },
+    { to: '/profile', icon: 'profile', label: tr('nav.profile') },
+  ]
   const nav = (
     <nav>
-      <NavItem to="/" label={tr('nav.dashboard')} active={location.pathname === '/'} />
-      <NavItem to="/payments" label={tr('nav.payments')} active={location.pathname === '/payments'} />
-      <NavItem to="/developers" label={tr('nav.developers')} active={location.pathname === '/developers'} />
-      <NavItem to="/profile" label={tr('nav.profile')} active={location.pathname === '/profile'} />
+      {tabs.map((tab) => (
+        <NavItem key={tab.to} to={tab.to} label={tab.label} active={location.pathname === tab.to} />
+      ))}
     </nav>
   )
 
@@ -86,15 +130,18 @@ export default function AppLayout({ children }) {
           </div>
         </header>
 
-        <main style={{ padding: '28px 24px', flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        <main className="pb-main" style={{ padding: '28px 24px', flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           {children}
         </main>
       </div>
 
+      <BottomNav tabs={tabs} path={location.pathname} />
+
       <style>{`
         @media (max-width: 760px) {
           .pb-sidebar { display: none !important; }
-          .pb-burger { display: inline-block !important; }
+          .pb-bottomnav { display: flex !important; }
+          .pb-main { padding-bottom: 80px !important; }
         }
       `}</style>
     </div>
