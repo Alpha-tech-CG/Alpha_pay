@@ -1,6 +1,9 @@
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+# libc6-compat : compat glibc ; python3/make/g++ : toolchain pour compiler les
+# modules natifs (argon2) si aucun binaire prébuilt musl n'est disponible.
+# Ce toolchain reste dans les étapes de build — l'image runner ne l'embarque pas.
+RUN apk add --no-cache libc6-compat python3 make g++
 
 # Install dependencies
 FROM base AS deps
