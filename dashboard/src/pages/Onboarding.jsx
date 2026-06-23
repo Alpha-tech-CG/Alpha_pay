@@ -10,24 +10,33 @@ const PROFILE_KEY = 'pb_merchant_profile'
 function Stepper({ steps, current }) {
   const { t } = useTheme()
   return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-      {steps.map((label, i) => (
-        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, fontWeight: 700,
-            background: i <= current ? t.primary : t.surfaceAlt,
-            color: i <= current ? t.primaryText : t.textMuted,
-          }}>{i + 1}</div>
-          <span style={{ fontSize: 13, color: i === current ? t.text : t.textMuted, fontWeight: i === current ? 700 : 500 }}>{label}</span>
-          {i < steps.length - 1 && <span style={{ color: t.border }}>—</span>}
-        </div>
-      ))}
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 26 }}>
+      {steps.map((label, i) => {
+        const done = i < current
+        const active = i === current
+        return (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : '0 0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 64 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                fontSize: 13, fontWeight: 700,
+                background: done || active ? t.primary : t.surfaceAlt,
+                color: done || active ? t.primaryText : t.textMuted,
+              }}>{done ? '✓' : i + 1}</div>
+              <span style={{ fontSize: 11, textAlign: 'center', color: active ? t.text : t.textMuted, fontWeight: active ? 700 : 500 }}>{label}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div style={{ flex: 1, height: 2, background: i < current ? t.primary : t.border, margin: '0 -2px', marginBottom: 18 }} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 export default function Onboarding() {
+  const { t } = useTheme()
   const { t: tr } = useT()
   const { user } = useUser()
   const navigate = useNavigate()
@@ -53,7 +62,11 @@ export default function Onboarding() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 520 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, marginBottom: 20 }}>{tr('onboarding.title')}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+          <span style={{ width: 32, height: 32, borderRadius: 9, background: t.primary, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 17, fontWeight: 800 }}>P</span>
+          <span style={{ fontSize: 18, fontWeight: 800 }}>PayBrain</span>
+        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 20 }}>{tr('onboarding.title')}</h1>
         <Card>
           <Stepper steps={steps} current={step} />
 
@@ -95,9 +108,12 @@ export default function Onboarding() {
           )}
 
           {step === 3 && (
-            <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-              <p style={{ fontSize: 32 }}>🎉</p>
-              <p>{tr('onboarding.welcome.text')}</p>
+            <div style={{ textAlign: 'center', padding: '8px 0' }}>
+              <div style={{
+                width: 60, height: 60, borderRadius: '50%', background: `${t.primary}1f`, color: t.primary,
+                display: 'grid', placeItems: 'center', fontSize: 30, margin: '0 auto 14px',
+              }}>✓</div>
+              <p style={{ fontSize: 14, lineHeight: 1.6, color: t.textMuted }}>{tr('onboarding.welcome.text')}</p>
             </div>
           )}
 
