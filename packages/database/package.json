@@ -21,10 +21,10 @@
   "dependencies": {
     "@paybrain/shared": "*",
     "@prisma/client": "^6.9.0",
-    "argon2": "^0.41.1"
+    "argon2": "^0.41.1",
+    "prisma": "^6.9.0"
   },
   "devDependencies": {
-    "prisma": "^6.9.0",
     "typescript": "^5.8.3",
     "ts-node": "^10.9.2",
     "@types/node": "^22.15.29"
