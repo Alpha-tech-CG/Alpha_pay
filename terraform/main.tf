@@ -38,6 +38,10 @@ module "vpc" {
 
   enable_nat_gateway = true
   single_nat_gateway = true
+  # Réutilise une Elastic IP existante comme IP de sortie (NAT) stable, à
+  # whitelister chez les opérateurs. Vide => le module crée sa propre EIP.
+  reuse_nat_ips       = length(var.external_nat_ip_ids) > 0
+  external_nat_ip_ids = var.external_nat_ip_ids
 
   tags = local.common_tags
 }

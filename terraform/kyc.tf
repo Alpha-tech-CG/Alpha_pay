@@ -12,7 +12,11 @@ resource "aws_s3_bucket_versioning" "kyc_documents" {
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "kyc_documents" {
   bucket = aws_s3_bucket.kyc_documents.id
-  rule { apply_server_side_encryption_by_default { sse_algorithm = "AES256" } }
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "kyc_documents" {
@@ -25,7 +29,12 @@ resource "aws_s3_bucket_public_access_block" "kyc_documents" {
 
 resource "aws_s3_bucket_object_lock_configuration" "kyc_documents" {
   bucket = aws_s3_bucket.kyc_documents.id
-  rule { default_retention { mode = "GOVERNANCE" years = 10 } }
+  rule {
+    default_retention {
+      mode  = "GOVERNANCE"
+      years = 10
+    }
+  }
   depends_on = [aws_s3_bucket_versioning.kyc_documents]
 }
 

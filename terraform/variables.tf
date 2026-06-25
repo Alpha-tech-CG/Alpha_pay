@@ -2,6 +2,12 @@ variable "aws_region" {
   default = "eu-west-1"
 }
 
+variable "external_nat_ip_ids" {
+  description = "Allocation IDs d'Elastic IP existantes à réutiliser comme IP de sortie (NAT) stable, whitelistée chez les opérateurs. Vide => le module VPC crée sa propre EIP."
+  type        = list(string)
+  default     = []
+}
+
 variable "environment" {
   description = "Environnement (prod, staging, dev) — utilisé pour préfixer les noms de secrets/rôles"
   default     = "prod"
