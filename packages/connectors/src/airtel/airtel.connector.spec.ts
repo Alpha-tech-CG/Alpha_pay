@@ -4,13 +4,14 @@ import { AirtelConnector } from './airtel.connector';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-function connector() {
+function connector(extra: Partial<ConstructorParameters<typeof AirtelConnector>[0]> = {}) {
   return new AirtelConnector({
     clientId: 'cid',
     clientSecret: 'secret',
     baseUrl: 'https://openapiuat.airtel.africa',
     environment: 'sandbox',
     webhookUrl: 'https://example.com/webhooks',
+    ...extra,
   });
 }
 
@@ -63,5 +64,25 @@ describe('AirtelConnector', () => {
     mockedAxios.get.mockResolvedValueOnce({ data: { data: { transaction: { status: airtelStatus } } } });
     const status = await connector().getStatus('ref-1');
     expect(status).toBe(expected);
+  });
+
+  it('disburse : refuse sans PIN configuré', async () => {
+    await expect(
+      connector().disburse({ amount: 1000, currency: 'XAF', phone: '242055123456', externalId: 'STL-1' } as any),
+    ).rejects.toThrow(/disbursement/i);
+  });
+
+  it('disburse : appelle /standard/v1/disbursements avec PIN et renvoie PENDING/AIRTEL', async () => {
+    mockedAxios.post
+      .mockResolvedValueOnce(TOKEN_RES)
+      .mockResolvedValueOnce({ data: {} });
+    const res = await connector({ disbursementPin: 'ENC_PIN' }).disburse({
+      amount: 1000, currency: 'XAF', phone: '242055123456', externalId: 'STL-1',
+    } as any);
+    expect(res).toMatchObject({ status: 'PENDING', operator: 'AIRTEL' });
+    const [url, body] = mockedAxios.post.mock.calls[1] as [string, any, any];
+    expect(url).toContain('/standard/v1/disbursements');
+    expect(body).toMatchObject({ payee: { msisdn: '242055123456' }, reference: 'STL-1', pin: 'ENC_PIN' });
+    expect(body.transaction.amount).toBe(1000);
   });
 });

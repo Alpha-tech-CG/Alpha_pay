@@ -16,6 +16,23 @@ export interface PaymentResult {
   operator: Operator;
 }
 
+/** Reversement (disbursement / payout) vers le numéro mobile money d'un marchand. */
+export interface DisburseInput {
+  amount: number;
+  currency: string;
+  /** MSISDN du bénéficiaire (marchand). */
+  phone: string;
+  /** Référence unique (ex. numéro de batch settlement) — sert d'idempotence. */
+  externalId: string;
+  description?: string;
+}
+
+export interface DisburseResult {
+  referenceId: string;
+  status: TransactionStatus;
+  operator: Operator;
+}
+
 export interface WebhookPayload {
   financialTransactionId?: string;
   externalId?: string;
