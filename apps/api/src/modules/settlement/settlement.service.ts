@@ -492,6 +492,22 @@ export class SettlementService {
     });
   }
 
+  /** Reversements d'UN marchand (vue marchand, scopée). */
+  listForMerchant(merchantId: string) {
+    return this.prisma.settlementBatch.findMany({
+      where: { merchantId },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+  }
+
+  /** Config de settlement d'un marchand sans la destination chiffrée (vue marchand). */
+  async getConfigForMerchant(merchantId: string) {
+    const config = await this.getConfig(merchantId);
+    const { payoutDestinationEncrypted, ...rest } = config as Record<string, unknown>;
+    return { ...rest, hasPayoutDestination: payoutDestinationEncrypted != null };
+  }
+
   async getBatch(id: string) {
     const batch = await this.prisma.settlementBatch.findUnique({
       where: { id },

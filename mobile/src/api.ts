@@ -45,3 +45,16 @@ export const createPaylink = (body: {
   description: string;
   expiresInMinutes?: number;
 }) => api.post('/paylinks', body).then((r) => r.data);
+
+export interface Settlement {
+  id: string;
+  batchNumber: string;
+  currency: string;
+  netCents: number;
+  settlementCurrency: string | null;
+  settledNetCents: number | null;
+  status: string;
+  createdAt: string;
+}
+
+export const getSettlements = () => api.get<Settlement[]>('/v1/settlements').then((r) => r.data);

@@ -29,6 +29,10 @@ export default function TabsLayout() {
         options={{ title: 'Transactions', tabBarIcon: ({ color, size }) => <Ionicons name="list-outline" color={color} size={size} /> }}
       />
       <Tabs.Screen
+        name="settlements"
+        options={{ title: 'Reversements', tabBarIcon: ({ color, size }) => <Ionicons name="wallet-outline" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{ title: 'Réglages', tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" color={color} size={size} /> }}
       />

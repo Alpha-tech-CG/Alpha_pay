@@ -6,15 +6,38 @@ import {
   Param,
   Post,
   Put,
+  Req,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
+import { ApiSecurity, ApiTags } from "@nestjs/swagger";
 import { InternalGuard } from "../../common/guards/internal.guard";
+import { ApiKeyGuard } from "../../common/guards/api-key.guard";
 import { SettlementService } from "./settlement.service";
 import {
   RunSettlementDto,
   SettlementConfigDto,
 } from "./dto/settlement.dto";
+
+// Endpoints marchand (lecture seule, scopés sur la clé API) : le marchand voit
+// SES reversements et sa configuration. La gestion (run/validate/send) reste interne.
+@ApiTags("Settlements")
+@ApiSecurity("ApiKey")
+@Controller("v1/settlements")
+@UseGuards(ApiKeyGuard)
+export class MerchantSettlementController {
+  constructor(private readonly settlement: SettlementService) {}
+
+  @Get()
+  list(@Req() req: any) {
+    return this.settlement.listForMerchant(req.merchant.id);
+  }
+
+  @Get("config")
+  config(@Req() req: any) {
+    return this.settlement.getConfigForMerchant(req.merchant.id);
+  }
+}
 
 @Controller("internal/settlements")
 @UseGuards(InternalGuard)
