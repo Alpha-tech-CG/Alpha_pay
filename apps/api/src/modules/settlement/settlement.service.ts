@@ -12,10 +12,11 @@ import { PrismaClient, SettlementStatus } from "@paybrain/database";
 import { LedgerService } from "../ledger/ledger.service";
 import { NotificationService } from "../notifications/notification.service";
 import { WebhookDeliveryService } from "../webhooks-out/webhook-delivery.service";
-import { toMajor } from "../../common/money";
+import { toCents, toMajor } from "../../common/money";
 import { decryptField, encryptField } from "../../common/security/pii-crypto";
 import { PayoutProviderService } from "./payout-provider.service";
 import { SettlementReceiptService } from "./settlement-receipt.service";
+import { CurrencyService } from "../currency/currency.service";
 import { safeEqual } from "../../common/security/hmac";
 
 // Seuil au-delà duquel la double validation (4-eyes) est requise.
@@ -52,6 +53,7 @@ export class SettlementService {
     private readonly webhooks: WebhookDeliveryService,
     private readonly payout: PayoutProviderService,
     private readonly receipts: SettlementReceiptService,
+    private readonly currency: CurrencyService,
   ) {}
 
   async getConfig(merchantId: string) {
@@ -69,6 +71,7 @@ export class SettlementService {
         payoutMethod: "MOMO" as const,
         payoutProvider: null,
         payoutDestinationEncrypted: null,
+        settlementCurrency: null,
       }
     );
   }
@@ -84,11 +87,15 @@ export class SettlementService {
       payoutMethod?: "BANK" | "MOMO";
       payoutProvider?: string;
       payoutDestination?: string;
+      settlementCurrency?: string;
     },
   ) {
     return this.prisma.merchantSettlementConfig.upsert({
       where: { merchantId },
       update: {
+        ...(data.settlementCurrency
+          ? { settlementCurrency: data.settlementCurrency }
+          : {}),
         ...(data.frequency ? { frequency: data.frequency } : {}),
         ...(data.minAmountCents != null
           ? { minAmountCents: BigInt(data.minAmountCents) }
@@ -120,6 +127,7 @@ export class SettlementService {
         payoutDestinationEncrypted: data.payoutDestination
           ? encryptDestination(data.payoutDestination)
           : null,
+        settlementCurrency: data.settlementCurrency ?? null,
       },
     });
   }
@@ -157,6 +165,18 @@ export class SettlementService {
       };
     }
 
+    // FX (ALP-151) : si le marchand veut être reversé dans une autre devise que
+    // celle encaissée, on convertit le net et on conserve taux + montant converti.
+    let settlementCurrency: string | null = null;
+    let settledNetCents: bigint | null = null;
+    let fxRate: number | null = null;
+    if (config.settlementCurrency && config.settlementCurrency !== currency) {
+      const quote = await this.currency.convert(toMajor(netCents), currency, config.settlementCurrency);
+      settlementCurrency = config.settlementCurrency;
+      settledNetCents = toCents(quote.convertedAmount);
+      fxRate = quote.rate;
+    }
+
     const requiresDoubleValidation =
       netCents > DOUBLE_VALIDATION_THRESHOLD_CENTS;
     const status: SettlementStatus = requiresDoubleValidation
@@ -175,6 +195,9 @@ export class SettlementService {
         commissionCents,
         holdsCents,
         netCents,
+        settlementCurrency,
+        settledNetCents,
+        fxRate,
         status,
         requiresDoubleValidation,
         audits: {
@@ -223,6 +246,20 @@ export class SettlementService {
       },
     ]);
 
+    // Conversion FX éventuelle : déplace le transit de la devise encaissée vers
+    // la devise de reversement (jambes équilibrées par devise via fx-exchange).
+    if (settlementCurrency && settledNetCents != null) {
+      await this.ledger.postConversion({
+        fromAccount: "settlement-transit",
+        toAccount: `settlement-transit-${settlementCurrency}`,
+        amountFromCents: netCents,
+        currencyFrom: currency,
+        amountToCents: settledNetCents,
+        currencyTo: settlementCurrency,
+        description: `FX settlement ${batchNumber}`,
+      });
+    }
+
     this.logger.log(
       `Batch ${batchNumber} créé (${status}) net ${netCents} centimes pour ${merchantId}`,
     );
@@ -232,6 +269,10 @@ export class SettlementService {
       batchNumber,
       status,
       netCents: netCents.toString(),
+      currency,
+      settlementCurrency,
+      settledNetCents: settledNetCents != null ? settledNetCents.toString() : null,
+      fxRate,
       requiresDoubleValidation,
     };
   }
@@ -324,12 +365,17 @@ export class SettlementService {
       );
     }
 
+    // Reversement dans la devise/montant convertis si le marchand a une devise
+    // de settlement distincte ; sinon la devise/montant encaissés.
+    const payoutAmountCents = batch.settledNetCents ?? batch.netCents;
+    const payoutCurrency = batch.settlementCurrency ?? batch.currency;
+
     let payoutResult;
     try {
       payoutResult = await this.payout.send({
         batchNumber: batch.batchNumber,
-        amountCents: batch.netCents,
-        currency: batch.currency,
+        amountCents: payoutAmountCents,
+        currency: payoutCurrency,
         method: config.payoutMethod,
         provider: config.payoutProvider ?? config.payoutMethod.toLowerCase(),
         destination: decryptField(config.payoutDestinationEncrypted),

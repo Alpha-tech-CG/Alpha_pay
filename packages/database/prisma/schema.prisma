@@ -405,6 +405,9 @@ model MerchantSettlementConfig {
   payoutMethod               SettlementPayoutMethod @default(MOMO) @map("payout_method")
   payoutProvider             String?                @map("payout_provider")
   payoutDestinationEncrypted Bytes?                 @map("payout_destination_encrypted")
+  // Devise de reversement souhaitée par le marchand (ALP-151). Si différente de
+  // la devise encaissée, le net est converti au moment du settlement.
+  settlementCurrency         String?                @map("settlement_currency")
   createdAt                  DateTime               @default(now()) @map("created_at")
 
   @@map("merchant_settlement_configs")
@@ -421,6 +424,11 @@ model SettlementBatch {
   commissionCents          BigInt            @map("commission_cents")
   holdsCents               BigInt            @default(0) @map("holds_cents")
   netCents                 BigInt            @map("net_cents")
+  // FX (ALP-151) : si la devise de reversement diffère de la devise encaissée,
+  // le net converti et le taux utilisé sont conservés pour le décaissement.
+  settlementCurrency       String?           @map("settlement_currency")
+  settledNetCents          BigInt?           @map("settled_net_cents")
+  fxRate                   Decimal?          @db.Decimal(20, 10) @map("fx_rate")
   status                   SettlementStatus  @default(INITIATED)
   requiresDoubleValidation Boolean           @default(false) @map("requires_double_validation")
   validatedBy              String[]          @default([]) @map("validated_by")

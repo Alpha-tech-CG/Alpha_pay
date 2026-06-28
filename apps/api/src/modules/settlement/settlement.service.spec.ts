@@ -60,7 +60,17 @@ function deps(overrides: any = {}) {
         .mockResolvedValue({ emailEncrypted: encryptField("m@paybrain.cg") }),
     },
   };
-  const ledger = { postEntry: jest.fn().mockResolvedValue("tx") };
+  const ledger = {
+    postEntry: jest.fn().mockResolvedValue("tx"),
+    postConversion: jest.fn().mockResolvedValue("fx-tx"),
+  };
+  const currency = {
+    convert: jest.fn(async (amount: number, from: string, to: string) => ({
+      from, to, rate: 655.957, amount,
+      convertedAmount: Math.round(amount * 655.957),
+      formatted: '',
+    })),
+  };
   const notifications = { send: jest.fn().mockResolvedValue({ ok: true }) };
   const webhooks = { dispatch: jest.fn().mockResolvedValue(0) };
   const payout = {
@@ -82,11 +92,13 @@ function deps(overrides: any = {}) {
     webhooks as any,
     payout as any,
     receipts as any,
+    currency as any,
   );
   return {
     svc,
     prisma,
     ledger,
+    currency,
     notifications,
     webhooks,
     payout,
@@ -191,5 +203,28 @@ describe("SettlementService (ALP-141)", () => {
     const { svc, batches } = deps();
     batches["bI"] = { id: "bI", status: "INITIATED" };
     await expect(svc.confirm("bI")).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("FX : convertit le net et écrit la conversion si la devise de settlement diffère (ALP-151)", async () => {
+    const { svc, ledger, currency } = deps({
+      txns: [{ amount: 100000n, currency: "EUR" }], // 1000 EUR encaissés
+      config: {
+        commissionBps: 0, minAmountCents: 0n, payoutMethod: "MOMO", payoutProvider: "mtn",
+        payoutDestinationEncrypted: encryptField("+242066123456"), settlementCurrency: "XAF",
+      },
+    });
+    const res: any = await svc.run("m1", P0, P1);
+    expect(currency.convert).toHaveBeenCalledWith(1000, "EUR", "XAF");
+    expect(ledger.postConversion).toHaveBeenCalledWith(
+      expect.objectContaining({ currencyFrom: "EUR", currencyTo: "XAF" }),
+    );
+    expect(res).toMatchObject({ currency: "EUR", settlementCurrency: "XAF" });
+  });
+
+  it("sans devise de settlement distincte : pas de conversion FX", async () => {
+    const { svc, ledger, currency } = deps({ txns: [{ amount: 100000n, currency: "XAF" }] });
+    await svc.run("m1", P0, P1);
+    expect(currency.convert).not.toHaveBeenCalled();
+    expect(ledger.postConversion).not.toHaveBeenCalled();
   });
 });

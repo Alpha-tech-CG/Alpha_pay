@@ -8,6 +8,7 @@ import {
   Min,
   MinLength,
 } from "class-validator";
+import { SUPPORTED_CURRENCIES } from "@paybrain/shared";
 
 export class RunSettlementDto {
   @IsString()
@@ -58,4 +59,8 @@ export class SettlementConfigDto {
   @IsString()
   @MinLength(5)
   payoutDestination?: string;
+
+  @IsOptional()
+  @IsIn(SUPPORTED_CURRENCIES)
+  settlementCurrency?: string;
 }
