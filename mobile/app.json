@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "PayBrain",
+    "slug": "paybrain-mobile",
+    "scheme": "paybrain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#059669"
+    },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "cg.paybrain.app" },
+    "android": {
+      "package": "cg.paybrain.app",
+      "adaptiveIcon": { "backgroundColor": "#059669" }
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "apiBaseUrl": "http://192.168.1.10:3000"
+    }
+  }
+}
