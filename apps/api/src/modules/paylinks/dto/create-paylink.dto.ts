@@ -1,4 +1,5 @@
 import { IsIn, IsInt, IsString, Max, MaxLength, Min, IsOptional, IsPositive } from 'class-validator';
+import { SUPPORTED_CURRENCIES } from '@paybrain/shared';
 
 const AMOUNT_MAX = 5_000_000;
 
@@ -9,7 +10,7 @@ export class CreatePaylinkDto {
   amount!: number;
 
   @IsString()
-  @IsIn(['XAF', 'EUR', 'USD'])
+  @IsIn(SUPPORTED_CURRENCIES)
   currency!: string;
 
   @IsString()

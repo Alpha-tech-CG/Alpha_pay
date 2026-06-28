@@ -60,6 +60,22 @@ async function main() {
   });
   console.log('Clé API de dev (à copier maintenant, non re-consultable) :');
   console.log(`  X-API-Key: ${full}`);
+
+  // Taux de change par défaut (ALP-151). Valeurs indicatives — à alimenter par
+  // un flux réel en prod. EUR/XAF est une parité fixe BEAC.
+  const rates: Array<[string, string, number]> = [
+    ['EUR', 'XAF', 655.957],
+    ['USD', 'XAF', 610],
+    ['EUR', 'USD', 1.08],
+  ];
+  for (const [base, quote, rate] of rates) {
+    await prisma.currencyRate.upsert({
+      where: { base_quote: { base, quote } },
+      update: { rate },
+      create: { base, quote, rate, source: 'seed' },
+    });
+  }
+  console.log(`Taux de change seedés : ${rates.length}`);
 }
 
 main()

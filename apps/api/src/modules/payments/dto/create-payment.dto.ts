@@ -1,4 +1,5 @@
 import { IsIn, IsInt, IsString, Matches, Max, MaxLength, Min, IsOptional } from 'class-validator';
+import { SUPPORTED_CURRENCIES } from '@paybrain/shared';
 import { IsE164Phone } from '../../../common/validation/is-e164-phone.validator';
 
 // Plafond aligné sur l'audit : 5 000 000 (XAF, devise de production). Empêche
@@ -12,7 +13,7 @@ export class CreatePaymentDto {
   amount!: number;
 
   @IsString()
-  @IsIn(['XAF', 'EUR', 'USD'])
+  @IsIn(SUPPORTED_CURRENCIES)
   currency!: string;
 
   @IsE164Phone()
