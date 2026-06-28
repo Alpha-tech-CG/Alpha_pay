@@ -33,7 +33,7 @@ export class LedgerService {
    * sur l'un des deux, qu'on retente automatiquement. C'est ce mécanisme qui
    * garantit l'intégrité du chaînage sans verrou explicite.
    */
-  async postEntry(lines: JournalLine[], transactionId = randomUUID()): Promise<string> {
+  async postEntry(lines: JournalLine[], transactionId: string = randomUUID()): Promise<string> {
     if (lines.length === 0) throw new EmptyEntryError();
     this.assertBalanced(lines);
 
@@ -87,6 +87,41 @@ export class LedgerService {
     }
 
     throw new Error('postEntry: nombre maximum de tentatives de sérialisation atteint');
+  }
+
+  /**
+   * Enregistre une conversion de devises (ALP-151) dans le grand livre.
+   *
+   * Le double-entrée équilibre PAR DEVISE (assertBalanced) : on ne peut donc pas
+   * mélanger XAF et EUR sur une même paire débit/crédit. La conversion est posée
+   * en DEUX jambes équilibrées, reliées par des comptes d'échange `fx-exchange-<DEV>` :
+   *   - jambe source : débit compte source / crédit fx-exchange-<A>  (en devise A)
+   *   - jambe cible  : débit fx-exchange-<B> / crédit compte cible    (en devise B)
+   * L'écart FX (gain/perte de change) est le solde net des comptes d'échange
+   * valorisé à un taux de référence — exploitable en reporting.
+   */
+  async postConversion(params: {
+    fromAccount: string;
+    toAccount: string;
+    amountFromCents: bigint | number;
+    currencyFrom: string;
+    amountToCents: bigint | number;
+    currencyTo: string;
+    description?: string;
+    transactionId?: string;
+  }): Promise<string> {
+    const { currencyFrom, currencyTo } = params;
+    if (currencyFrom === currencyTo) {
+      throw new InvalidAmountError();
+    }
+    const desc = params.description ?? `FX ${currencyFrom}->${currencyTo}`;
+    const lines: JournalLine[] = [
+      { accountId: params.fromAccount, direction: 'DEBIT', amountCents: params.amountFromCents, currency: currencyFrom, description: desc },
+      { accountId: `fx-exchange-${currencyFrom}`, direction: 'CREDIT', amountCents: params.amountFromCents, currency: currencyFrom, description: desc },
+      { accountId: `fx-exchange-${currencyTo}`, direction: 'DEBIT', amountCents: params.amountToCents, currency: currencyTo, description: desc },
+      { accountId: params.toAccount, direction: 'CREDIT', amountCents: params.amountToCents, currency: currencyTo, description: desc },
+    ];
+    return this.postEntry(lines, params.transactionId);
   }
 
   /**

@@ -347,4 +347,32 @@ describe('LedgerService', () => {
       );
     });
   });
+
+  it('postConversion : conversion équilibrée par devise (2 jambes + comptes FX)', async () => {
+    const txId = await service.postConversion({
+      fromAccount: 'merchant-wallet-m1-EUR',
+      toAccount: 'merchant-wallet-m1-XAF',
+      amountFromCents: 1000n,
+      currencyFrom: 'EUR',
+      amountToCents: 655900n,
+      currencyTo: 'XAF',
+    });
+    expect(typeof txId).toBe('string');
+    // Soldes par devise (crédit - débit), sans mélange entre devises.
+    expect(await service.getAccountBalance('merchant-wallet-m1-EUR')).toBe(-1000n);
+    expect(await service.getAccountBalance('fx-exchange-EUR')).toBe(1000n);
+    expect(await service.getAccountBalance('fx-exchange-XAF')).toBe(-655900n);
+    expect(await service.getAccountBalance('merchant-wallet-m1-XAF')).toBe(655900n);
+    // La chaîne reste intègre.
+    expect((await service.verifyChain()).valid).toBe(true);
+  });
+
+  it('postConversion : refuse une conversion devise identique', async () => {
+    await expect(
+      service.postConversion({
+        fromAccount: 'a', toAccount: 'b', amountFromCents: 100n, currencyFrom: 'EUR',
+        amountToCents: 100n, currencyTo: 'EUR',
+      }),
+    ).rejects.toThrow(InvalidAmountError);
+  });
 });

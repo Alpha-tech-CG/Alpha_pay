@@ -3,7 +3,7 @@ import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { InternalGuard } from '../../common/guards/internal.guard';
 import { CurrencyService } from './currency.service';
-import { QuoteDto, SetRateDto } from './dto/currency.dto';
+import { ConvertDto, QuoteDto, SetRateDto } from './dto/currency.dto';
 
 @ApiTags('Devises')
 @ApiSecurity('ApiKey')
@@ -37,5 +37,11 @@ export class CurrencyAdminController {
   @Post('rates')
   setRate(@Body() dto: SetRateDto) {
     return this.currency.upsertRate(dto.base, dto.quote, dto.rate);
+  }
+
+  // Convertit le solde d'un marchand d'une devise à l'autre et l'écrit au ledger.
+  @Post('convert')
+  convert(@Body() dto: ConvertDto) {
+    return this.currency.convertAndRecord(dto.merchantId, dto.amount, dto.from, dto.to);
   }
 }

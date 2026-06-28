@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsPositive } from 'class-validator';
+import { IsIn, IsNumber, IsPositive, IsString, MinLength } from 'class-validator';
 import { SUPPORTED_CURRENCIES } from '@paybrain/shared';
 
 export class QuoteDto {
@@ -26,4 +26,21 @@ export class SetRateDto {
   @IsNumber()
   @IsPositive()
   rate!: number;
+}
+
+export class ConvertDto {
+  @IsString()
+  @MinLength(1)
+  merchantId!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  amount!: number;
+
+  @IsIn(SUPPORTED_CURRENCIES)
+  from!: string;
+
+  @IsIn(SUPPORTED_CURRENCIES)
+  to!: string;
 }

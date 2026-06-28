@@ -8,6 +8,8 @@ import {
   isSupportedCurrency,
   isValidMajorAmount,
 } from '@paybrain/shared';
+import { LedgerService } from '../ledger/ledger.service';
+import { toCents } from '../../common/money';
 
 export interface ConversionQuote {
   from: string;
@@ -20,7 +22,10 @@ export interface ConversionQuote {
 
 @Injectable()
 export class CurrencyService {
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly ledger: LedgerService,
+  ) {}
 
   listCurrencies() {
     return SUPPORTED_CURRENCIES.map((code) => CURRENCIES[code]);
@@ -80,5 +85,24 @@ export class CurrencyService {
       convertedAmount,
       formatted: formatMoney(convertedAmount, to),
     };
+  }
+
+  /**
+   * Convertit ET enregistre l'opération au grand livre (ALP-151) : déplace le
+   * solde du wallet marchand de la devise source vers la devise cible, via deux
+   * jambes équilibrées par devise (comptes `merchant-wallet-<id>-<DEV>`).
+   */
+  async convertAndRecord(merchantId: string, amount: number, from: string, to: string) {
+    const quote = await this.convert(amount, from, to);
+    const ledgerTransactionId = await this.ledger.postConversion({
+      fromAccount: `merchant-wallet-${merchantId}-${from}`,
+      toAccount: `merchant-wallet-${merchantId}-${to}`,
+      amountFromCents: toCents(quote.amount),
+      currencyFrom: from,
+      amountToCents: toCents(quote.convertedAmount),
+      currencyTo: to,
+      description: `FX ${from}->${to} @ ${quote.rate}`,
+    });
+    return { ...quote, ledgerTransactionId };
   }
 }
