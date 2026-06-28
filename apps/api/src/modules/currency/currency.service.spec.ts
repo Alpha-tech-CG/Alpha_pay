@@ -65,6 +65,21 @@ describe('CurrencyService (ALP-151)', () => {
     await expect(make().svc.upsertRate('EUR', 'EUR', 1)).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('fxSpread valorise les comptes d’échange et calcule l’écart net', async () => {
+    const ledger = {
+      getAccountBalance: jest.fn(async (acct: string) => {
+        if (acct === 'fx-exchange-EUR') return 1000n; // 10 EUR (×100)
+        if (acct === 'fx-exchange-XAF') return -655000n; // -6550 XAF
+        return 0n;
+      }),
+    } as any;
+    const svc = new CurrencyService(fakePrisma([{ base: 'EUR', quote: 'XAF', rate: 655.957 }]), ledger);
+    const r = await svc.fxSpread('XAF');
+    expect(r.lines.find((l) => l.currency === 'EUR')!.valueInBase).toBe(6560); // 10 € @655.957
+    expect(r.lines.find((l) => l.currency === 'XAF')!.valueInBase).toBe(-6550);
+    expect(r.netSpread).toBe(10); // gain de change accumulé
+  });
+
   it('convertAndRecord pose une conversion équilibrée au grand livre', async () => {
     const { svc, ledger } = make([{ base: 'EUR', quote: 'XAF', rate: 655.957 }]);
     const res = await svc.convertAndRecord('m1', 10, 'EUR', 'XAF'); // 10 € -> 6560 FCFA (arrondi)

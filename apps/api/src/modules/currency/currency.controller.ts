@@ -44,4 +44,10 @@ export class CurrencyAdminController {
   convert(@Body() dto: ConvertDto) {
     return this.currency.convertAndRecord(dto.merchantId, dto.amount, dto.from, dto.to);
   }
+
+  // Reporting : écart de change accumulé, valorisé dans une devise de référence.
+  @Get('spread')
+  spread(@Query('base') base?: string) {
+    return this.currency.fxSpread(base || 'XAF');
+  }
 }

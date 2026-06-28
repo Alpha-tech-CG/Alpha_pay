@@ -9,7 +9,7 @@ import {
   isValidMajorAmount,
 } from '@paybrain/shared';
 import { LedgerService } from '../ledger/ledger.service';
-import { toCents } from '../../common/money';
+import { toCents, toMajor } from '../../common/money';
 
 export interface ConversionQuote {
   from: string;
@@ -104,5 +104,30 @@ export class CurrencyService {
       description: `FX ${from}->${to} @ ${quote.rate}`,
     });
     return { ...quote, ledgerTransactionId };
+  }
+
+  /**
+   * Écart de change (ALP-151) : valorise le solde net des comptes d'échange
+   * `fx-exchange-<DEV>` dans une devise de référence. Un net non nul = le gain/
+   * perte de change accumulé (marge appliquée + résidus d'arrondi). Reporting.
+   */
+  async fxSpread(base = 'XAF') {
+    this.assertSupported(base);
+    const baseFactor = 10 ** currencyDecimals(base);
+    const round = (n: number) => Math.round(n * baseFactor) / baseFactor;
+
+    const lines: Array<{ currency: string; balance: number; valueInBase: number }> = [];
+    let netSpread = 0;
+    for (const currency of SUPPORTED_CURRENCIES) {
+      const balanceCents = await this.ledger.getAccountBalance(`fx-exchange-${currency}`);
+      if (balanceCents === 0n) continue;
+      const balance = toMajor(balanceCents);
+      const valueInBase = currency === base ? balance : balance * (await this.getRate(currency, base));
+      const rounded = round(valueInBase);
+      lines.push({ currency, balance, valueInBase: rounded });
+      netSpread += rounded;
+    }
+    netSpread = round(netSpread);
+    return { base, lines, netSpread, formatted: formatMoney(netSpread, base) };
   }
 }
