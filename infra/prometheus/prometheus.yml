@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: paybrain
+    env: local
+
+scrape_configs:
+  - job_name: paybrain-api
+    static_configs:
+      - targets: ["host.docker.internal:3000"]
+    metrics_path: /metrics
+    # L'endpoint /metrics est protégé par Bearer token en prod.
+    # En local, METRICS_TOKEN peut être vide.
+    # bearer_token: <METRICS_TOKEN>
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

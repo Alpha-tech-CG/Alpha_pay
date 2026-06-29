@@ -15,6 +15,7 @@ import { SettlementModule } from './modules/settlement/settlement.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { UssdModule } from './modules/ussd/ussd.module';
 import { CurrencyModule } from './modules/currency/currency.module';
+import { MetricsModule } from './modules/metrics/metrics.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -36,6 +37,7 @@ import { DatabaseModule } from './database.module';
     KycModule,
     UssdModule,
     CurrencyModule,
+    MetricsModule,
   ],
 })
 export class AppModule {}

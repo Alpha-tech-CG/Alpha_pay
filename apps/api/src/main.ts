@@ -1,4 +1,15 @@
 import "reflect-metadata";
+import * as Sentry from "@sentry/node";
+
+// Initialisation Sentry avant tout autre code (ALP-123).
+// SENTRY_DSN vide/absent → Sentry reste silencieux (pas d'erreur).
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV ?? "development",
+    tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1.0,
+  });
+}
 
 // Sérialisation JSON des BigInt (montants en centimes, séquences ledger) — ALP-168.
 // Sûr : nos montants (≤ 5 000 000 * 100) restent bien sous Number.MAX_SAFE_INTEGER.

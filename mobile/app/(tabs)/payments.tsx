@@ -61,7 +61,7 @@ export default function Payments() {
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
             <TextInput style={[input, { flex: 2 }]} value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="Montant" placeholderTextColor={C.muted} />
             <View style={{ flex: 1, flexDirection: 'row', gap: 6 }}>
-              {['XAF', 'EUR'].map((c) => (
+              {(['XAF', 'USD', 'EUR'] as const).map((c) => (
                 <Pressable key={c} onPress={() => setCurrency(c)} style={{ flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: currency === c ? C.primary : C.surfaceAlt }}>
                   <Text style={{ color: currency === c ? '#fff' : C.muted, fontWeight: '700', fontSize: 12 }}>{c}</Text>
                 </Pressable>
