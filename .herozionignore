@@ -1,0 +1,17 @@
+# Faux positifs — fichiers exclus du scan Herozion
+
+# Fichiers de test unitaire : secrets factices, jamais utilisés en prod
+apps/api/src/**/*.spec.ts
+apps/api/src/**/*.spec.js
+apps/api/test/
+packages/**/src/**/*.spec.ts
+
+# Résultats de scans archivés (contiennent des extraits de code signalés)
+securite/scan-results/
+tmp/
+
+# Terraform local (gitignored, jamais commité — valeurs de dev uniquement)
+terraform/*.tfvars
+
+# Docker Compose local dev — POSTGRES_PASSWORD=postgres est intentionnel
+docker-compose.yml
