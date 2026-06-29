@@ -15,3 +15,6 @@ terraform/*.tfvars
 
 # Docker Compose local dev — POSTGRES_PASSWORD=postgres est intentionnel
 docker-compose.yml
+
+# CI/CD — POSTGRES_PASSWORD=postgres est la DB de test éphémère GitHub Actions (non persistée)
+.github/workflows/
