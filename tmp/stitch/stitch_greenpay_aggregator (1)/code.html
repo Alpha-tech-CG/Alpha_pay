@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Payment - FinFlow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "outline-variant": "#bccac0",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#005137",
+                    "on-tertiary-container": "#fefcff",
+                    "secondary-fixed-dim": "#c5c7c8",
+                    "secondary": "#5c5f60",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#f5fff7",
+                    "surface-tint": "#006c4a",
+                    "surface-container-high": "#e2e8f8",
+                    "inverse-primary": "#68dba9",
+                    "secondary-container": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#454748",
+                    "primary-fixed": "#85f8c4",
+                    "on-tertiary": "#ffffff",
+                    "surface-variant": "#dce2f3",
+                    "surface": "#f9f9ff",
+                    "tertiary-fixed-dim": "#c0c6db",
+                    "outline": "#6d7a72",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#555c6e",
+                    "on-surface-variant": "#3d4a42",
+                    "primary-container": "#00855d",
+                    "on-secondary-fixed": "#191c1d",
+                    "surface-container": "#e7eefe",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#d3daea",
+                    "on-tertiary-fixed-variant": "#404758",
+                    "on-background": "#151c27",
+                    "surface-container-highest": "#dce2f3",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#002114",
+                    "on-secondary-container": "#626566",
+                    "primary": "#006948",
+                    "primary-fixed-dim": "#68dba9",
+                    "surface-container-low": "#f0f3ff",
+                    "surface-bright": "#f9f9ff",
+                    "secondary-fixed": "#e1e3e4",
+                    "tertiary-container": "#6e7487",
+                    "inverse-on-surface": "#ebf1ff",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#141b2b",
+                    "inverse-surface": "#2a313d",
+                    "on-surface": "#151c27",
+                    "background": "#f9f9ff",
+                    "tertiary-fixed": "#dce2f7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "1rem",
+                    "stack-sm": "0.5rem",
+                    "stack-md": "1rem",
+                    "container-margin": "1rem",
+                    "stack-lg": "1.5rem"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "display": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #006948; /* primary */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- Top AppBar (from JSON guidance) -->
+<header class="bg-surface dark:bg-surface-dim shadow-sm flex justify-between items-center px-gutter py-stack-sm w-full sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a modern fintech executive with a friendly expression. The lighting is bright and clean, reflecting a high-trust financial environment. The style is minimalist and high-end, utilizing a soft gray background that complements the brand's professional emerald green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC20OvpfpOI5fRuEWnS4k87nmLNLsfgix-yUWwokagSmBe98llW1FTgmWbYbs7imRu3OU2QvLd516LuW2J8UWsWUtJJMLnnmS-0r7TTYDu7G2DiNLMyqi5IMHSj8EZJv7cVqu4PgejSJkmwahrKySL-BcYctqA4E7pwiqzlHHcWNcWG9SUt5jFForJasMAxgQwPzGyq-WHzidLeuNgy8i_j2mt5mVFF-3yOWJPeNY_GVd7jswq0SIg5FoXsZGKspbGkPMClMzyweq8"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-primary-fixed-dim font-bold">New Payment</h1>
+</div>
+<button class="active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+</header>
+<main class="px-container-margin py-stack-lg max-w-4xl mx-auto space-y-8">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+<!-- Left: Creation Form (8 Columns on Desktop) -->
+<section class="md:col-span-7 space-y-6">
+<!-- Payment Details Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant shadow-sm space-y-6">
+<div class="space-y-1">
+<p class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Configuration</p>
+<h2 class="font-headline-md text-headline-md text-on-surface">Payment Details</h2>
+</div>
+<div class="space-y-4">
+<!-- Amount & Currency -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Amount</label>
+<div class="relative">
+<input class="w-full h-12 bg-surface-container-low border border-outline-variant rounded-lg px-4 font-headline-md text-on-surface focus:ring-2 focus:ring-primary/20 transition-all" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Currency</label>
+<select class="w-full h-12 bg-surface-container-low border border-outline-variant rounded-lg px-4 font-body-lg text-on-surface appearance-none focus:ring-2 focus:ring-primary/20 transition-all">
+<option value="USD">USD - US Dollar</option>
+<option value="EUR">EUR - Euro</option>
+<option value="GBP">GBP - British Pound</option>
+<option value="SGD">SGD - Singapore Dollar</option>
+</select>
+</div>
+</div>
+<!-- Description -->
+<div class="space-y-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Description</label>
+<textarea class="w-full bg-surface-container-low border border-outline-variant rounded-lg p-4 font-body-md text-on-surface focus:ring-2 focus:ring-primary/20 transition-all" placeholder="What is this payment for?" rows="3"></textarea>
+</div>
+<!-- Gateway Selection -->
+<div class="space-y-3">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Payment Gateway</label>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<!-- Option 1 -->
+<label class="relative flex items-center p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-colors group">
+<input checked="" class="hidden peer" name="gateway" type="radio" value="stripe"/>
+<div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center mr-3">
+<span class="material-symbols-outlined text-indigo-600">payments</span>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">Stripe Connect</p>
+<p class="text-[10px] text-secondary">Fees: 2.9% + 30¢</p>
+</div>
+<div class="peer-checked:block hidden absolute right-4 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary absolute inset-0 border rounded-xl pointer-events-none"></div>
+</label>
+<!-- Option 2 -->
+<label class="relative flex items-center p-4 border border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-colors group">
+<input class="hidden peer" name="gateway" type="radio" value="adyen"/>
+<div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center mr-3">
+<span class="material-symbols-outlined text-primary">account_balance</span>
+</div>
+<div class="flex-1">
+<p class="font-label-md text-label-md text-on-surface">Adyen Global</p>
+<p class="text-[10px] text-secondary">Fees: 0.6% + Inter.</p>
+</div>
+<div class="peer-checked:block hidden absolute right-4 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="peer-checked:border-primary peer-checked:ring-1 peer-checked:ring-primary absolute inset-0 border rounded-xl pointer-events-none"></div>
+</label>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full py-4 bg-primary text-on-primary rounded-xl font-headline-md shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">link</span>
+                    Generate Payment Assets
+                </button>
+</section>
+<!-- Right: Live Preview (5 Columns on Desktop) -->
+<aside class="md:col-span-5 sticky top-24">
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="font-label-sm text-label-sm text-secondary uppercase tracking-wider">Live Preview</h3>
+<span class="px-2 py-0.5 bg-primary-container/20 text-primary text-[10px] font-bold rounded-full uppercase">Real-time</span>
+</div>
+<!-- Preview Container -->
+<div class="bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-xl">
+<!-- Top Gradient Accent -->
+<div class="h-1.5 w-full bg-gradient-to-r from-primary to-emerald-400"></div>
+<div class="p-8 flex flex-col items-center text-center space-y-6">
+<!-- Brand Header in Preview -->
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 bg-primary rounded-md flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[14px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">FinFlow Pay</span>
+</div>
+<!-- QR Code Placeholder -->
+<div class="p-4 bg-white rounded-2xl border border-outline-variant/50 shadow-inner relative group">
+<div class="w-48 h-48 bg-slate-50 flex items-center justify-center overflow-hidden rounded-xl">
+<img class="w-full h-full object-contain" data-alt="A clean, minimalist high-contrast QR code centered on a white card. The background of the image is a soft, blurred office interior with modern green plants and glass partitions. The lighting is soft and bright, representing a secure and professional financial environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRpXIPOXLRZAFZ1GiYbUrqXFh7gJSpTbtbLCN-cF_CdteUVI9WcjPyVm_uQ66LwVt_fY1mc-0drdu4p8mbxHa--4uEyIEueQyG8XyUoWUVP6Q_1Ogj62ZNRoMwH-ZDDimGAvaphfPCB0zy0zTWiDpkb3Oae6hIziTfsCse8vCJN8_WvAQIDOcZ_ito7FnTr2HdDxgLrmQrvRkG58R1711_taHvRtlOBPnV49v-iHuwoKBMWIWV0IR_pIGvBURkwnFKOCXwwC1zLyI"/>
+</div>
+<div class="absolute inset-0 bg-white/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+<span class="px-4 py-2 bg-on-surface text-surface rounded-full text-label-sm">Download SVG</span>
+</div>
+</div>
+<div class="space-y-1">
+<p class="text-secondary font-label-md">You are paying</p>
+<p class="text-display font-display text-on-surface">$1,250.00</p>
+</div>
+<!-- Payment Link Preview Box -->
+<div class="w-full bg-surface-container rounded-xl p-4 flex items-center justify-between gap-3 border border-outline-variant/30">
+<div class="flex flex-col items-start overflow-hidden">
+<span class="font-label-sm text-secondary">Pay Link</span>
+<span class="font-body-md text-primary truncate w-full">pay.finflow.me/req_982x7l2...</span>
+</div>
+<button class="p-2 bg-white rounded-lg border border-outline-variant/50 hover:bg-primary-container/10 transition-colors">
+<span class="material-symbols-outlined text-primary">content_copy</span>
+</button>
+</div>
+<p class="text-label-sm text-secondary-fixed-dim italic">Protected by 256-bit SSL encryption</p>
+</div>
+</div>
+<!-- Mini Bento Tips -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-primary-container/10 p-4 rounded-xl space-y-2">
+<span class="material-symbols-outlined text-primary text-[20px]">schedule</span>
+<p class="font-label-sm text-on-primary-container">Link expires in 24h by default.</p>
+</div>
+<div class="bg-secondary-container/20 p-4 rounded-xl space-y-2">
+<span class="material-symbols-outlined text-secondary text-[20px]">analytics</span>
+<p class="font-label-sm text-on-secondary-container">Tracking enabled for clicks.</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- Bottom Navigation (from JSON guidance) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-container-margin pb-safe pt-2 bg-surface dark:bg-surface-dim shadow-[0_-4px_6px_rgba(0,0,0,0.02)] md:hidden">
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/10 rounded-xl px-3 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="font-label-sm text-label-sm">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm">Transactions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple interactive simulation
+        document.querySelectorAll('input, select, textarea').forEach(el => {
+            el.addEventListener('input', (e) => {
+                // In a real app, we would update the preview card here
+                console.log('Update preview with:', e.target.value);
+            });
+        });
+
+        // Copy button animation
+        const copyBtn = document.querySelector('button .material-symbols-outlined[contains="content_copy"]')?.parentElement;
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+                const icon = copyBtn.querySelector('.material-symbols-outlined');
+                const original = icon.innerText;
+                icon.innerText = 'check';
+                setTimeout(() => icon.innerText = original, 2000);
+            });
+        }
+    </script>
+</body></html>

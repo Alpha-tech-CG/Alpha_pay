@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Settings &amp; Integrations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #006948; /* primary */
+        }
+        .toggle-checkbox:checked + .toggle-label .toggle-dot {
+            transform: translateX(100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(243, 244, 246, 1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#ffffff",
+                      "outline-variant": "#bccac0",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#005137",
+                      "on-tertiary-container": "#fefcff",
+                      "secondary-fixed-dim": "#c5c7c8",
+                      "secondary": "#5c5f60",
+                      "on-primary": "#ffffff",
+                      "on-primary-container": "#f5fff7",
+                      "surface-tint": "#006c4a",
+                      "surface-container-high": "#e2e8f8",
+                      "inverse-primary": "#68dba9",
+                      "secondary-container": "#e1e3e4",
+                      "on-secondary-fixed-variant": "#454748",
+                      "primary-fixed": "#85f8c4",
+                      "on-tertiary": "#ffffff",
+                      "surface-variant": "#dce2f3",
+                      "surface": "#f9f9ff",
+                      "tertiary-fixed-dim": "#c0c6db",
+                      "outline": "#6d7a72",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#555c6e",
+                      "on-surface-variant": "#3d4a42",
+                      "primary-container": "#00855d",
+                      "on-secondary-fixed": "#191c1d",
+                      "surface-container": "#e7eefe",
+                      "on-secondary": "#ffffff",
+                      "surface-dim": "#d3daea",
+                      "on-tertiary-fixed-variant": "#404758",
+                      "on-background": "#151c27",
+                      "surface-container-highest": "#dce2f3",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#002114",
+                      "on-secondary-container": "#626566",
+                      "primary": "#006948",
+                      "primary-fixed-dim": "#68dba9",
+                      "surface-container-low": "#f0f3ff",
+                      "surface-bright": "#f9f9ff",
+                      "secondary-fixed": "#e1e3e4",
+                      "tertiary-container": "#6e7487",
+                      "inverse-on-surface": "#ebf1ff",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed": "#141b2b",
+                      "inverse-surface": "#2a313d",
+                      "on-surface": "#151c27",
+                      "background": "#f9f9ff",
+                      "tertiary-fixed": "#dce2f7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "gutter": "1rem",
+                      "stack-sm": "0.5rem",
+                      "stack-md": "1rem",
+                      "container-margin": "1rem",
+                      "stack-lg": "1.5rem"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Inter"],
+                      "headline-lg-mobile": ["Inter"],
+                      "display": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="bg-surface shadow-sm docked full-width top-0 flex justify-between items-center px-gutter py-stack-sm w-full sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-fixed-dim flex items-center justify-center overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional studio headshot of a modern financial executive with a friendly expression. The lighting is soft and high-key, set against a minimalist light gray background. The style is clean, sharp, and corporate, emphasizing trust and accessibility in a high-end fintech application context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIWRM6JSueVqMe6TU3B21trAqSNAkLnVA02SzDD_YpbnR0790eZUpz4CjCBJwH1qvQoCo0F2a9H9sa6M-KEqF-WLmzzYyXZGbm_kmrDwoVjLfp8XPX4sdVnT5ZctPuMMOV5sHPeQ97VQqDVMAELKRwexz7Nn3FxaKGZR00xSq-OKwHAS_cklZaUFoU6EQZo3B7MhCWEQ82w8yOr3KC97NcPxvH3L5OkBCqERMmXnqiNDM7GSI1uV-H5qW_dcXOEgBMW2VpWxaZiyE"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile dark:text-on-surface font-bold text-primary">Settings</h1>
+</div>
+<button class="text-secondary hover:bg-surface-container-low transition-colors p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="px-container-margin mt-stack-lg space-y-stack-lg">
+<!-- Profile Section -->
+<section>
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-stack-sm px-1">User Profile</h2>
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between shadow-[0_4px_6px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-stack-md">
+<div class="p-3 bg-primary-container/10 rounded-xl">
+<span class="material-symbols-outlined text-primary" data-icon="person">person</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface">Alex Thompson</p>
+<p class="font-body-md text-body-md text-secondary">alex.thompson@aggregator.io</p>
+</div>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline">Edit</button>
+</div>
+</section>
+<!-- Integrations Section (Payment Providers) -->
+<section>
+<div class="flex justify-between items-end mb-stack-sm px-1">
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest">Connected Providers</h2>
+<span class="font-label-sm text-label-sm text-primary">3 Active</span>
+</div>
+<div class="space-y-stack-sm">
+<!-- Stripe Integration -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between shadow-[0_4px_6px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[#635BFF]" data-icon="payments">payments</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface">Stripe</p>
+<p class="font-label-md text-label-md text-secondary">Last synced 2m ago</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only toggle-checkbox" type="checkbox"/>
+<div class="w-11 h-6 bg-secondary-container rounded-full toggle-label transition-colors duration-200">
+<div class="toggle-dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200"></div>
+</div>
+</label>
+</div>
+<!-- PayPal Integration -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between shadow-[0_4px_6px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[#003087]" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface">PayPal</p>
+<p class="font-label-md text-label-md text-secondary">Personal account connected</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only toggle-checkbox" type="checkbox"/>
+<div class="w-11 h-6 bg-secondary-container rounded-full toggle-label transition-colors duration-200">
+<div class="toggle-dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200"></div>
+</div>
+</label>
+</div>
+<!-- Square Integration -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between shadow-[0_4px_6px_rgba(0,0,0,0.02)]">
+<div class="flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-black" data-icon="square">square</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface">Square</p>
+<p class="font-label-md text-label-md text-secondary">Disconnected</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only toggle-checkbox" type="checkbox"/>
+<div class="w-11 h-6 bg-secondary-container rounded-full toggle-label transition-colors duration-200">
+<div class="toggle-dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200"></div>
+</div>
+</label>
+</div>
+<button class="w-full py-stack-md border-2 border-dashed border-outline-variant rounded-xl flex items-center justify-center gap-2 text-secondary hover:text-primary hover:border-primary transition-all">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span class="font-label-md text-label-md">Add New Integration</span>
+</button>
+</div>
+</section>
+<!-- Security Section -->
+<section>
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-stack-sm px-1">Security Settings</h2>
+<div class="bg-surface-container-low rounded-2xl overflow-hidden border border-outline-variant/30">
+<div class="p-stack-md flex items-center justify-between hover:bg-surface-container transition-colors cursor-pointer border-b border-outline-variant/20">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-secondary" data-icon="shield">shield</span>
+<p class="font-body-lg text-body-lg text-on-surface">Two-Factor Auth (2FA)</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-bold">ENABLED</span>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<div class="p-stack-md flex items-center justify-between hover:bg-surface-container transition-colors cursor-pointer border-b border-outline-variant/20">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-secondary" data-icon="fingerprint">fingerprint</span>
+<p class="font-body-lg text-body-lg text-on-surface">Biometric Login</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only toggle-checkbox" type="checkbox"/>
+<div class="w-11 h-6 bg-secondary-container rounded-full toggle-label transition-colors duration-200">
+<div class="toggle-dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-200"></div>
+</div>
+</label>
+</div>
+<div class="p-stack-md flex items-center justify-between hover:bg-surface-container transition-colors cursor-pointer">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-secondary" data-icon="password">password</span>
+<p class="font-body-lg text-body-lg text-on-surface">Change Password</p>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Help & Support -->
+<section>
+<h2 class="font-label-sm text-label-sm text-secondary uppercase tracking-widest mb-stack-sm px-1">Support</h2>
+<div class="grid grid-cols-2 gap-stack-sm">
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center justify-center text-center gap-2 active:scale-95 transition-transform cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="help_center">help_center</span>
+<p class="font-label-md text-label-md text-on-surface">Help Center</p>
+</div>
+<div class="glass-card rounded-xl p-stack-md flex flex-col items-center justify-center text-center gap-2 active:scale-95 transition-transform cursor-pointer shadow-sm">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="chat">chat</span>
+<p class="font-label-md text-label-md text-on-surface">Live Chat</p>
+</div>
+</div>
+</section>
+<!-- Sign Out Button -->
+<section class="pt-stack-md">
+<button class="w-full py-4 rounded-xl bg-error/5 text-error font-headline-md text-headline-md-mobile flex items-center justify-center gap-2 hover:bg-error/10 active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+                Sign Out
+            </button>
+<p class="text-center text-secondary font-label-md text-label-md mt-stack-md">Version 2.4.1 (Build 890)</p>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-container-margin pb-safe pt-2 bg-surface shadow-[0_-4px_6px_rgba(0,0,0,0.02)] docked full-width bottom-0">
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="font-label-sm text-label-sm">Transactions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="link">link</span>
+<span class="font-label-sm text-label-sm">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/10 rounded-xl px-3 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for toggle switches
+        document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const parent = this.closest('.glass-card') || this.closest('.p-stack-md');
+                if (parent) {
+                    parent.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        parent.style.transform = 'scale(1)';
+                    }, 150);
+                }
+            });
+        });
+
+        // Safe area padding adjustment for mobile
+        const updateSafeArea = () => {
+            const nav = document.querySelector('nav');
+            const bottomPadding = window.getComputedStyle(nav).getPropertyValue('padding-bottom');
+            document.body.style.paddingBottom = `calc(80px + ${bottomPadding})`;
+        };
+        window.addEventListener('resize', updateSafeArea);
+        updateSafeArea();
+    </script>
+</body></html>

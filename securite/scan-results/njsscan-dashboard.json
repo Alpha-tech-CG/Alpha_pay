@@ -1,0 +1,29 @@
+{
+  "errors": [],
+  "njsscan_version": "0.4.3",
+  "nodejs": {
+    "node_api_key": {
+      "files": [
+        {
+          "file_path": "dashboard/src/api.js",
+          "match_lines": [
+            5,
+            5
+          ],
+          "match_position": [
+            14,
+            54
+          ],
+          "match_string": "export const API_KEY = 'paybrain-key-alpha-educ-2026'"
+        }
+      ],
+      "metadata": {
+        "cwe": "CWE-798: Use of Hard-coded Credentials",
+        "description": "A hardcoded API Key is identified. Store it properly in an environment variable.",
+        "owasp-web": "A3: Sensitive Data Exposure",
+        "severity": "ERROR"
+      }
+    }
+  },
+  "templates": {}
+}

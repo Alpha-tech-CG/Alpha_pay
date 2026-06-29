@@ -1,3 +1,4 @@
+import "./tracing";   // OTel doit être le tout premier import — ALP-123
 import "reflect-metadata";
 import * as Sentry from "@sentry/node";
 

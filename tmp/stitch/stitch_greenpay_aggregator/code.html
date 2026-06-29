@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>NexusPay | Aggregated Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "outline-variant": "#bccac0",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#005137",
+                    "on-tertiary-container": "#fefcff",
+                    "secondary-fixed-dim": "#c5c7c8",
+                    "secondary": "#5c5f60",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#f5fff7",
+                    "surface-tint": "#006c4a",
+                    "surface-container-high": "#e2e8f8",
+                    "inverse-primary": "#68dba9",
+                    "secondary-container": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#454748",
+                    "primary-fixed": "#85f8c4",
+                    "on-tertiary": "#ffffff",
+                    "surface-variant": "#dce2f3",
+                    "surface": "#f9f9ff",
+                    "tertiary-fixed-dim": "#c0c6db",
+                    "outline": "#6d7a72",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#555c6e",
+                    "on-surface-variant": "#3d4a42",
+                    "primary-container": "#00855d",
+                    "on-secondary-fixed": "#191c1d",
+                    "surface-container": "#e7eefe",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#d3daea",
+                    "on-tertiary-fixed-variant": "#404758",
+                    "on-background": "#151c27",
+                    "surface-container-highest": "#dce2f3",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#002114",
+                    "on-secondary-container": "#626566",
+                    "primary": "#006948",
+                    "primary-fixed-dim": "#68dba9",
+                    "surface-container-low": "#f0f3ff",
+                    "surface-bright": "#f9f9ff",
+                    "secondary-fixed": "#e1e3e4",
+                    "tertiary-container": "#6e7487",
+                    "inverse-on-surface": "#ebf1ff",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#141b2b",
+                    "inverse-surface": "#2a313d",
+                    "on-surface": "#151c27",
+                    "background": "#f9f9ff",
+                    "tertiary-fixed": "#dce2f7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "1rem",
+                    "stack-sm": "0.5rem",
+                    "stack-md": "1rem",
+                    "container-margin": "1rem",
+                    "stack-lg": "1.5rem"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "display": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- TopAppBar from JSON -->
+<header class="bg-surface dark:bg-surface-dim shadow-sm flex justify-between items-center px-gutter py-stack-sm w-full sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/20 transition-transform active:scale-95">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a middle-aged financial executive in a minimalist studio. The lighting is soft and high-key, emphasizing a clean and high-trust aesthetic. The background is a soft, muted grey with subtle depth. The overall style is corporate but modern, using a color palette of whites and deep emerald greens." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDr7G5lWYRtrhmndcSApB3XchVTTjfteAz5tt13961Bbz5OxwVRemF2cNXyHfjKlYhdoWqzfswnzWUAkUY6TVK5rWCundFV-UwpUGwspW-dJ3RWvADDFpo6gENochGHilYhoh23BsenGrog5zGUAJHL3HcEcV3T5Zb85fMHcoEEaXq50vMrVE-ENzQuDUthWrCBBJCTOEu8aLdFbdq8il1_e2nSl0y9dIv258dFRrmc06l7rs2oL9pteQliNRuSjCUnGUyVFrsJas"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile dark:text-on-surface font-bold text-primary dark:text-primary-fixed-dim">Dashboard</h1>
+</div>
+<button class="material-symbols-outlined text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors p-2 rounded-full active:scale-95">
+            notifications
+        </button>
+</header>
+<main class="px-container-margin pt-stack-lg space-y-stack-lg">
+<!-- Total Balance Hero Card -->
+<section class="relative overflow-hidden rounded-xl bg-primary shadow-lg p-6 text-on-primary">
+<!-- Subtle background abstract texture -->
+<div class="absolute top-0 right-0 -mr-10 -mt-10 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[200px]" style="font-variation-settings: 'wght' 700;">payments</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md opacity-90 uppercase tracking-wider">Total Aggregated Balance</span>
+<span class="material-symbols-outlined text-on-primary/70">visibility</span>
+</div>
+<div class="flex items-baseline gap-2 mb-6">
+<span class="font-display text-display">$</span>
+<span class="font-display text-display" id="total-balance">42,850.24</span>
+</div>
+<!-- Provider Breakdown Bento -->
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-on-primary-container/20 rounded-lg p-3 flex flex-col">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-2 h-2 rounded-full bg-[#6772E5]"></div>
+<span class="font-label-sm text-label-sm">Stripe</span>
+</div>
+<span class="font-headline-md text-[16px] leading-tight">$28,120.00</span>
+</div>
+<div class="bg-on-primary-container/20 rounded-lg p-3 flex flex-col">
+<div class="flex items-center gap-2 mb-1">
+<div class="w-2 h-2 rounded-full bg-[#003087]"></div>
+<span class="font-label-sm text-label-sm">PayPal</span>
+</div>
+<span class="font-headline-md text-[16px] leading-tight">$14,730.24</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Actions -->
+<section>
+<h2 class="font-headline-md text-headline-md-mobile mb-4 text-on-surface">Quick Actions</h2>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex flex-col items-center gap-2 bg-surface-container-lowest p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/20 hover:bg-surface-container-low transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">request_quote</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Request</span>
+</button>
+<button class="flex flex-col items-center gap-2 bg-surface-container-lowest p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/20 hover:bg-surface-container-low transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">send</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Send</span>
+</button>
+<button class="flex flex-col items-center gap-2 bg-surface-container-lowest p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/20 hover:bg-surface-container-low transition-all active:scale-95 group">
+<div class="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">currency_exchange</span>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Exchange</span>
+</button>
+</div>
+</section>
+<!-- Insights / Mini Stats -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-secondary">Monthly Inflow</span>
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">$12.4k</span>
+<span class="text-[10px] font-bold text-primary flex items-center">
+<span class="material-symbols-outlined text-sm">trending_up</span> 14%
+                    </span>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-secondary">Fees Paid</span>
+<div class="flex items-center justify-between">
+<span class="font-headline-md text-headline-md text-on-surface">$342.00</span>
+<span class="text-[10px] font-bold text-secondary flex items-center">
+                        AVG 2.4%
+                    </span>
+</div>
+</div>
+</section>
+<!-- Recent Transactions -->
+<section class="pb-8">
+<div class="flex items-center justify-between mb-4">
+<h2 class="font-headline-md text-headline-md-mobile text-on-surface">Recent Transactions</h2>
+<button class="font-label-md text-label-md text-primary hover:underline transition-all">View all</button>
+</div>
+<div class="space-y-3">
+<!-- Transaction Item 1 -->
+<div class="bg-white p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/10 flex items-center gap-4 active:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<div class="flex-1">
+<h4 class="font-headline-md text-[14px] text-on-surface">Amazon Marketplace</h4>
+<p class="font-label-md text-label-md text-secondary">Today, 2:45 PM • PayPal</p>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-[14px] text-error">-$84.20</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-error-container text-[10px] font-bold text-on-error-container">Pending</span>
+</div>
+</div>
+<!-- Transaction Item 2 -->
+<div class="bg-white p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/10 flex items-center gap-4 active:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<h4 class="font-headline-md text-[14px] text-on-surface">Sarah Mitchell</h4>
+<p class="font-label-md text-label-md text-secondary">Yesterday • Stripe</p>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-[14px] text-primary">+$1,200.00</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-primary-container/20 text-[10px] font-bold text-primary">Settled</span>
+</div>
+</div>
+<!-- Transaction Item 3 -->
+<div class="bg-white p-4 rounded-xl shadow-[0_4px_6px_rgba(0,0,0,0.02)] border border-outline-variant/10 flex items-center gap-4 active:bg-surface-container-low transition-colors cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div class="flex-1">
+<h4 class="font-headline-md text-[14px] text-on-surface">The Green Bistro</h4>
+<p class="font-label-md text-label-md text-secondary">Oct 24 • PayPal</p>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-[14px] text-error">-$45.00</p>
+<span class="inline-block px-2 py-0.5 rounded-full bg-primary-container/20 text-[10px] font-bold text-primary">Settled</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar from JSON -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-container-margin pb-safe pt-2 bg-surface dark:bg-surface-dim shadow-[0_-4px_6px_rgba(0,0,0,0.02)]">
+<!-- Dashboard (Active) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/10 rounded-xl px-3 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-label-sm mt-0.5">Dashboard</span>
+</a>
+<!-- Transactions -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 active:scale-90 transition-transform hover:text-primary dark:hover:text-primary-fixed-dim" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm mt-0.5">Transactions</span>
+</a>
+<!-- Payments -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 active:scale-90 transition-transform hover:text-primary dark:hover:text-primary-fixed-dim" href="#">
+<span class="material-symbols-outlined">link</span>
+<span class="font-label-sm text-label-sm mt-0.5">Payments</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 active:scale-90 transition-transform hover:text-primary dark:hover:text-primary-fixed-dim" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-sm text-label-sm mt-0.5">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for balance count-up or visibility toggle
+        document.addEventListener('DOMContentLoaded', () => {
+            const balanceEl = document.getElementById('total-balance');
+            const visibilityBtn = document.querySelector('.material-symbols-outlined:nth-child(2)'); // Visibility toggle
+            
+            let isHidden = false;
+            const originalBalance = "42,850.24";
+
+            if (visibilityBtn && balanceEl) {
+                visibilityBtn.parentElement.addEventListener('click', () => {
+                    isHidden = !isHidden;
+                    if (isHidden) {
+                        balanceEl.textContent = "••••••••";
+                        visibilityBtn.textContent = "visibility_off";
+                    } else {
+                        balanceEl.textContent = originalBalance;
+                        visibilityBtn.textContent = "visibility";
+                    }
+                });
+            }
+
+            // Hover effects for transaction items
+            const transItems = document.querySelectorAll('.space-y-3 > div');
+            transItems.forEach(item => {
+                item.addEventListener('mousedown', () => {
+                    item.classList.add('scale-[0.98]');
+                });
+                item.addEventListener('mouseup', () => {
+                    item.classList.remove('scale-[0.98]');
+                });
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,51 @@
+{
+  "errors": [],
+  "njsscan_version": "0.4.3",
+  "nodejs": {
+    "express_cors": {
+      "files": [
+        {
+          "file_path": "paybrain/src/index.js",
+          "match_lines": [
+            29,
+            29
+          ],
+          "match_position": [
+            3,
+            49
+          ],
+          "match_string": "  res.header('Access-Control-Allow-Origin', '*');"
+        }
+      ],
+      "metadata": {
+        "cwe": "CWE-346: Origin Validation Error",
+        "description": "Access-Control-Allow-Origin response header is set to \"*\". This will disable CORS Same Origin Policy restrictions.",
+        "owasp-web": "A6: Security Misconfiguration",
+        "severity": "WARNING"
+      }
+    },
+    "node_sqli_injection": {
+      "files": [
+        {
+          "file_path": "paybrain/src/models/transaction.js",
+          "match_lines": [
+            48,
+            51
+          ],
+          "match_position": [
+            9,
+            5
+          ],
+          "match_string": "  await pool.query({\n    text: 'INSERT INTO webhooks_log (mtn_reference_id, raw_payload) VALUES ($1::text, $2::jsonb)',\n    values: [mtnReferenceId || null, JSON.stringify(rawPayload)],\n  });"
+        }
+      ],
+      "metadata": {
+        "cwe": "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+        "description": "Untrusted input concatinated with raw SQL query can result in SQL Injection.",
+        "owasp-web": "A1: Injection",
+        "severity": "ERROR"
+      }
+    }
+  },
+  "templates": {}
+}

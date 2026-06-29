@@ -580,6 +580,19 @@ model LedgerBalanceSnapshot {
   @@map("ledger_balance_snapshots")
 }
 
+// Tokens push Expo pour notifications marchands (ALP-150).
+model PushToken {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  token      String
+  platform   String   @default("expo")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([merchantId, token])
+  @@index([merchantId])
+  @@map("push_tokens")
+}
+
 // Taux de change (ALP-151) : 1 unité de `base` = `rate` unités de `quote`.
 // Alimentés en interne (configurable / seed) — pas d'API externe requise.
 model CurrencyRate {

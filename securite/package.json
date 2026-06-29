@@ -1,0 +1,39 @@
+{
+  "name": "paybrain-secure",
+  "version": "0.2.0",
+  "description": "PayBrain — version durcie sécurité (post-audit)",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --testPathPattern=tests/",
+    "lint": "eslint src",
+    "audit:deps": "npm audit --audit-level=moderate",
+    "audit:secrets": "gitleaks detect --source . --no-git -v"
+  },
+  "dependencies": {
+    "@aws-sdk/client-kms": "^3.600.0",
+    "@aws-sdk/client-secrets-manager": "^3.600.0",
+    "argon2": "^0.40.3",
+    "axios": "^1.7.2",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.0",
+    "libphonenumber-js": "^1.11.0",
+    "pg": "^8.12.0",
+    "pino": "^9.0.0",
+    "redis": "^4.6.14",
+    "uuid": "^10.0.0",
+    "ws": "^8.21.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "fast-check": "^3.20.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
+    "supertest": "^7.0.0"
+  }
+}

@@ -58,3 +58,7 @@ export interface Settlement {
 }
 
 export const getSettlements = () => api.get<Settlement[]>('/v1/settlements').then((r) => r.data);
+
+/** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
+export const registerPushToken = (token: string) =>
+  api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);

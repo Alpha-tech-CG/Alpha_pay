@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transaction History</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Load Tailwind Config -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "outline-variant": "#bccac0",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#005137",
+                    "on-tertiary-container": "#fefcff",
+                    "secondary-fixed-dim": "#c5c7c8",
+                    "secondary": "#5c5f60",
+                    "on-primary": "#ffffff",
+                    "on-primary-container": "#f5fff7",
+                    "surface-tint": "#006c4a",
+                    "surface-container-high": "#e2e8f8",
+                    "inverse-primary": "#68dba9",
+                    "secondary-container": "#e1e3e4",
+                    "on-secondary-fixed-variant": "#454748",
+                    "primary-fixed": "#85f8c4",
+                    "on-tertiary": "#ffffff",
+                    "surface-variant": "#dce2f3",
+                    "surface": "#f9f9ff",
+                    "tertiary-fixed-dim": "#c0c6db",
+                    "outline": "#6d7a72",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#555c6e",
+                    "on-surface-variant": "#3d4a42",
+                    "primary-container": "#00855d",
+                    "on-secondary-fixed": "#191c1d",
+                    "surface-container": "#e7eefe",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#d3daea",
+                    "on-tertiary-fixed-variant": "#404758",
+                    "on-background": "#151c27",
+                    "surface-container-highest": "#dce2f3",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary-fixed": "#002114",
+                    "on-secondary-container": "#626566",
+                    "primary": "#006948",
+                    "primary-fixed-dim": "#68dba9",
+                    "surface-container-low": "#f0f3ff",
+                    "surface-bright": "#f9f9ff",
+                    "secondary-fixed": "#e1e3e4",
+                    "tertiary-container": "#6e7487",
+                    "inverse-on-surface": "#ebf1ff",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#141b2b",
+                    "inverse-surface": "#2a313d",
+                    "on-surface": "#151c27",
+                    "background": "#f9f9ff",
+                    "tertiary-fixed": "#dce2f7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "1rem",
+                    "stack-sm": "0.5rem",
+                    "stack-md": "1rem",
+                    "container-margin": "1rem",
+                    "stack-lg": "1.5rem"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "display": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "label-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24">
+<!-- Top App Bar (Shared Component) -->
+<header class="bg-surface dark:bg-surface-dim shadow-sm flex justify-between items-center px-gutter py-stack-sm w-full sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional studio portrait of a young financial tech executive with a friendly expression. The lighting is soft and natural, against a clean, minimalist off-white background that matches a high-end corporate aesthetic. The style is sharp, modern, and trustworthy, with subtle emerald green tones in the background to align with the brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_P9-kCxazsv1AwrLWpWYgAEH2RDLfbWrzrs8qVbqFKOoCcuc6WpIlze4INBLNW4b1c8ZmCxU9IIaReHk2nD3wPa9v_jY5RhHGWO7yhKlMeRMS12VG3Bpsb36aUKnbYH7dPTuFGDsWndPIgDl_0zO5u77NHUKBg_P-oXSaMWuorR3_-w-tpIaZXGv4X14xyL9M0yX1uQIv7fAhwUI0L2y20d-YRyLJKuHgnC0gF6AkG_0YpUtPPrwWrOglkeT-SUfr56dmR5dl6pE"/>
+</div>
+<h1 class="font-headline-md text-headline-md-mobile dark:text-on-surface">Transactions</h1>
+</div>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</header>
+<main class="px-gutter pt-stack-md space-y-stack-lg">
+<!-- Search and Global Filter Section -->
+<section class="space-y-stack-md">
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</div>
+<input class="w-full h-12 pl-12 pr-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-on-surface" placeholder="Search merchants or references..." type="text"/>
+</div>
+<!-- Quick Filter Chips -->
+<div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+<button class="whitespace-nowrap px-4 py-2 rounded-full bg-primary text-on-primary font-label-sm text-label-sm shadow-sm transition-all active:scale-95">All Transactions</button>
+<button class="whitespace-nowrap px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-secondary font-label-sm text-label-sm hover:bg-surface-container-high transition-all active:scale-95">Payments Sent</button>
+<button class="whitespace-nowrap px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-secondary font-label-sm text-label-sm hover:bg-surface-container-high transition-all active:scale-95">Money Received</button>
+<button class="whitespace-nowrap px-4 py-2 rounded-full bg-surface-container border border-outline-variant text-secondary font-label-sm text-label-sm hover:bg-surface-container-high transition-all active:scale-95 flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]" data-icon="tune">tune</span>
+                    More
+                </button>
+</div>
+</section>
+<!-- Transaction List Section -->
+<section class="space-y-stack-md">
+<div class="flex justify-between items-center px-1">
+<h2 class="font-headline-md text-headline-md-mobile text-on-surface">History</h2>
+<span class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">August 2024</span>
+</div>
+<div class="space-y-3">
+<!-- Transaction Item: Success -->
+<div class="group cursor-pointer bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-[0px_4px_6px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all hover:border-primary/30" onclick="toggleDetails('tx-1')">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant/30">
+<img class="w-8 h-8 object-contain" data-alt="A minimalist tech company logo featuring a sleek, abstract geometric shape in deep slate gray. The logo is centered on a clean, professional white background with a subtle satin texture. The style is modern, corporate, and high-trust, evoking stability and reliability in financial services." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAK0H4w6XiHytK-DTdszn9qpg6WXLiT6xYkHyWrmVaMMgndkwDQU2A1s7DzBjMzplcZzkRwjB99jzThKJASsg1gEUKLlqx6sWEF9ovMsnHmTXH_jZr5ZIWDplunlCAdv00Auypu3UobnwPeG6PeNvtUoN6YaLHh-LJRYk40E8JvpiQULB-W7hav8SLEWQx4j6XwqQhW8cwCatlMMccFZL0kLWNbg3R0kyrjCRrObt5Iw5Z_ckZHslj8ThsVU51hYHsFYl64M6uriZ0"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface leading-tight">Amazon Tech Ltd</p>
+<p class="font-label-sm text-label-sm text-secondary">Aug 24 • Cloud Services</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md-mobile text-error">-$149.00</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">
+                            Success
+                        </span>
+</div>
+</div>
+<!-- Detail Panel (Hidden by default) -->
+<div class="hidden overflow-hidden bg-surface-container-low mx-2 -mt-2 rounded-b-xl border-x border-b border-outline-variant/30 transition-all" id="tx-1">
+<div class="p-4 space-y-3">
+<div class="flex justify-between text-label-md font-label-md">
+<span class="text-secondary">Transaction ID</span>
+<span class="text-on-surface">#TXN-8829-0012</span>
+</div>
+<div class="flex justify-between text-label-md font-label-md">
+<span class="text-secondary">Payment Method</span>
+<span class="text-on-surface">Visa Card •••• 4242</span>
+</div>
+<div class="flex justify-between text-label-md font-label-md">
+<span class="text-secondary">Reference</span>
+<span class="text-on-surface">AWS-MONTHLY-SUB</span>
+</div>
+<button class="w-full mt-2 py-2 bg-primary/10 text-primary font-label-sm text-label-sm rounded-lg hover:bg-primary/20 transition-colors">Download Receipt</button>
+</div>
+</div>
+<!-- Transaction Item: Pending -->
+<div class="group cursor-pointer bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-[0px_4px_6px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all hover:border-primary/30">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant/30">
+<img class="w-8 h-8 object-contain" data-alt="A clean, vibrant logo for a food delivery platform featuring a stylized spoon and fork icon in bright orange. The background is a soft, warm cream color with a subtle paper texture. The design is modern, playful yet professional, aligning with high-quality consumer services." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-8gArY3lLK5EbLZ-GTPz_8zmrbYFhwNj6yDCQKt6eoasaPRYKxugBZdudyrCxawhxxaXCAwmuvPQLgHhheEi8u5G18B6rRKdiXM8WX3JLp5PBkSeYdI0uQqpIQ3ysPiNsmJTLgtZqPL3fs6wBujS_3zgwfOxCEYeHdDM72kalEjqOEDF1JGZCJvka8Lx-vHBXoTP0HEazpbk1DqYyzt2fwajmn1uplfOfYCCF5YDztXnvmlEd4rpqDWwy10g5GXotG6Pz87B_7gM"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface leading-tight">Uber Eats</p>
+<p class="font-label-sm text-label-sm text-secondary">Aug 23 • Dining</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md-mobile text-error">-$42.20</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container/50 text-secondary font-label-sm text-label-sm">
+                            Pending
+                        </span>
+</div>
+</div>
+<!-- Transaction Item: Incoming -->
+<div class="group cursor-pointer bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-[0px_4px_6px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all hover:border-primary/30">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center border border-primary/20">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance_wallet" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface leading-tight">External Transfer</p>
+<p class="font-label-sm text-label-sm text-secondary">Aug 22 • From Chase Bank</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md-mobile text-primary">+$1,250.00</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">
+                            Success
+                        </span>
+</div>
+</div>
+<!-- Transaction Item: Failed -->
+<div class="group cursor-pointer bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-[0px_4px_6px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all hover:border-error/30">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant/30">
+<img class="w-8 h-8 object-contain" data-alt="A logo for a fitness center featuring a minimalist barbell icon in deep navy blue. The background is a crisp white with a very faint grid pattern like high-performance sportswear. The aesthetic is energetic, clean, and professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2utWYpP0w1enux__QH8aF7KsAZzJpTZvgpeh9W-cU1jrELVQWdKxuluBP0_OT0dMziNaLUSSnpiMQUAyae-3TUZdCM0Pu6broYbNTE6CXMyfHt6IvUA53s8EZzE2NXvgqwROKp85Zz77j6zMAZ3vytZ8oKCeKg2HbHjKiKy8kL0mY8tXmnUL9jEbpBu_1ZAecQnpXaYyx7cdwOqAxz8_kz4vUOEq2gndho8RmWRDa_sJFnc1ZrvNKgnQZP6AmrFMLyUIpEfKyuu0"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface leading-tight">Equinox Gym</p>
+<p class="font-label-sm text-label-sm text-secondary">Aug 21 • Health</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md-mobile text-secondary">-$250.00</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
+                            Failed
+                        </span>
+</div>
+</div>
+<!-- Date Divider -->
+<div class="flex justify-between items-center px-1 pt-4">
+<span class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">Earlier this month</span>
+</div>
+<!-- Transaction Item: Success -->
+<div class="group cursor-pointer bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex items-center justify-between shadow-[0px_4px_6px_rgba(0,0,0,0.02)] active:scale-[0.98] transition-all hover:border-primary/30">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center overflow-hidden border border-outline-variant/30">
+<img class="w-8 h-8 object-contain" data-alt="A minimalist streaming service logo featuring a vibrant purple play button icon. The logo is clean and bold, set against a pristine white background with a very subtle soft-focus glow. The design style is modern tech-forward and highly engaging." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpztCmXM79sOiw91pbDieT6ABr_I33suY-49zA6gTmweXxFePrjJBUUNivdWIfiaSVKRitqcxO9A5-NkM7QoVNXT0B5MGFsFUpi-rPHFAGw_fxV2nhplGVARx4ak5PHKSmPsbQ6R2RzPew3ilIG-Hi_rdbPU8r1vQKff91Qvins9IS-5So0R-u-d1nWTP_xEiRWMU0GAn80tcLOAqBCUKbOuZfjvXmicTRQP7bH-5yMaOcdFWe-dbDsWD2cIyVS_dkDfk4-ZIAz9g"/>
+</div>
+<div>
+<p class="font-headline-md text-headline-md-mobile text-on-surface leading-tight">Netflix Inc</p>
+<p class="font-label-sm text-label-sm text-secondary">Aug 15 • Entertainment</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-headline-md text-headline-md-mobile text-error">-$19.99</p>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">
+                            Success
+                        </span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-surface dark:bg-surface-dim shadow-[0_-4px_6px_rgba(0,0,0,0.02)] flex justify-around items-center px-container-margin pb-safe pt-2">
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/10 rounded-xl px-3 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-label-sm text-label-sm">Transactions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="link">link</span>
+<span class="font-label-sm text-label-sm">Payments</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-3 py-1 hover:text-primary dark:hover:text-primary-fixed-dim transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        function toggleDetails(id) {
+            const el = document.getElementById(id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                el.classList.add('block');
+                // Optional: Smooth height transition logic can be added here
+            } else {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            }
+        }
+
+        // Add active state styles from JSON to the Transactions nav item
+        // In this case, "Transactions" is the active page
+    </script>
+</body></html>

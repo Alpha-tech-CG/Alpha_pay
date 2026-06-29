@@ -1,0 +1,29 @@
+{
+  "errors": [],
+  "njsscan_version": "0.4.3",
+  "nodejs": {
+    "regex_dos": {
+      "files": [
+        {
+          "file_path": "securite/src/routes/payments.js",
+          "match_lines": [
+            205,
+            205
+          ],
+          "match_position": [
+            12,
+            50
+          ],
+          "match_string": "      if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) {"
+        }
+      ],
+      "metadata": {
+        "cwe": "CWE-185: Incorrect Regular Expression",
+        "description": "Ensure that the regex used to compare with user supplied input is safe from regular expression denial of service.",
+        "owasp-web": "A6: Security Misconfiguration",
+        "severity": "WARNING"
+      }
+    }
+  },
+  "templates": {}
+}

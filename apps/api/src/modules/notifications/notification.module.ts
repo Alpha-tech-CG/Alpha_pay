@@ -2,13 +2,13 @@ import { Global, Module } from "@nestjs/common";
 import { NotificationService } from "./notification.service";
 import { NotificationWebhookController } from "./notification-webhook.controller";
 import { NotificationWebhookGuard } from "./notification-webhook.guard";
+import { PushTokenController } from "./push-token.controller";
+import { PushTokenService } from "./push-token.service";
 
-// Global : le service de notification est injectable partout (réconciliation,
-// échec webhook, onboarding…).
 @Global()
 @Module({
-  controllers: [NotificationWebhookController],
-  providers: [NotificationService, NotificationWebhookGuard],
-  exports: [NotificationService],
+  controllers: [NotificationWebhookController, PushTokenController],
+  providers: [NotificationService, NotificationWebhookGuard, PushTokenService],
+  exports: [NotificationService, PushTokenService],
 })
 export class NotificationModule {}
