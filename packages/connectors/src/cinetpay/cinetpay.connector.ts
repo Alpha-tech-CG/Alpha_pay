@@ -59,6 +59,7 @@ export class CinetPayConnector {
 
     const data = response.data;
     if (data.code !== '201') {
+      // Ne pas inclure le body de la requête dans l'erreur (contient apikey).
       throw new Error(`CinetPay checkout error: code ${data.code}`);
     }
 
@@ -87,6 +88,9 @@ export class CinetPayConnector {
     const status = response.data.data?.status;
     if (status === 'ACCEPTED') return 'SUCCESSFUL';
     if (status === 'REFUSED' || status === 'CANCELLED') return 'FAILED';
+    if (status !== 'PENDING' && status !== 'IN_PROGRESS') {
+      console.warn(`[CinetPay] statut inconnu reçu: "${status}" — traité comme PENDING`);
+    }
     return 'PENDING';
   }
 
@@ -110,6 +114,15 @@ export class CinetPayConnector {
     if (sigBuf.length !== expBuf.length) return false;
     return crypto.timingSafeEqual(sigBuf, expBuf);
   }
+}
+
+/**
+ * Retourne une copie du body avec apikey remplacée par '***' pour les logs.
+ * Ne modifie jamais le payload réel envoyé à CinetPay.
+ */
+function redactApiKey(body: Record<string, unknown>): Record<string, unknown> {
+  const { apikey: _, ...rest } = body;
+  return { ...rest, apikey: '***' };
 }
 
 export function createCinetPayConnector(): CinetPayConnector {

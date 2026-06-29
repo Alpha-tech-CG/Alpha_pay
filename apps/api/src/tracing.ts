@@ -30,7 +30,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-// Flush propre à l'arrêt du process (SIGTERM depuis ECS).
-process.on('SIGTERM', () => {
-  sdk.shutdown().finally(() => process.exit(0));
-});
+// Flush propre à l'arrêt du process (SIGTERM depuis ECS, SIGINT en dev).
+const shutdown = () => sdk.shutdown().finally(() => process.exit(0));
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

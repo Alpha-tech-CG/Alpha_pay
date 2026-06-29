@@ -493,11 +493,11 @@ export class SettlementService {
   }
 
   /** Reversements d'UN marchand (vue marchand, scopée). */
-  listForMerchant(merchantId: string) {
+  listForMerchant(merchantId: string, limit = 50) {
     return this.prisma.settlementBatch.findMany({
       where: { merchantId },
       orderBy: { createdAt: "desc" },
-      take: 50,
+      take: Math.min(limit, 100),
     });
   }
 
