@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { setApiKey, registerPushToken } from './api';
 
@@ -44,7 +45,12 @@ async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  const token = await Notifications.getExpoPushTokenAsync();
+  // projectId requis depuis Expo SDK 50 — lu depuis la config EAS ou l'extra.
+  const projectId =
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
+      ?.eas?.projectId ?? Constants.easConfig?.projectId;
+
+  const token = await Notifications.getExpoPushTokenAsync({ projectId });
   return token.data;
 }
 

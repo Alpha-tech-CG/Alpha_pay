@@ -7,6 +7,7 @@
  *
  * Docs : https://docs.cinetpay.com/api/cinetpay
  */
+import crypto from 'crypto';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { withRetry } from '../retry';
@@ -33,7 +34,7 @@ export class CinetPayConnector {
    * Le marchand redirige le client (web) ou ouvre une WebView (mobile).
    */
   async initiateCheckout(dto: InitiatePaymentDto): Promise<PaymentResult & { checkoutUrl: string }> {
-    const transactionId = dto.externalId ?? uuidv4();
+    const transactionId = dto.externalId || uuidv4();
 
     const response = await withRetry(() =>
       axios.post<{ code: string; data: CheckoutSession }>(
@@ -97,13 +98,17 @@ export class CinetPayConnector {
     const { cpm_trans_id, cpm_site_id, signature } = params;
     if (!cpm_trans_id || !cpm_site_id || !signature) return false;
 
-    const crypto = require('crypto') as typeof import('crypto');
     const expected = crypto
       .createHash('sha256')
       .update(`${apiKey}${cpm_trans_id}${cpm_site_id}`)
       .digest('hex');
 
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    // timingSafeEqual lance ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH si les buffers
+    // ont des longueurs différentes (signature malformée) — vérifier avant.
+    const sigBuf = Buffer.from(signature);
+    const expBuf = Buffer.from(expected);
+    if (sigBuf.length !== expBuf.length) return false;
+    return crypto.timingSafeEqual(sigBuf, expBuf);
   }
 }
 
