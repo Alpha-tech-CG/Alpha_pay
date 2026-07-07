@@ -1,0 +1,52 @@
+@import 'tailwindcss';
+
+:root {
+  --pb-bg: #f8f9ff;
+  --pb-surface: #ffffff;
+  --pb-ink: #0b1c30;
+  --pb-ink-var: #434657;
+  --pb-muted: #747688;
+  --pb-primary: #0035c5;
+  --pb-primary-dark: #001257;
+  --pb-secondary: #006a62;
+  --pb-secondary-container: #57fae9;
+  --pb-on-secondary-container: #007168;
+  --pb-soft: #eff4ff;
+  --pb-soft-high: #dce9ff;
+  --pb-soft-highest: #d3e4fe;
+  --pb-border: #c4c5da;
+  --pb-error: #ba1a1a;
+  --pb-error-container: #ffdad6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 1;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pb-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 9999px;
+  animation: spin 0.7s linear infinite;
+}
