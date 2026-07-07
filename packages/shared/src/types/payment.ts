@@ -1,4 +1,5 @@
-export type Operator = 'MTN' | 'AIRTEL';
+export type MobileMoneyOperator = 'MTN' | 'AIRTEL';
+export type Operator = MobileMoneyOperator | 'CINETPAY';
 
 export type TransactionStatus = 'PENDING' | 'SUCCESSFUL' | 'FAILED' | 'REJECTED';
 

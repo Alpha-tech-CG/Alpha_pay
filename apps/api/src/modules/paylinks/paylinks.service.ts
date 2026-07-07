@@ -34,12 +34,22 @@ export class PaylinksService {
 
     const baseUrl = process.env.CHECKOUT_URL ?? 'http://localhost:5174';
     const ussdShortcode = process.env.USSD_SHORTCODE ?? '*182#';
+
+    // Payload JSON encodé dans le QR code — parsé par le scanner wallet client.
+    // Format attendu par parseQrPayload() dans wallet.service.ts.
+    const qrPayload = JSON.stringify({
+      merchantId,
+      amountCents: toCents(dto.amount),
+      ...(dto.description ? { description: dto.description } : {}),
+    });
+
     return {
       id: link.id,
       url: `${baseUrl}/pay/${link.id}`,
-      code, // à composer via USSD sur un téléphone à touches
+      code,
       ussd: `${ussdShortcode} puis code ${code}`,
       expiresAt,
+      qrPayload,
     };
   }
 

@@ -16,6 +16,9 @@ import { KycModule } from './modules/kyc/kyc.module';
 import { UssdModule } from './modules/ussd/ussd.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
+import { ClerkModule } from './modules/clerk/clerk.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { WalletModule } from './modules/wallet/wallet.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -38,6 +41,9 @@ import { DatabaseModule } from './database.module';
     UssdModule,
     CurrencyModule,
     MetricsModule,
+    ClerkModule,
+    OnboardingModule,
+    WalletModule,
   ],
 })
 export class AppModule {}

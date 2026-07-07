@@ -24,6 +24,7 @@ function run(
   const guard = bodyGuard({
     maxBytes,
     formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
+    multipartPaths: ["/v1/onboarding/developer"],
   });
   const req: any = { method, headers, path };
   const res = fakeRes();
@@ -92,6 +93,33 @@ describe("bodyGuard (ALP-153)", () => {
       "content-length": "50",
     });
     expect(next).toHaveBeenCalled();
+  });
+
+  it("accepte le multipart uniquement sur les chemins d'upload allowlistés", () => {
+    const headers = {
+      "content-type": "multipart/form-data; boundary=----x",
+      "content-length": String(2 * 1024 * 1024),
+    };
+    expect(
+      run("POST", headers, undefined, "/v1/onboarding/developer").next,
+    ).toHaveBeenCalled();
+    expect(run("POST", headers, undefined, "/payments").res.statusCode).toBe(
+      415,
+    );
+  });
+
+  it("rejette un multipart > 6 MiB en 413 même sur un chemin allowlisté", () => {
+    const { next, res } = run(
+      "POST",
+      {
+        "content-type": "multipart/form-data; boundary=----x",
+        "content-length": String(7 * 1024 * 1024),
+      },
+      undefined,
+      "/v1/onboarding/developer",
+    );
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(413);
   });
 
   it("accepte le formulaire Africa's Talking uniquement sur son callback", () => {

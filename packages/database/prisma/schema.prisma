@@ -17,6 +17,8 @@ enum TransactionStatus {
 enum Operator {
   MTN
   AIRTEL
+  CINETPAY
+  WALLET
   BANK
 }
 
@@ -120,19 +122,110 @@ enum KycDocumentType {
   PROOF_OF_ADDRESS
 }
 
+enum OnboardingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MerchantType {
+  MERCHANT
+  DEVELOPER
+}
+
+enum UserRole {
+  CLIENT
+  MERCHANT
+  MERCHANT_CASHIER
+  ADMIN_STAFF
+}
+
+enum WalletStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum WalletTxType {
+  CASH_IN
+  PAY
+  CASH_OUT
+  P2P_SEND
+  P2P_RECEIVE
+  REFUND
+}
+
+// Portefeuille électronique du client final (closed-loop wallet).
+model Wallet {
+  id           String        @id @default(uuid())
+  phone        String        @unique
+  pinHash      String        @map("pin_hash")
+  balanceCents BigInt        @default(0) @map("balance_cents")
+  currency     String        @default("XAF")
+  role         UserRole      @default(CLIENT)
+  status       WalletStatus  @default(ACTIVE)
+  fullName     String?       @map("full_name")
+  pushToken    String?       @map("push_token")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  sentTxs      WalletTransaction[] @relation("SenderWallet")
+  receivedTxs  WalletTransaction[] @relation("ReceiverWallet")
+
+  @@index([phone])
+  @@map("wallets")
+}
+
+// Transaction sur portefeuille client (ledger simplifié en partie simple).
+model WalletTransaction {
+  id              String       @id @default(uuid())
+  walletId        String       @map("wallet_id")
+  wallet          Wallet       @relation("SenderWallet", fields: [walletId], references: [id])
+  type            WalletTxType
+  amountCents     BigInt       @map("amount_cents")
+  balanceBefore   BigInt       @map("balance_before")
+  balanceAfter    BigInt       @map("balance_after")
+  status          TransactionStatus @default(PENDING)
+  description     String?
+  operatorRef     String?      @map("operator_ref")        // référence opérateur (MTN/Airtel)
+  merchantId      String?      @map("merchant_id")         // si PAY vers un marchand
+  peerWalletId    String?      @map("peer_wallet_id")      // si P2P
+  peerWallet      Wallet?      @relation("ReceiverWallet", fields: [peerWalletId], references: [id])
+  idempotencyKey  String?      @map("idempotency_key")     // rejeu client (double-tap, retry réseau)
+  metadata        Json?
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@unique([walletId, idempotencyKey])
+  @@index([walletId, createdAt])
+  @@index([merchantId])
+  @@index([status])
+  @@map("wallet_transactions")
+}
+
 model Merchant {
-  id               String            @id @default(uuid())
+  id               String           @id @default(uuid())
   name             String
-  emailEncrypted   Bytes             @map("email_encrypted")
-  emailHash        Bytes             @unique @map("email_hash")
-  isActive         Boolean           @default(true) @map("is_active")
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  emailEncrypted   Bytes            @map("email_encrypted")
+  emailHash        Bytes            @unique @map("email_hash")
+  phone            String?
+  companyName      String?          @map("company_name")
+  country          String?
+  website          String?
+  useCase          String?          @map("use_case")
+  idDocumentKey    String?          @map("id_document_key")
+  merchantType     MerchantType     @default(MERCHANT) @map("merchant_type")
+  onboardingStatus OnboardingStatus @default(PENDING) @map("onboarding_status")
+  rejectionReason  String?          @map("rejection_reason")
+  isActive         Boolean          @default(false) @map("is_active")
+  clerkUserId      String?          @unique @map("clerk_user_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
   transactions     Transaction[]
   paymentLinks     PaymentLink[]
   apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
 
+  @@index([onboardingStatus])
   @@map("merchants")
 }
 

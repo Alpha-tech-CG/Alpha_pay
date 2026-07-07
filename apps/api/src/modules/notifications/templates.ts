@@ -26,9 +26,55 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     body: "Paiement {{externalId}} de {{amount}} {{currency}} confirmé.",
   },
   "merchant.welcome": {
+    version: "v2",
+    subject: "Bienvenue chez PayBrain — votre clé API",
+    body: "Bonjour {{name}},\n\nVotre compte PayBrain est actif.\n\nVotre clé API de test :\n  {{apiKey}}\n\nConservez-la en lieu sûr — elle ne sera plus affichée.\nVous pouvez en créer d'autres depuis le dashboard.\n\nDocumentation : https://api.paybrain.cg/reference\n\nBonne intégration,\nL'équipe PayBrain",
+  },
+  "merchant.pending": {
     version: "v1",
-    subject: "Bienvenue chez PayBrain",
-    body: "Bonjour {{name}}, votre compte marchand est actif. Bon encaissement !",
+    subject: "PayBrain — Demande d'accès reçue",
+    body: "Bonjour {{name}},\n\nMerci pour votre inscription sur PayBrain.\n\nVotre demande a bien été reçue et est en cours d'examen par notre équipe.\nVous recevrez un email dès que votre compte sera activé (généralement sous 24–48h ouvrées).\n\nCordialement,\nL'équipe PayBrain",
+  },
+  "merchant.approved": {
+    version: "v1",
+    subject: "PayBrain — Compte activé ✓",
+    body: "Bonjour {{name}},\n\nVotre compte PayBrain a été validé par notre équipe.\n\nVotre clé API de test :\n  {{apiKey}}\n\nConservez-la en lieu sûr — elle ne sera plus affichée.\nPour obtenir une clé de production, soumettez vos documents KYC depuis le dashboard.\n\nDocumentation : https://api.paybrain.cg/reference\nDashboard : https://dashboard.paybrain.cg\n\nBienvenue,\nL'équipe PayBrain",
+  },
+  "merchant.rejected": {
+    version: "v1",
+    subject: "PayBrain — Demande non retenue",
+    body: "Bonjour {{name}},\n\nAprès examen, nous ne sommes pas en mesure d'activer votre compte PayBrain pour le motif suivant :\n\n  {{reason}}\n\nSi vous pensez que c'est une erreur, répondez à cet email.\n\nCordialement,\nL'équipe PayBrain",
+  },
+  /* ── Wallet client (SMS) ── */
+  "wallet.cashin.success": {
+    version: "v1",
+    subject: "PayBrain – Rechargement reçu",
+    body: "PayBrain : votre wallet a été crédité de {{amount}} {{currency}}. Solde : {{balance}} {{currency}}.",
+  },
+  "wallet.cashin.failed": {
+    version: "v1",
+    subject: "PayBrain – Rechargement échoué",
+    body: "PayBrain : votre rechargement de {{amount}} {{currency}} via {{operator}} a échoué. Réessayez depuis l'app.",
+  },
+  "wallet.cashout.success": {
+    version: "v1",
+    subject: "PayBrain – Retrait effectué",
+    body: "PayBrain : retrait de {{amount}} {{currency}} vers {{operator}} ({{phone}}) effectué. Solde restant : {{balance}} {{currency}}.",
+  },
+  "wallet.cashout.failed": {
+    version: "v1",
+    subject: "PayBrain – Retrait échoué",
+    body: "PayBrain : votre retrait de {{amount}} {{currency}} a échoué. Votre solde a été restitué intégralement.",
+  },
+  "wallet.p2p.received": {
+    version: "v1",
+    subject: "PayBrain – Argent reçu",
+    body: "PayBrain : vous avez reçu {{amount}} {{currency}} de {{from}}. Solde : {{balance}} {{currency}}.",
+  },
+  "ops.new-signup": {
+    version: "v1",
+    subject: "[PayBrain] Nouvelle inscription — {{name}}",
+    body: "Nouvel inscrit en attente de validation :\n\nNom    : {{name}}\nEmail  : {{email}}\nType   : {{merchantType}}\nID     : {{merchantId}}\n\nValider ou rejeter :\nhttps://dashboard.paybrain.cg/internal/onboarding/{{merchantId}}",
   },
 };
 

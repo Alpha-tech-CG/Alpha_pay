@@ -7,10 +7,20 @@ const baseURL =
 
 export const api = axios.create({ baseURL, timeout: 15000 });
 
-/** Pose (ou retire) la clé API marchand sur toutes les requêtes. */
+/** Pose la clé API marchand (X-API-Key) et retire le Bearer JWT si présent. */
 export function setApiKey(key: string | null) {
   if (key) api.defaults.headers.common['X-API-Key'] = key;
   else delete api.defaults.headers.common['X-API-Key'];
+  // Les marchands n'utilisent pas Bearer
+  delete api.defaults.headers.common['Authorization'];
+}
+
+/** Pose le JWT client (Authorization: Bearer) et retire X-API-Key si présent. */
+export function setBearerToken(token: string | null) {
+  if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  else delete api.defaults.headers.common['Authorization'];
+  // Les clients wallet n'utilisent pas X-API-Key
+  delete api.defaults.headers.common['X-API-Key'];
 }
 
 /** Vérifie une clé en appelant un endpoint protégé léger. */
@@ -62,3 +72,80 @@ export const getSettlements = () => api.get<Settlement[]>('/v1/settlements').the
 /** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
 export const registerPushToken = (token: string) =>
   api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);
+
+export interface SignupPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  companyName?: string;
+  country?: string;
+  type: 'MERCHANT' | 'DEVELOPER';
+}
+
+/**
+ * Inscription via le site web — l'app ouvre la page d'inscription Clerk
+ * dans le navigateur natif. On ne gère pas les credentials en mobile.
+ */
+export const SIGNUP_URL =
+  (Constants.expoConfig?.extra as { dashboardUrl?: string } | undefined)?.dashboardUrl
+    ? `${(Constants.expoConfig.extra as { dashboardUrl: string }).dashboardUrl}/sign-up`
+    : 'https://dashboard.paybrain.cg/sign-up';
+
+/* ─── CLIENT (Wallet) API ─── */
+
+export interface WalletBalance {
+  balanceCents: number;
+  currency: string;
+  phone: string;
+  fullName: string | null;
+}
+
+export interface WalletTx {
+  id: string;
+  type: 'CASH_IN' | 'PAY' | 'CASH_OUT' | 'P2P_SEND' | 'P2P_RECEIVE' | 'REFUND';
+  amountCents: number;
+  balanceAfter: number;
+  status: string;
+  description: string | null;
+  createdAt: string;
+  merchantId?: string;
+  peerPhone?: string;
+}
+
+/** Connexion client par téléphone + PIN → renvoie { token, phone, role } */
+export const loginClient = (phone: string, pin: string) =>
+  api.post<{ token: string; phone: string; role: string }>(
+    '/v1/wallet/auth/login',
+    { phone, pin },
+  ).then((r) => r.data);
+
+/** Inscription client — crée le wallet avec le PIN choisi par l'utilisateur */
+export const registerClient = (phone: string, fullName: string, pin: string) =>
+  api.post<{ ok: boolean; phone: string }>(
+    '/v1/wallet/auth/register',
+    { phone, fullName, pin },
+  ).then((r) => r.data);
+
+/** Solde et info du wallet */
+export const getWalletBalance = () =>
+  api.get<WalletBalance>('/v1/wallet/balance').then((r) => r.data);
+
+/** Historique des transactions du wallet */
+export const getWalletHistory = (limit = 30) =>
+  api.get<WalletTx[]>('/v1/wallet/transactions', { params: { limit } }).then((r) => r.data);
+
+/** Initier un rechargement (Cash-In) via Mobile Money */
+export const walletCashIn = (amountCents: number, operator: string, phone: string) =>
+  api.post('/v1/wallet/cash-in', { amountCents, operator, phone }).then((r) => r.data);
+
+/** Payer un marchand via QR code */
+export const walletPay = (qrPayload: string) =>
+  api.post('/v1/wallet/pay', { qrPayload }).then((r) => r.data);
+
+/** Retrait (Cash-Out) vers Mobile Money */
+export const walletCashOut = (amountCents: number, operator: string, phone: string) =>
+  api.post('/v1/wallet/cash-out', { amountCents, operator, phone }).then((r) => r.data);
+
+/** Transfert P2P vers un autre numéro */
+export const walletP2P = (toPhone: string, amountCents: number, description?: string) =>
+  api.post('/v1/wallet/p2p', { toPhone, amountCents, description }).then((r) => r.data);

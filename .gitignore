@@ -42,3 +42,8 @@ Thumbs.db
 
 ## Tests
 coverage/
+
+## Artefacts locaux — ne jamais committer
+tmp/
+*.zip
+securite/scan-results/

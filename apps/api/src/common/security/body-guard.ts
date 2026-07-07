@@ -7,12 +7,18 @@ export interface BodyGuardOptions {
   maxBytes?: number;
   /** Chemins fournisseur autorisés à envoyer un formulaire URL-encodé. */
   formUrlencodedPaths?: string[];
+  /** Chemins autorisés à envoyer un multipart (upload de document). */
+  multipartPaths?: string[];
+  /** Borne dédiée aux uploads multipart (défaut 6 MiB). */
+  multipartMaxBytes?: number;
 }
 
 /** Borne et contrôle le type des corps HTTP avant leur traitement métier. */
 export function bodyGuard(options: BodyGuardOptions = {}) {
   const maxBytes = options.maxBytes ?? 8 * 1024;
   const formUrlencodedPaths = options.formUrlencodedPaths ?? [];
+  const multipartPaths = options.multipartPaths ?? [];
+  const multipartMaxBytes = options.multipartMaxBytes ?? 6 * 1024 * 1024;
 
   return function bodyGuardMiddleware(
     req: Request,
@@ -37,6 +43,21 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
     const formAllowed =
       contentType === "application/x-www-form-urlencoded" &&
       formUrlencodedPaths.some((path) => req.path?.startsWith(path));
+
+    // Uploads multipart : uniquement sur les chemins allowlistés, avec une
+    // borne dédiée (les documents dépassent forcément les 8 KiB JSON).
+    if (
+      contentType === "multipart/form-data" &&
+      multipartPaths.some((path) => req.path?.startsWith(path))
+    ) {
+      if (Number.isFinite(len) && len > multipartMaxBytes) {
+        return res.status(413).json({
+          code: "payload_too_large",
+          message: `Corps limité à ${multipartMaxBytes} octets.`,
+        });
+      }
+      return next();
+    }
 
     if (contentType !== "application/json" && !formAllowed) {
       return res.status(415).json({

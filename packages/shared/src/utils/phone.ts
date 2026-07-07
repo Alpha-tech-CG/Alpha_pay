@@ -1,4 +1,4 @@
-import { Operator } from '../types/payment';
+import { MobileMoneyOperator } from '../types/payment';
 
 const MTN_PREFIXES = ['066', '067', '068'];
 const AIRTEL_PREFIXES = ['055', '056', '057', '058', '074', '075', '076', '077'];
@@ -12,7 +12,7 @@ export function normalizePhone(phone: string): string {
   return cleaned;
 }
 
-export function detectOperator(phone: string): Operator {
+export function detectOperator(phone: string): MobileMoneyOperator {
   const normalized = normalizePhone(phone);
 
   if (MTN_SANDBOX_NUMBERS.includes(normalized)) return 'MTN';
