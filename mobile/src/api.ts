@@ -138,9 +138,20 @@ export const getWalletHistory = (limit = 30) =>
 export const walletCashIn = (amountCents: number, operator: string, phone: string) =>
   api.post('/v1/wallet/cash-in', { amountCents, operator, phone }).then((r) => r.data);
 
-/** Payer un marchand via QR code */
-export const walletPay = (qrPayload: string) =>
-  api.post('/v1/wallet/pay', { qrPayload }).then((r) => r.data);
+/** Clé d'idempotence : un retry réseau ou double-tap renvoie la transaction d'origine. */
+export const genIdemKey = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`;
+
+/** Payer un marchand via QR code signé */
+export const walletPay = (qrPayload: string, idempotencyKey?: string) =>
+  api.post('/v1/wallet/pay', { qrPayload, idempotencyKey }).then((r) => r.data);
+
+/** Génère un QR marchand signé côté serveur — compte caissier uniquement (ALP-172) */
+export const walletCreateQr = (amountCents: number, description?: string) =>
+  api.post<{ ok: boolean; qrPayload: string; expiresAt: string }>(
+    '/v1/wallet/qr',
+    { amountCents, ...(description ? { description } : {}) },
+  ).then((r) => r.data);
 
 /** Retrait (Cash-Out) vers Mobile Money */
 export const walletCashOut = (amountCents: number, operator: string, phone: string) =>

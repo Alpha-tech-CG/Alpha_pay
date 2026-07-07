@@ -3,7 +3,8 @@ import {
 } from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { WalletJwtGuard, WalletJwtPayload } from './wallet-jwt.guard';
-import { CashInDto, CashOutDto, P2PDto, PayQrDto } from './dto/wallet.dto';
+import { CashierRoleGuard } from './cashier-role.guard';
+import { CashInDto, CashOutDto, CreateQrDto, P2PDto, PayQrDto } from './dto/wallet.dto';
 
 interface AuthRequest {
   wallet: WalletJwtPayload;
@@ -42,5 +43,12 @@ export class WalletController {
   @Post('p2p')
   p2p(@Request() req: AuthRequest, @Body() dto: P2PDto) {
     return this.service.p2p(req.wallet, dto);
+  }
+
+  /** Génère un QR marchand signé — caissiers uniquement (ALP-172). */
+  @Post('qr')
+  @UseGuards(CashierRoleGuard)
+  createQr(@Request() req: AuthRequest, @Body() dto: CreateQrDto) {
+    return this.service.createQr(req.wallet, dto);
   }
 }

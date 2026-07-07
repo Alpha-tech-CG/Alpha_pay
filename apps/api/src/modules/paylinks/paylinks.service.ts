@@ -2,14 +2,18 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { randomInt } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { PaymentsService } from '../payments/payments.service';
+import { QrSigningService } from '../wallet/qr-signing.service';
 import { CreatePaylinkDto } from './dto/create-paylink.dto';
 import { toCents, toMajor } from '../../common/money';
+
+const DEFAULT_QR_TTL_SECONDS = 24 * 3600;
 
 @Injectable()
 export class PaylinksService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly paymentsService: PaymentsService,
+    private readonly qrSigning: QrSigningService,
   ) {}
 
   /** Code numérique court (8 chiffres) composable sur un téléphone à touches via USSD. */
@@ -35,13 +39,17 @@ export class PaylinksService {
     const baseUrl = process.env.CHECKOUT_URL ?? 'http://localhost:5174';
     const ussdShortcode = process.env.USSD_SHORTCODE ?? '*182#';
 
-    // Payload JSON encodé dans le QR code — parsé par le scanner wallet client.
-    // Format attendu par parseQrPayload() dans wallet.service.ts.
-    const qrPayload = JSON.stringify({
-      merchantId,
-      amountCents: toCents(dto.amount),
-      ...(dto.description ? { description: dto.description } : {}),
-    });
+    // Payload signé HMAC (ALP-172) — seul format accepté par le scanner wallet.
+    // TTL aligné sur l'expiration du lien (défaut 24 h).
+    const ttlSeconds = dto.expiresInMinutes ? dto.expiresInMinutes * 60 : DEFAULT_QR_TTL_SECONDS;
+    const { qrPayload } = this.qrSigning.sign(
+      {
+        merchantId,
+        amountCents: Number(toCents(dto.amount)),
+        description: dto.description,
+      },
+      ttlSeconds,
+    );
 
     return {
       id: link.id,

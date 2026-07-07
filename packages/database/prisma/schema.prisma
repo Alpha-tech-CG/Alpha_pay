@@ -166,6 +166,9 @@ model Wallet {
   status       WalletStatus  @default(ACTIVE)
   fullName     String?       @map("full_name")
   pushToken    String?       @map("push_token")
+  // Rattachement d'un caissier (MERCHANT_CASHIER) au marchand pour lequel il encaisse.
+  merchantId   String?       @map("merchant_id")
+  merchant     Merchant?     @relation(fields: [merchantId], references: [id])
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
@@ -173,6 +176,7 @@ model Wallet {
   receivedTxs  WalletTransaction[] @relation("ReceiverWallet")
 
   @@index([phone])
+  @@index([merchantId])
   @@map("wallets")
 }
 
@@ -192,6 +196,7 @@ model WalletTransaction {
   peerWalletId    String?      @map("peer_wallet_id")      // si P2P
   peerWallet      Wallet?      @relation("ReceiverWallet", fields: [peerWalletId], references: [id])
   idempotencyKey  String?      @map("idempotency_key")     // rejeu client (double-tap, retry réseau)
+  qrNonce         String?      @unique @map("qr_nonce")    // usage unique d'un QR signé (anti-rejeu)
   metadata        Json?
   createdAt       DateTime     @default(now()) @map("created_at")
 
@@ -224,6 +229,7 @@ model Merchant {
   paymentLinks     PaymentLink[]
   apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
+  cashierWallets   Wallet[]
 
   @@index([onboardingStatus])
   @@map("merchants")

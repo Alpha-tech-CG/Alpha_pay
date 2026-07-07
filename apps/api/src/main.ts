@@ -145,6 +145,18 @@ async function bootstrap() {
     }),
   );
 
+  // /v1/checkout : paiement wallet sans session (phone + PIN) — anti brute-force PIN
+  app.use(
+    "/v1/checkout",
+    rateLimit({
+      windowMs: 15 * 60 * 1000,
+      limit: 20,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: { message: "Trop de tentatives de paiement, réessayez dans 15 minutes." },
+    }),
+  );
+
   // /v1/wallet/callbacks : trafic opérateur uniquement, pas de rate-limit strict
   app.use(
     "/v1/wallet/callbacks",

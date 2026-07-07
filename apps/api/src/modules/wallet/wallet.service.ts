@@ -8,41 +8,16 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors';
-import { CashInDto, CashOutDto, P2PDto, PayQrDto } from './dto/wallet.dto';
+import { CashInDto, CashOutDto, CheckoutWalletPayDto, CreateQrDto, P2PDto, PayQrDto } from './dto/wallet.dto';
 import { WalletJwtPayload } from './wallet-jwt.guard';
 import { NotificationService } from '../notifications/notification.service';
+import { QrSigningService } from './qr-signing.service';
+import { WalletAuthService } from './wallet-auth.service';
+import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 
 /* ─────────────────────────────────────────────────
    Helpers
 ───────────────────────────────────────────────── */
-
-function parseQrPayload(raw: string): { merchantId: string; amountCents: number; description?: string } {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new BadRequestException('QR payload invalide — JSON malformé');
-  }
-
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new BadRequestException('QR payload invalide — structure incorrecte');
-  }
-
-  const obj = parsed as Record<string, unknown>;
-
-  if (typeof obj['merchantId'] !== 'string' || !obj['merchantId']) {
-    throw new BadRequestException('QR payload invalide — merchantId manquant ou invalide');
-  }
-  if (typeof obj['amountCents'] !== 'number' || !Number.isInteger(obj['amountCents']) || obj['amountCents'] <= 0) {
-    throw new BadRequestException('QR payload invalide — amountCents doit être un entier positif');
-  }
-
-  return {
-    merchantId: obj['merchantId'],
-    amountCents: obj['amountCents'],
-    description: typeof obj['description'] === 'string' ? obj['description'].slice(0, 200) : undefined,
-  };
-}
 
 function fmtAmount(cents: bigint | number): string {
   return (Number(cents) / 100).toLocaleString('fr-CG', { minimumFractionDigits: 0 });
@@ -62,6 +37,12 @@ function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002';
 }
 
+/** Champs visés par la violation d'unicité Prisma (meta.target), joints en string. */
+function uniqueViolationTarget(err: unknown): string {
+  const target = (err as { meta?: { target?: unknown } })?.meta?.target;
+  return Array.isArray(target) ? target.join(',') : String(target ?? '');
+}
+
 /* ─────────────────────────────────────────────────
    Service
 ───────────────────────────────────────────────── */
@@ -73,6 +54,9 @@ export class WalletService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly notifications: NotificationService,
+    private readonly qrSigning: QrSigningService,
+    private readonly walletAuth: WalletAuthService,
+    private readonly webhookDelivery: WebhookDeliveryService,
   ) {}
 
   /* ── Solde ── */
@@ -264,13 +248,42 @@ export class WalletService {
     return { ok: true };
   }
 
-  /* ── Paiement marchand QR (W1 + W4) ── */
+  /* ── Génération de QR marchand signé (ALP-172, caissier uniquement) ── */
+
+  async createQr(actor: WalletJwtPayload, dto: CreateQrDto) {
+    const cashier = await this.prisma.wallet.findUnique({
+      where: { id: actor.sub },
+      select: { merchantId: true, status: true },
+    });
+    if (!cashier || cashier.status !== 'ACTIVE') throw new BadRequestException('Compte caissier inactif');
+    if (!cashier.merchantId) {
+      throw new BadRequestException('Compte caissier non rattaché à un marchand — contactez le support');
+    }
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: cashier.merchantId },
+      select: { id: true, isActive: true },
+    });
+    if (!merchant?.isActive) throw new BadRequestException('Marchand inactif');
+
+    const signed = this.qrSigning.sign({
+      merchantId: merchant.id,
+      amountCents: dto.amountCents,
+      description: dto.description?.trim() || undefined,
+    });
+
+    this.logger.log(`QR généré par caissier ${actor.sub} pour merchant:${merchant.id} (${dto.amountCents})`);
+    return { ok: true, ...signed };
+  }
+
+  /* ── Paiement marchand QR (W1 + W4 + ALP-172) ── */
 
   async payQr(actor: WalletJwtPayload, dto: PayQrDto) {
     const replayed = await this.#findReplay(actor.sub, dto.idempotencyKey);
     if (replayed) return replayed;
 
-    const qr = parseQrPayload(dto.qrPayload);   // W4 — validation stricte
+    // Signature HMAC + expiration vérifiées — un QR forgé/expiré est rejeté ici.
+    const qr = this.qrSigning.verify(dto.qrPayload);
 
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: qr.merchantId },
@@ -286,6 +299,7 @@ export class WalletService {
       tx = await this.prisma.$transaction(async (prisma) => {
         const balanceBefore = await this.#conditionalDebit(prisma, actor.sub, amountCents);
 
+        // qrNonce unique en base : le même QR ne peut être payé qu'une fois (anti-rejeu).
         const walletTx = await prisma.walletTransaction.create({
           data: {
             walletId: actor.sub,
@@ -297,6 +311,7 @@ export class WalletService {
             merchantId: qr.merchantId,
             description: qr.description ?? 'Paiement marchand',
             idempotencyKey: dto.idempotencyKey ?? null,
+            qrNonce: qr.nonce,
           },
         });
 
@@ -320,6 +335,9 @@ export class WalletService {
       });
     } catch (err) {
       if (isUniqueViolation(err)) {
+        if (uniqueViolationTarget(err).includes('qr_nonce')) {
+          throw new BadRequestException('Ce QR a déjà été utilisé — demandez au marchand d\'en générer un nouveau');
+        }
         const existing = await this.#findReplay(actor.sub, dto.idempotencyKey);
         if (existing) return existing;
       }
@@ -328,6 +346,106 @@ export class WalletService {
 
     this.logger.log(`PAY ${actor.sub} → merchant:${qr.merchantId} ${qr.amountCents} XAF`);
     return { ok: true, txId: tx.id, amountCents: qr.amountCents };
+  }
+
+  /* ── Checkout web « Payer avec PayBrain » (ALP-169) ──
+     Paiement d'un lien de paiement (paylink) depuis un wallet, sans session :
+     phone + PIN vérifiés à la volée (Argon2id anti-timing).
+  */
+  async payPaylink(paylinkId: string, dto: CheckoutWalletPayDto) {
+    const wallet = await this.walletAuth.verifyPin(dto.phone, dto.pin);
+
+    const replayed = await this.#findReplay(wallet.id, dto.idempotencyKey);
+    if (replayed) return replayed;
+
+    const link = await this.prisma.paymentLink.findUnique({
+      where: { id: paylinkId },
+      include: { merchant: { select: { id: true, name: true, isActive: true } } },
+    });
+    if (!link) throw new NotFoundException('Lien de paiement introuvable');
+    if (link.expiresAt && link.expiresAt < new Date()) throw new BadRequestException('Lien de paiement expiré');
+    if (!link.merchant.isActive) throw new BadRequestException('Marchand inactif');
+    // Multi-devises : ALP-170 — pour l'instant le wallet ne règle qu'en XAF.
+    if (link.currency !== wallet.currency) {
+      throw new BadRequestException(`Ce lien est en ${link.currency} — le paiement wallet ne supporte que ${wallet.currency} pour l'instant`);
+    }
+
+    const amountCents = link.amount; // déjà en centimes (BIGINT)
+
+    let tx;
+    try {
+      tx = await this.prisma.$transaction(async (prisma) => {
+        // Claim CAS du lien : un seul payeur peut le régler (double-scan simultané exclu).
+        const claimed = await prisma.paymentLink.updateMany({
+          where: { id: link.id, usedAt: null },
+          data: { usedAt: new Date() },
+        });
+        if (claimed.count === 0) throw new BadRequestException('Ce lien de paiement a déjà été utilisé');
+
+        const balanceBefore = await this.#conditionalDebit(prisma, wallet.id, amountCents);
+
+        const walletTx = await prisma.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: 'PAY',
+            amountCents,
+            balanceBefore,
+            balanceAfter: balanceBefore - amountCents,
+            status: 'SUCCESSFUL',
+            merchantId: link.merchant.id,
+            description: link.description ?? `Paiement ${link.merchant.name}`,
+            idempotencyKey: dto.idempotencyKey ?? null,
+          },
+        });
+
+        // externalId unique par marchand → un paylink ne peut être réglé qu'une fois,
+        // même en course avec le flux Mobile Money (défense en profondeur avec le claim CAS).
+        await prisma.transaction.create({
+          data: {
+            merchantId: link.merchant.id,
+            operator: 'WALLET',
+            externalId: `paylink-${link.id}`,
+            amount: amountCents,
+            currency: link.currency,
+            status: 'SUCCESSFUL',
+            payerPhoneMask: maskPhone(wallet.phone),
+            payerMessage: link.description,
+          },
+        });
+
+        return walletTx;
+      });
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        const target = uniqueViolationTarget(err);
+        if (target.includes('external')) {
+          throw new BadRequestException('Ce lien de paiement a déjà été réglé');
+        }
+        const existing = await this.#findReplay(wallet.id, dto.idempotencyKey);
+        if (existing) return existing;
+      }
+      throw err;
+    }
+
+    this.logger.log(`CHECKOUT wallet ${wallet.id} → merchant:${link.merchant.id} paylink:${link.id}`);
+
+    // Webhook marchand — même contrat que les paiements Mobile Money (ALP-132).
+    this.webhookDelivery.dispatch(link.merchant.id, 'payment.succeeded', {
+      type: 'payment.succeeded',
+      externalId: `paylink-${link.id}`,
+      referenceId: tx.id,
+      status: 'SUCCESSFUL',
+      amount: Number(amountCents),
+      currency: link.currency,
+      method: 'WALLET',
+    }).catch((err) => this.logger.error(`Dispatch webhook checkout échoué: ${err?.message}`));
+
+    return {
+      ok: true,
+      txId: tx.id,
+      amountCents: Number(amountCents),
+      merchantName: link.merchant.name,
+    };
   }
 
   /* ── Cash-Out — retrait vers Mobile Money (W2 + W1) ──

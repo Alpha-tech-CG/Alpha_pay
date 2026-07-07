@@ -5,15 +5,19 @@ import { WalletAuthController } from './wallet-auth.controller';
 import { WalletAuthService } from './wallet-auth.service';
 import { WalletController } from './wallet.controller';
 import { WalletCallbacksController } from './wallet-callbacks.controller';
+import { WalletCheckoutController } from './wallet-checkout.controller';
 import { WalletService } from './wallet.service';
 import { WalletJwtGuard } from './wallet-jwt.guard';
 import { CashierRoleGuard } from './cashier-role.guard';
+import { QrSigningService } from './qr-signing.service';
+import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 
 const FALLBACK_SECRET = 'dev-secret-change-in-prod';
 
 @Module({
   imports: [
     ConfigModule,
+    WebhooksOutModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -26,8 +30,8 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
       }),
     }),
   ],
-  controllers: [WalletAuthController, WalletController, WalletCallbacksController],
-  providers: [WalletAuthService, WalletService, WalletJwtGuard, CashierRoleGuard],
-  exports: [CashierRoleGuard],
+  controllers: [WalletAuthController, WalletController, WalletCallbacksController, WalletCheckoutController],
+  providers: [WalletAuthService, WalletService, WalletJwtGuard, CashierRoleGuard, QrSigningService],
+  exports: [CashierRoleGuard, QrSigningService],
 })
 export class WalletModule {}

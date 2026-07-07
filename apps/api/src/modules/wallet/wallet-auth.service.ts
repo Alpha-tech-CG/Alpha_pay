@@ -65,8 +65,12 @@ export class WalletAuthService implements OnModuleInit {
     return { ok: true, phone: wallet.phone };
   }
 
-  async login(dto: LoginWalletDto) {
-    const phone = dto.phone.replace(/\s/g, '');
+  /**
+   * Vérifie phone + PIN (anti-timing) et renvoie le wallet ACTIF.
+   * Utilisé par le login ET par le checkout web (paiement sans session).
+   */
+  async verifyPin(rawPhone: string, pin: string) {
+    const phone = rawPhone.replace(/\s/g, '');
 
     const wallet = await this.prisma.wallet.findUnique({ where: { phone } });
 
@@ -74,7 +78,7 @@ export class WalletAuthService implements OnModuleInit {
     if (!wallet) {
       await argon2.verify(
         '$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-        dto.pin,
+        pin,
       ).catch(() => {});
       throw new UnauthorizedException('Numéro ou PIN incorrect');
     }
@@ -83,8 +87,14 @@ export class WalletAuthService implements OnModuleInit {
       throw new UnauthorizedException('Ce compte est suspendu');
     }
 
-    const valid = await argon2.verify(wallet.pinHash, dto.pin).catch(() => false);
+    const valid = await argon2.verify(wallet.pinHash, pin).catch(() => false);
     if (!valid) throw new UnauthorizedException('Numéro ou PIN incorrect');
+
+    return wallet;
+  }
+
+  async login(dto: LoginWalletDto) {
+    const wallet = await this.verifyPin(dto.phone, dto.pin);
 
     const token = this.jwt.sign(
       { sub: wallet.id, phone: wallet.phone, role: wallet.role },

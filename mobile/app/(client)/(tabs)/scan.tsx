@@ -5,7 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { C } from '@/theme';
-import { walletPay } from '@/api';
+import { genIdemKey, walletPay } from '@/api';
 
 // CameraView from expo-camera — imported lazily so build doesn't fail if not installed
 let CameraView: React.ComponentType<{
@@ -23,6 +23,8 @@ interface QrPreview {
   raw: string;
   amountCents: number;
   description?: string;
+  /** Clé d'idempotence figée au moment du scan — un retry renvoie la même transaction. */
+  idemKey: string;
 }
 
 type ModalState =
@@ -41,10 +43,13 @@ function parseQr(data: string): QrPreview | null {
     const obj = JSON.parse(data) as Record<string, unknown>;
     if (typeof obj.merchantId !== 'string' || !obj.merchantId) return null;
     if (typeof obj.amountCents !== 'number' || obj.amountCents <= 0 || !Number.isInteger(obj.amountCents)) return null;
+    // QR signé obligatoire (ALP-172) — un QR sans signature serait rejeté par l'API.
+    if (typeof obj.sig !== 'string' || !obj.sig) return null;
     return {
       raw: data,
       amountCents: obj.amountCents,
       description: typeof obj.description === 'string' ? obj.description : undefined,
+      idemKey: genIdemKey(),
     };
   } catch {
     return null;
@@ -86,7 +91,7 @@ export default function ScanScreen() {
     const { qr } = modal;
     setModal({ phase: 'paying' });
     try {
-      await walletPay(qr.raw);
+      await walletPay(qr.raw, qr.idemKey);
       setModal({ phase: 'success', amountCents: qr.amountCents });
     } catch (e: unknown) {
       const msg =

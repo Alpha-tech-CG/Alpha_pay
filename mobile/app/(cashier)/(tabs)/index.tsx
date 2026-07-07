@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/auth';
 import { C } from '@/theme';
+import { walletCreateQr } from '@/api';
 
 function parseCents(raw: string): number {
   const n = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
@@ -19,31 +20,40 @@ function fmt(cents: number) {
 }
 
 export default function CashierEncaisser() {
-  const { phone, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [qrPayload, setQrPayload] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const amountCents = parseCents(amount);
-  const canGenerate = amountCents > 0;
+  const canGenerate = amountCents > 0 && !busy;
 
-  const generate = () => {
+  // QR signé HMAC côté serveur (ALP-172) : expiration courte + usage unique,
+  // impossible à forger — le payload local non signé est rejeté par l'API.
+  const generate = async () => {
     if (!canGenerate) return;
-    // Le payload reprend le format attendu par le scanner client (parseQr).
-    // Note : merchantId est provisoirement le numéro de téléphone du caissier.
-    // En production, lier le caissier à un Merchant via un champ merchantId sur Wallet.
-    const payload = JSON.stringify({
-      merchantId: phone ?? 'cashier',
-      amountCents,
-      ...(description.trim() ? { description: description.trim() } : {}),
-    });
-    setQrPayload(payload);
+    setBusy(true);
+    setError(null);
+    try {
+      const { qrPayload } = await walletCreateQr(amountCents, description.trim() || undefined);
+      setQrPayload(qrPayload);
+    } catch (e: unknown) {
+      const msg =
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? 'Génération du QR échouée — vérifiez votre connexion.';
+      setError(msg);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const reset = () => {
     setQrPayload(null);
     setAmount('');
     setDescription('');
+    setError(null);
   };
 
   return (
@@ -97,13 +107,20 @@ export default function CashierEncaisser() {
                 </Text>
               </View>
 
+              {error ? (
+                <View style={[s.infoBox, { marginTop: 0 }]}>
+                  <MaterialIcons name="error-outline" size={14} color={C.error} />
+                  <Text style={[s.infoText, { color: C.error }]}>{error}</Text>
+                </View>
+              ) : null}
+
               <Pressable
                 onPress={generate}
                 disabled={!canGenerate}
                 style={[s.btn, !canGenerate && s.btnDisabled]}
               >
                 <MaterialIcons name="qr-code" size={20} color="#fff" />
-                <Text style={s.btnText}>Générer le QR</Text>
+                <Text style={s.btnText}>{busy ? 'Génération…' : 'Générer le QR'}</Text>
               </Pressable>
             </View>
           ) : (
@@ -120,7 +137,8 @@ export default function CashierEncaisser() {
               </View>
 
               <Text style={s.qrHint}>
-                Montrez ce QR à votre client — il le scanne depuis l'app PayBrain
+                Montrez ce QR à votre client — il le scanne depuis l'app PayBrain.
+                Valable 2 minutes, usage unique.
               </Text>
 
               <Pressable onPress={reset} style={[s.btn, { backgroundColor: C.secondary, marginTop: 8 }]}>
