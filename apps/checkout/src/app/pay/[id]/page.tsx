@@ -53,6 +53,16 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
         merchantName={link.merchant.name}
         amountLabel={formatAmount(link.amount, link.currency)}
         description={link.description}
+        walletChargeLabel={
+          link.walletQuote
+            ? `≈ ${formatAmount(link.walletQuote.amount, link.walletQuote.currency)}`
+            : null
+        }
+        rateLabel={
+          link.walletQuote
+            ? `1 ${link.currency} = ${link.walletQuote.rate.toLocaleString('fr-FR')} ${link.walletQuote.currency}`
+            : null
+        }
       />
     </Shell>
   );

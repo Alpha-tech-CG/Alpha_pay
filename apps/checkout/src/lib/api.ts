@@ -1,6 +1,13 @@
 /** URL de l'API interne PayBrain, appelée uniquement côté serveur (jamais exposée au navigateur). */
 export const INTERNAL_API_URL = process.env.INTERNAL_API_URL ?? 'http://localhost:3000';
 
+export interface WalletQuote {
+  currency: string; // devise wallet (XAF)
+  amount: number; // équivalent dans la devise wallet
+  rate: number; // 1 <devise du lien> = rate <devise wallet>
+  formatted: string;
+}
+
 export interface Paylink {
   id: string;
   amount: number; // unités majeures (ex. 5000 = 5000 XAF)
@@ -9,6 +16,8 @@ export interface Paylink {
   usedAt: string | null;
   expiresAt: string | null;
   merchant: { name: string };
+  // Présent si le lien est en devise étrangère : équivalent payé par un wallet XAF.
+  walletQuote?: WalletQuote | null;
 }
 
 export type PaylinkResult =

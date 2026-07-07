@@ -15,6 +15,8 @@ import { QrSigningService } from './qr-signing.service';
 import { WalletAuthService } from './wallet-auth.service';
 import { WalletFloatReconciliationService } from './wallet-float-reconciliation.service';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
+import { CurrencyService } from '../currency/currency.service';
+import { toCents, toMajor } from '../../common/money';
 
 /* ─────────────────────────────────────────────────
    Helpers
@@ -59,6 +61,7 @@ export class WalletService {
     private readonly walletAuth: WalletAuthService,
     private readonly floatReconciliation: WalletFloatReconciliationService,
     private readonly webhookDelivery: WebhookDeliveryService,
+    private readonly currency: CurrencyService,
   ) {}
 
   /* ── Solde ── */
@@ -367,12 +370,14 @@ export class WalletService {
     if (!link) throw new NotFoundException('Lien de paiement introuvable');
     if (link.expiresAt && link.expiresAt < new Date()) throw new BadRequestException('Lien de paiement expiré');
     if (!link.merchant.isActive) throw new BadRequestException('Marchand inactif');
-    // Multi-devises : ALP-170 — pour l'instant le wallet ne règle qu'en XAF.
-    if (link.currency !== wallet.currency) {
-      throw new BadRequestException(`Ce lien est en ${link.currency} — le paiement wallet ne supporte que ${wallet.currency} pour l'instant`);
-    }
 
-    const amountCents = link.amount; // déjà en centimes (BIGINT)
+    // Multi-devises (ALP-170) : si le lien est libellé dans une autre devise que
+    // le wallet (XAF), on convertit — le payeur est débité en XAF, le marchand
+    // reste crédité dans la devise du lien (USD/EUR…). Le taux est recalculé ici
+    // (autoritatif), jamais fourni par le client.
+    const charge = await this.#resolveWalletCharge(link.amount, link.currency, wallet.currency);
+    const walletDebitCents = charge.walletDebitCents;
+    const merchantAmountCents = link.amount; // devise du lien, inchangée
 
     let tx;
     try {
@@ -384,30 +389,33 @@ export class WalletService {
         });
         if (claimed.count === 0) throw new BadRequestException('Ce lien de paiement a déjà été utilisé');
 
-        const balanceBefore = await this.#conditionalDebit(prisma, wallet.id, amountCents);
+        const balanceBefore = await this.#conditionalDebit(prisma, wallet.id, walletDebitCents);
 
         const walletTx = await prisma.walletTransaction.create({
           data: {
             walletId: wallet.id,
             type: 'PAY',
-            amountCents,
+            amountCents: walletDebitCents,   // ce qui quitte le wallet, en devise wallet
             balanceBefore,
-            balanceAfter: balanceBefore - amountCents,
+            balanceAfter: balanceBefore - walletDebitCents,
             status: 'SUCCESSFUL',
             merchantId: link.merchant.id,
             description: link.description ?? `Paiement ${link.merchant.name}`,
             idempotencyKey: dto.idempotencyKey ?? null,
+            ...(charge.fx ? { metadata: { fx: charge.fx } } : {}),
           },
         });
 
         // externalId unique par marchand → un paylink ne peut être réglé qu'une fois,
         // même en course avec le flux Mobile Money (défense en profondeur avec le claim CAS).
+        // Le marchand est crédité dans la devise du lien → le settlement engine (ALP-151)
+        // gère le reversement/FX vers sa devise de settlement.
         await prisma.transaction.create({
           data: {
             merchantId: link.merchant.id,
             operator: 'WALLET',
             externalId: `paylink-${link.id}`,
-            amount: amountCents,
+            amount: merchantAmountCents,
             currency: link.currency,
             status: 'SUCCESSFUL',
             payerPhoneMask: maskPhone(wallet.phone),
@@ -429,15 +437,19 @@ export class WalletService {
       throw err;
     }
 
-    this.logger.log(`CHECKOUT wallet ${wallet.id} → merchant:${link.merchant.id} paylink:${link.id}`);
+    this.logger.log(
+      `CHECKOUT wallet ${wallet.id} → merchant:${link.merchant.id} paylink:${link.id} ` +
+      `(${merchantAmountCents} ${link.currency}${charge.fx ? ` = ${walletDebitCents} ${wallet.currency} @${charge.fx.rate}` : ''})`,
+    );
 
     // Webhook marchand — même contrat que les paiements Mobile Money (ALP-132).
+    // amount/currency = ce que le marchand encaisse (devise du lien).
     this.webhookDelivery.dispatch(link.merchant.id, 'payment.succeeded', {
       type: 'payment.succeeded',
       externalId: `paylink-${link.id}`,
       referenceId: tx.id,
       status: 'SUCCESSFUL',
-      amount: Number(amountCents),
+      amount: Number(merchantAmountCents),
       currency: link.currency,
       method: 'WALLET',
     }).catch((err) => this.logger.error(`Dispatch webhook checkout échoué: ${err?.message}`));
@@ -445,8 +457,39 @@ export class WalletService {
     return {
       ok: true,
       txId: tx.id,
-      amountCents: Number(amountCents),
+      amountCents: Number(walletDebitCents),   // débité au payeur, en devise wallet
+      currency: wallet.currency,
+      merchantAmountCents: Number(merchantAmountCents),
+      merchantCurrency: link.currency,
       merchantName: link.merchant.name,
+      ...(charge.fx ? { fxRate: charge.fx.rate } : {}),
+    };
+  }
+
+  /**
+   * Calcule le montant à débiter du wallet pour régler un lien, en convertissant
+   * si le lien n'est pas dans la devise du wallet. Retourne les centimes wallet
+   * à débiter + les détails FX (audités sur la transaction).
+   */
+  async #resolveWalletCharge(
+    linkAmountCents: bigint,
+    linkCurrency: string,
+    walletCurrency: string,
+  ): Promise<{ walletDebitCents: bigint; fx: { originalAmountCents: number; originalCurrency: string; rate: number; walletCurrency: string } | null }> {
+    if (linkCurrency === walletCurrency) {
+      return { walletDebitCents: linkAmountCents, fx: null };
+    }
+    const linkMajor = toMajor(linkAmountCents);
+    // Lève une 404 claire si aucun taux n'est configuré pour ce couple.
+    const quote = await this.currency.convert(linkMajor, linkCurrency, walletCurrency);
+    return {
+      walletDebitCents: toCents(quote.convertedAmount),
+      fx: {
+        originalAmountCents: Number(linkAmountCents),
+        originalCurrency: linkCurrency,
+        rate: quote.rate,
+        walletCurrency,
+      },
     };
   }
 

@@ -15,6 +15,7 @@ import { WalletFloatReconciliationService } from './wallet-float-reconciliation.
 import { WalletFloatReconciliationCron } from './wallet-float-reconciliation.cron';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 import { MetricsModule } from '../metrics/metrics.module';
+import { CurrencyModule } from '../currency/currency.module';
 
 const FALLBACK_SECRET = 'dev-secret-change-in-prod';
 
@@ -23,6 +24,7 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
     ConfigModule,
     WebhooksOutModule,
     MetricsModule,
+    CurrencyModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

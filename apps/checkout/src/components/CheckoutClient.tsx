@@ -14,11 +14,16 @@ export function CheckoutClient({
   merchantName,
   amountLabel,
   description,
+  walletChargeLabel,
+  rateLabel,
 }: {
   paylinkId: string;
   merchantName: string;
   amountLabel: string;
   description: string | null;
+  /** Équivalent en devise wallet (XAF) si le lien est en devise étrangère. */
+  walletChargeLabel: string | null;
+  rateLabel: string | null;
 }) {
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
@@ -58,7 +63,8 @@ export function CheckoutClient({
         <div style={okIcon}>✓</div>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Paiement réussi</h1>
         <p style={{ fontSize: 14, color: 'var(--pb-muted)', margin: 0, lineHeight: 1.5 }}>
-          <strong style={{ color: 'var(--pb-ink)' }}>{amountLabel}</strong> réglés à {merchantName}.
+          <strong style={{ color: 'var(--pb-ink)' }}>{amountLabel}</strong> réglés à {merchantName}
+          {walletChargeLabel ? ` (${walletChargeLabel.replace('≈ ', '')} débités)` : ''}.
           Vous pouvez fermer cette page.
         </p>
       </div>
@@ -73,10 +79,22 @@ export function CheckoutClient({
 
       <div style={amountBox}>
         <span style={{ fontSize: 13, color: 'var(--pb-muted)', fontWeight: 600 }}>Montant</span>
-        <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--pb-primary)', letterSpacing: '-0.01em' }}>
-          {amountLabel}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <span style={{ fontSize: 26, fontWeight: 900, color: 'var(--pb-primary)', letterSpacing: '-0.01em' }}>
+            {amountLabel}
+          </span>
+          {walletChargeLabel ? (
+            <span style={{ fontSize: 13, color: 'var(--pb-muted)', fontWeight: 600 }}>
+              {walletChargeLabel} débités
+            </span>
+          ) : null}
+        </div>
       </div>
+      {rateLabel ? (
+        <p style={{ fontSize: 12, color: 'var(--pb-muted)', margin: '0 0 8px', textAlign: 'right' }}>
+          Taux : {rateLabel}
+        </p>
+      ) : null}
       {description ? (
         <p style={{ fontSize: 13, color: 'var(--pb-muted)', margin: '0 0 20px' }}>{description}</p>
       ) : (
@@ -117,7 +135,9 @@ export function CheckoutClient({
       ) : null}
 
       <button type="submit" disabled={!canPay} style={{ ...payBtn, opacity: canPay ? 1 : 0.5 }}>
-        {phase === 'paying' ? <span className="pb-spinner" aria-label="Paiement en cours" /> : `Payer ${amountLabel}`}
+        {phase === 'paying'
+          ? <span className="pb-spinner" aria-label="Paiement en cours" />
+          : `Payer ${walletChargeLabel ? walletChargeLabel.replace('≈ ', '') : amountLabel}`}
       </button>
 
       <p style={{ fontSize: 11, color: 'var(--pb-muted)', textAlign: 'center', margin: '12px 0 0' }}>

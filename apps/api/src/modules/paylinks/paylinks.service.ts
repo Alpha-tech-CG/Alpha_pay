@@ -3,10 +3,13 @@ import { randomInt } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { PaymentsService } from '../payments/payments.service';
 import { QrSigningService } from '../wallet/qr-signing.service';
+import { CurrencyService } from '../currency/currency.service';
 import { CreatePaylinkDto } from './dto/create-paylink.dto';
 import { toCents, toMajor } from '../../common/money';
 
 const DEFAULT_QR_TTL_SECONDS = 24 * 3600;
+// Devise des wallets clients en V1 (ALP-170). Le checkout affiche l'équivalent.
+const WALLET_CURRENCY = 'XAF';
 
 @Injectable()
 export class PaylinksService {
@@ -14,6 +17,7 @@ export class PaylinksService {
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly paymentsService: PaymentsService,
     private readonly qrSigning: QrSigningService,
+    private readonly currency: CurrencyService,
   ) {}
 
   /** Code numérique court (8 chiffres) composable sur un téléphone à touches via USSD. */
@@ -70,7 +74,28 @@ export class PaylinksService {
     if (!link) throw new NotFoundException('Lien introuvable');
     if (link.expiresAt && link.expiresAt < new Date()) throw new BadRequestException('Lien expiré');
 
-    return { ...link, amount: toMajor(link.amount) };
+    // Devis wallet (ALP-170) : équivalent XAF que paierait un wallet client si le
+    // lien est en devise étrangère. Purement indicatif — recalculé au paiement.
+    const walletQuote = await this.#walletQuote(toMajor(link.amount), link.currency);
+
+    return { ...link, amount: toMajor(link.amount), walletQuote };
+  }
+
+  /** Équivalent en devise wallet (XAF) d'un montant en devise étrangère, ou null. */
+  async #walletQuote(amountMajor: number, currency: string) {
+    if (currency === WALLET_CURRENCY) return null;
+    try {
+      const quote = await this.currency.convert(amountMajor, currency, WALLET_CURRENCY);
+      return {
+        currency: WALLET_CURRENCY,
+        amount: quote.convertedAmount,
+        rate: quote.rate,
+        formatted: quote.formatted,
+      };
+    } catch {
+      // Aucun taux configuré → le checkout affichera seulement la devise du lien.
+      return null;
+    }
   }
 
   async pay(id: string, phone: string) {
