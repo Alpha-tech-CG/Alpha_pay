@@ -86,6 +86,16 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     subject: "[PayBrain] Nouvelle inscription — {{name}}",
     body: "Nouvel inscrit en attente de validation :\n\nNom    : {{name}}\nEmail  : {{email}}\nType   : {{merchantType}}\nID     : {{merchantId}}\n\nValider ou rejeter :\nhttps://dashboard.paybrain.cg/internal/onboarding/{{merchantId}}",
   },
+  "ops.wallet-float-alert": {
+    version: "v1",
+    subject: "[PayBrain] ⚠️ Écart de float wallet détecté",
+    body: "ALERTE réconciliation float wallet ({{date}}) :\n\nÉcart d'intégrité : {{drift}} centimes\nSolde total wallets : {{totalBalance}} centimes\nAttendu (transactions) : {{expectedBalance}} centimes\nWallets incohérents : {{inconsistentCount}}\n\nUn écart non nul = bug de crédit ou fraude interne. Investiguer immédiatement.\nRun : {{runId}}",
+  },
+  "ops.wallet-float-summary": {
+    version: "v1",
+    subject: "[PayBrain] Réconciliation float wallet OK — {{date}}",
+    body: "Réconciliation float wallet ({{date}}) : intégrité vérifiée.\n\nWallets : {{walletCount}}\nSolde total : {{totalBalance}} centimes\nExposition float (opérateurs) : {{floatExposure}} centimes\nRun : {{runId}}",
+  },
 };
 
 export interface RenderedTemplate {

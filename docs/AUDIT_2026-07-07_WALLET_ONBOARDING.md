@@ -47,11 +47,13 @@ développeur perdu, formulaire en erreur systématique). Ajouté :
 
 ## Risques résiduels — à traiter avant fonds réels (issues Linear créées)
 
-1. **Pas d'OTP SMS à l'inscription wallet** : n'importe qui peut enregistrer le numéro d'un tiers (préemption de compte). → OTP de possession requis.
-2. **QR marchand non signé** : le payload QR (merchantId, montant) est un JSON en clair non authentifié ; un QR falsifié peut rediriger un paiement vers un autre marchand. → QR signés HMAC + expiration, générés côté serveur.
-3. **Pas de verrouillage progressif du PIN par compte** : le rate limit est par IP ; un botnet distribué peut brute-forcer un PIN 4 chiffres. → compteur d'échecs par wallet + verrouillage temporaire.
-4. **Pas de plafonds e-money par niveau KYC** (réglementation BEAC) : solde max, plafond journalier/mensuel par wallet. → table de limites + enforcement.
-5. **Pas de réconciliation float wallet** : l'invariant « somme des soldes wallets = float sur comptes opérateurs » n'est vérifié nulle part. → job de réconciliation quotidien + alerte.
+1. ✅ **OTP SMS à l'inscription wallet** (ALP-171, fait) : compte `PENDING_VERIFICATION` + OTP 6 chiffres, anti-préemption.
+2. ✅ **QR marchand signé** (ALP-172, fait) : HMAC + expiration + nonce usage unique, généré côté serveur.
+3. ✅ **Verrouillage progressif du PIN** (ALP-173, fait) : compteur par wallet, paliers 15 min/1 h/24 h + SMS d'alerte.
+4. **Pas de plafonds e-money par niveau KYC** (ALP-174, à faire) : solde max, plafond journalier/mensuel par wallet — seuils à caler avec la banque partenaire. → table de limites + enforcement.
+5. ✅ **Réconciliation float wallet** (ALP-175, fait) : job quotidien 3h, invariant Σ soldes == Σ transactions signées + cohérence par wallet, alerte SMS/Sentry, métrique Prometheus, gel des cash-out si dérive critique.
+
+Reste ouvert avant fonds réels : **ALP-174** (plafonds KYC/BEAC) et le pen-test externe (§F).
 
 Le JWT wallet de 30 jours est acceptable pour l'UX mobile (stockage SecureStore) mais à
 réévaluer au pen-test ; prévoir la révocation par rotation de `WALLET_JWT_SECRET` en incident.

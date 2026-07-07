@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { collectDefaultMetrics, Counter, Histogram, Registry } from 'prom-client';
+import { collectDefaultMetrics, Counter, Gauge, Histogram, Registry } from 'prom-client';
 
 @Injectable()
 export class MetricsService implements OnModuleInit {
@@ -39,6 +39,14 @@ export class MetricsService implements OnModuleInit {
     name: 'paybrain_wallet_pin_failures_total',
     help: 'Échecs de vérification PIN wallet',
     labelNames: ['result'], // invalid | locked
+    registers: [this.registry],
+  });
+
+  // ALP-175 : écart d'intégrité du float wallet (centimes). Doit rester à 0 ;
+  // toute valeur non nulle = bug de crédit ou fraude interne → alerte Grafana.
+  readonly walletFloatDriftCents = new Gauge({
+    name: 'paybrain_wallet_float_drift_cents',
+    help: 'Écart entre la somme des soldes wallets et la somme des transactions (centimes)',
     registers: [this.registry],
   });
 

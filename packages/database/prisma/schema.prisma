@@ -638,6 +638,29 @@ model ReconciliationDiscrepancy {
   @@map("reconciliation_discrepancies")
 }
 
+// Réconciliation du float wallet (ALP-175). Vérifie l'intégrité interne du
+// sous-système wallet : Σ soldes == Σ transactions signées, et l'exposition
+// float sur les comptes de collecte opérateurs.
+model WalletReconciliationRun {
+  id                      String   @id @default(uuid())
+  runDate                 DateTime @map("run_date")
+  walletCount             Int      @map("wallet_count")
+  totalBalanceCents       BigInt   @map("total_balance_cents")     // Σ soldes courants
+  expectedBalanceCents    BigInt   @map("expected_balance_cents")  // Σ txs SUCCESSFUL signées
+  driftCents              BigInt   @map("drift_cents")             // total − expected (doit être 0)
+  cashInCents             BigInt   @map("cash_in_cents")
+  cashOutCents            BigInt   @map("cash_out_cents")
+  payCents                BigInt   @map("pay_cents")
+  floatExposureCents      BigInt   @map("float_exposure_cents")    // cash-in − cash-out
+  inconsistentWalletCount Int      @default(0) @map("inconsistent_wallet_count")
+  alert                   Boolean  @default(false)
+  reportJson              Json     @map("report_json")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  @@index([runDate])
+  @@map("wallet_reconciliation_runs")
+}
+
 // Grand livre comptable en partie double. Source de vérité financière :
 // immutable et auditable via chaînage cryptographique (cf. LedgerService).
 model LedgerAccount {

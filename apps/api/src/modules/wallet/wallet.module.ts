@@ -6,10 +6,13 @@ import { WalletAuthService } from './wallet-auth.service';
 import { WalletController } from './wallet.controller';
 import { WalletCallbacksController } from './wallet-callbacks.controller';
 import { WalletCheckoutController } from './wallet-checkout.controller';
+import { WalletFloatReconciliationController } from './wallet-float-reconciliation.controller';
 import { WalletService } from './wallet.service';
 import { WalletJwtGuard } from './wallet-jwt.guard';
 import { CashierRoleGuard } from './cashier-role.guard';
 import { QrSigningService } from './qr-signing.service';
+import { WalletFloatReconciliationService } from './wallet-float-reconciliation.service';
+import { WalletFloatReconciliationCron } from './wallet-float-reconciliation.cron';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 import { MetricsModule } from '../metrics/metrics.module';
 
@@ -32,8 +35,22 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
       }),
     }),
   ],
-  controllers: [WalletAuthController, WalletController, WalletCallbacksController, WalletCheckoutController],
-  providers: [WalletAuthService, WalletService, WalletJwtGuard, CashierRoleGuard, QrSigningService],
+  controllers: [
+    WalletAuthController,
+    WalletController,
+    WalletCallbacksController,
+    WalletCheckoutController,
+    WalletFloatReconciliationController,
+  ],
+  providers: [
+    WalletAuthService,
+    WalletService,
+    WalletJwtGuard,
+    CashierRoleGuard,
+    QrSigningService,
+    WalletFloatReconciliationService,
+    WalletFloatReconciliationCron,
+  ],
   exports: [CashierRoleGuard, QrSigningService],
 })
 export class WalletModule {}

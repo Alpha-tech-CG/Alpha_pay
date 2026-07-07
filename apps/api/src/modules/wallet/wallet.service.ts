@@ -13,6 +13,7 @@ import { WalletJwtPayload } from './wallet-jwt.guard';
 import { NotificationService } from '../notifications/notification.service';
 import { QrSigningService } from './qr-signing.service';
 import { WalletAuthService } from './wallet-auth.service';
+import { WalletFloatReconciliationService } from './wallet-float-reconciliation.service';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 
 /* ─────────────────────────────────────────────────
@@ -56,6 +57,7 @@ export class WalletService {
     private readonly notifications: NotificationService,
     private readonly qrSigning: QrSigningService,
     private readonly walletAuth: WalletAuthService,
+    private readonly floatReconciliation: WalletFloatReconciliationService,
     private readonly webhookDelivery: WebhookDeliveryService,
   ) {}
 
@@ -459,6 +461,10 @@ export class WalletService {
   async cashOut(actor: WalletJwtPayload, dto: CashOutDto) {
     const replayed = await this.#findReplay(actor.sub, dto.idempotencyKey);
     if (replayed) return replayed;
+
+    // Garde-fou insolvabilité (ALP-175) : gèle les retraits si la dernière
+    // réconciliation a détecté une dérive de float critique.
+    await this.floatReconciliation.assertFloatHealthy();
 
     const amountCents = BigInt(dto.amountCents);
 
