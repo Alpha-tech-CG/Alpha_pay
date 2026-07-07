@@ -23,6 +23,21 @@ export class LoginWalletDto {
   pin!: string;
 }
 
+/** Vérification du code SMS d'inscription (ALP-171). */
+export class VerifyOtpDto {
+  @IsString() @IsNotEmpty()
+  phone!: string;
+
+  @IsString() @Length(6, 6)
+  @Matches(/^[0-9]{6}$/, { message: 'Code à 6 chiffres attendu' })
+  otp!: string;
+}
+
+export class ResendOtpDto {
+  @IsString() @IsNotEmpty()
+  phone!: string;
+}
+
 /** Clé d'idempotence facultative — un rejeu (double-tap, retry réseau) renvoie la transaction d'origine. */
 abstract class IdempotentDto {
   @IsOptional() @IsString() @Length(8, 64)

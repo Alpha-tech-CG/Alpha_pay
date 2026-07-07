@@ -11,6 +11,7 @@ import { WalletJwtGuard } from './wallet-jwt.guard';
 import { CashierRoleGuard } from './cashier-role.guard';
 import { QrSigningService } from './qr-signing.service';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
+import { MetricsModule } from '../metrics/metrics.module';
 
 const FALLBACK_SECRET = 'dev-secret-change-in-prod';
 
@@ -18,6 +19,7 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
   imports: [
     ConfigModule,
     WebhooksOutModule,
+    MetricsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

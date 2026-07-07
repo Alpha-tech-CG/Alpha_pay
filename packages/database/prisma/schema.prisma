@@ -141,6 +141,7 @@ enum UserRole {
 }
 
 enum WalletStatus {
+  PENDING_VERIFICATION
   ACTIVE
   SUSPENDED
   CLOSED
@@ -169,6 +170,13 @@ model Wallet {
   // Rattachement d'un caissier (MERCHANT_CASHIER) au marchand pour lequel il encaisse.
   merchantId   String?       @map("merchant_id")
   merchant     Merchant?     @relation(fields: [merchantId], references: [id])
+  // OTP d'inscription (ALP-171) : preuve de possession du numéro.
+  otpHash      String?       @map("otp_hash")
+  otpExpiresAt DateTime?     @map("otp_expires_at")
+  otpAttempts  Int           @default(0) @map("otp_attempts")
+  // Verrouillage progressif anti brute-force PIN (ALP-173).
+  failedPinAttempts Int      @default(0) @map("failed_pin_attempts")
+  lockedUntil  DateTime?     @map("locked_until")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 

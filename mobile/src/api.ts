@@ -119,12 +119,23 @@ export const loginClient = (phone: string, pin: string) =>
     { phone, pin },
   ).then((r) => r.data);
 
-/** Inscription client — crée le wallet avec le PIN choisi par l'utilisateur */
+/** Inscription client — crée le wallet (PENDING_VERIFICATION) et envoie l'OTP SMS */
 export const registerClient = (phone: string, fullName: string, pin: string) =>
-  api.post<{ ok: boolean; phone: string }>(
+  api.post<{ ok: boolean; phone: string; requiresVerification: boolean }>(
     '/v1/wallet/auth/register',
     { phone, fullName, pin },
   ).then((r) => r.data);
+
+/** Vérifie le code SMS d'inscription — active le compte et retourne un JWT */
+export const verifyOtpClient = (phone: string, otp: string) =>
+  api.post<{ ok: boolean; token: string; phone: string; role: string }>(
+    '/v1/wallet/auth/verify-otp',
+    { phone, otp },
+  ).then((r) => r.data);
+
+/** Renvoie un nouveau code SMS de vérification */
+export const resendOtpClient = (phone: string) =>
+  api.post<{ ok: boolean }>('/v1/wallet/auth/resend-otp', { phone }).then((r) => r.data);
 
 /** Solde et info du wallet */
 export const getWalletBalance = () =>

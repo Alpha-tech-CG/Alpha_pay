@@ -71,6 +71,16 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     subject: "PayBrain – Argent reçu",
     body: "PayBrain : vous avez reçu {{amount}} {{currency}} de {{from}}. Solde : {{balance}} {{currency}}.",
   },
+  "wallet.otp": {
+    version: "v1",
+    subject: "PayBrain – Code de vérification",
+    body: "PayBrain : votre code de vérification est {{otp}}. Valable 10 minutes. Ne le partagez jamais — PayBrain ne vous le demandera jamais.",
+  },
+  "wallet.locked": {
+    version: "v1",
+    subject: "PayBrain – Compte verrouillé",
+    body: "PayBrain : votre compte est temporairement verrouillé après plusieurs PIN incorrects. Réessayez dans {{minutes}} min. Si ce n'était pas vous, contactez le support.",
+  },
   "ops.new-signup": {
     version: "v1",
     subject: "[PayBrain] Nouvelle inscription — {{name}}",

@@ -34,6 +34,14 @@ export class MetricsService implements OnModuleInit {
     registers: [this.registry],
   });
 
+  // ALP-173 : un pic d'échecs PIN = attaque brute-force en cours (alerte Grafana).
+  readonly walletPinFailuresTotal = new Counter({
+    name: 'paybrain_wallet_pin_failures_total',
+    help: 'Échecs de vérification PIN wallet',
+    labelNames: ['result'], // invalid | locked
+    registers: [this.registry],
+  });
+
   onModuleInit() {
     collectDefaultMetrics({ register: this.registry, prefix: 'paybrain_node_' });
   }

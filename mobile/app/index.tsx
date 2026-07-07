@@ -7,7 +7,7 @@ import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '@/auth';
-import { verifyKey, loginClient, registerClient, api } from '@/api';
+import { verifyKey, loginClient, registerClient, verifyOtpClient, resendOtpClient, api } from '@/api';
 import { C } from '@/theme';
 
 const DEV_SIGNUP_URL = 'https://paybrain.cg/fr/developer';
@@ -75,12 +75,14 @@ export default function Auth() {
   const [clientBusy, setClientBusy]   = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  // ── Client signup state (2 étapes : identité → PIN) ──
-  const [regStep, setRegStep]         = useState<1 | 2>(1);
+  // ── Client signup state (3 étapes : identité → PIN → code SMS) ──
+  const [regStep, setRegStep]         = useState<1 | 2 | 3>(1);
   const [regPhone, setRegPhone]       = useState('');
   const [regName, setRegName]         = useState('');
   const [regPin, setRegPin]           = useState('');
   const [regPinConfirm, setRegPinConfirm] = useState('');
+  const [regOtp, setRegOtp]           = useState('');
+  const [otpResent, setOtpResent]     = useState(false);
   const [regBusy, setRegBusy]         = useState(false);
   const [regError, setRegError]       = useState<string | null>(null);
 
@@ -121,8 +123,11 @@ export default function Auth() {
     try {
       const data = await loginClient(phone.trim(), pin.trim());
       await signInClient(data.phone, data.token, data.role as import('@/auth').UserRole);
-    } catch {
-      setClientError('Numéro ou PIN incorrect');
+    } catch (e: unknown) {
+      // Affiche le message serveur (compte verrouillé, non vérifié…) si présent.
+      const msg = (e as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setClientError(msg ?? 'Numéro ou PIN incorrect');
       setClientBusy(false);
     }
   };
@@ -160,9 +165,10 @@ export default function Auth() {
     setRegBusy(true); setRegError(null);
     try {
       await registerClient(regPhone.trim(), regName.trim(), regPin);
-      // Auto-login après inscription
-      const data = await loginClient(regPhone.trim(), regPin);
-      await signInClient(data.phone, data.token);
+      // Le compte reste PENDING_VERIFICATION jusqu'à validation du code SMS (ALP-171)
+      setRegOtp(''); setOtpResent(false);
+      setRegStep(3);
+      setRegBusy(false);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })
         ?.response?.data?.message;
@@ -170,6 +176,30 @@ export default function Auth() {
         ? 'Ce numéro est déjà enregistré. Connectez-vous.'
         : 'Erreur lors de l\'inscription, réessayez.');
       setRegBusy(false);
+    }
+  };
+
+  const submitRegOtp = async () => {
+    if (regOtp.length !== 6) return;
+    setRegBusy(true); setRegError(null);
+    try {
+      const data = await verifyOtpClient(regPhone.trim(), regOtp);
+      await signInClient(data.phone, data.token, data.role as import('@/auth').UserRole);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setRegError(msg ?? 'Code incorrect, réessayez.');
+      setRegBusy(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    setOtpResent(false);
+    try {
+      await resendOtpClient(regPhone.trim());
+      setRegOtp(''); setRegError(null); setOtpResent(true);
+    } catch {
+      setRegError('Renvoi impossible pour le moment, patientez quelques minutes.');
     }
   };
 
@@ -392,7 +422,7 @@ export default function Auth() {
               <View style={[s.stepLine, { backgroundColor: C.border }]} />
               <View style={[s.stepDot, { backgroundColor: C.border }]} />
             </View>
-            <Text style={s.stepLabel}>Étape 1 / 2 — Vos informations</Text>
+            <Text style={s.stepLabel}>Étape 1 / 3 — Vos informations</Text>
 
             <Field label="Nom complet *" value={regName} onChangeText={setRegName} placeholder="Jean-Paul Kambou" autoComplete="name" />
             <Field
@@ -442,7 +472,7 @@ export default function Auth() {
               <View style={[s.stepLine, { backgroundColor: C.secondary }]} />
               <View style={s.stepDot} />
             </View>
-            <Text style={s.stepLabel}>Étape 2 / 2 — Sécurité</Text>
+            <Text style={s.stepLabel}>Étape 2 / 3 — Sécurité</Text>
 
             <Field
               label="PIN (4 à 6 chiffres) *"
@@ -478,6 +508,64 @@ export default function Auth() {
                 ? <ActivityIndicator color="#fff" />
                 : <Text style={s.btnPrimaryText}>Créer mon compte</Text>}
             </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  /* ══════════════════════════════════════════
+     SIGNUP CLIENT — étape 3 : code SMS (ALP-171)
+  ══════════════════════════════════════════ */
+  if (flow === 'signup-client' && regStep === 3) {
+    return (
+      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+            <BackBtn onPress={() => { setRegError(null); setRegStep(2); }} />
+            <Text style={s.pageTitle}>Vérifiez votre numéro</Text>
+            <Text style={s.pageSubtitle}>
+              Un code à 6 chiffres a été envoyé par SMS au {regPhone.trim()}.
+            </Text>
+
+            <Field
+              label="Code de vérification *"
+              value={regOtp}
+              onChangeText={(t) => setRegOtp(t.replace(/[^0-9]/g, ''))}
+              placeholder="123456"
+              keyboardType="number-pad"
+              maxLength={6}
+              autoComplete="sms-otp"
+              textContentType="oneTimeCode"
+            />
+
+            {otpResent && (
+              <View style={[s.infoBox, { marginBottom: 12 }]}>
+                <MaterialIcons name="check-circle" size={16} color={C.secondary} />
+                <Text style={[s.infoText, { color: C.secondary }]}>Nouveau code envoyé.</Text>
+              </View>
+            )}
+            {regError && <ErrorRow msg={regError} />}
+
+            <Pressable
+              onPress={submitRegOtp}
+              disabled={regBusy || regOtp.length !== 6}
+              style={[s.btnPrimary, (regBusy || regOtp.length !== 6) && s.btnDisabled]}
+            >
+              {regBusy
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnPrimaryText}>Vérifier et activer mon compte</Text>}
+            </Pressable>
+
+            <Pressable onPress={resendOtp} style={{ marginTop: 16, alignSelf: 'center' }}>
+              <Text style={{ color: C.primary, fontSize: 13, fontWeight: '600' }}>
+                Je n'ai rien reçu — Renvoyer le code
+              </Text>
+            </Pressable>
+
+            <Text style={s.secureNote}>
+              🔒 Le code expire après 10 minutes · 3 essais maximum
+            </Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
