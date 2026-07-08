@@ -29,13 +29,16 @@ async function main() {
   }
 
   const email = normalizeEmail('alpha-educ@paybrain.cg');
+  // Bytes Prisma attend un Uint8Array<ArrayBuffer> ; nos helpers renvoient un Buffer.
+  const emailHash = new Uint8Array(deterministicHash(email));
+  const emailEncrypted = new Uint8Array(encryptField(email));
   const merchant = await prisma.merchant.upsert({
-    where: { emailHash: deterministicHash(email) },
+    where: { emailHash },
     update: {},
     create: {
       name: 'Alpha-Educ',
-      emailEncrypted: encryptField(email),
-      emailHash: deterministicHash(email),
+      emailEncrypted,
+      emailHash,
       isActive: true,
     },
   });

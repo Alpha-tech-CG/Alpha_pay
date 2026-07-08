@@ -7,9 +7,27 @@ tester en 10 minutes les 3 usages de la V1 — **payer un marchand** (lien/QR),
 
 ## Prérequis
 
-- Docker Desktop (pour PostgreSQL + Redis)
+- Docker Desktop (pour PostgreSQL + Redis) — **démarré**
 - Node.js ≥ 20 et `npm`
 - Dépôt installé : `npm install` à la racine
+
+## Démarrage rapide (Windows, une commande)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\demo-setup.ps1
+```
+
+Ce script démarre Postgres/Redis, crée `apps/api/.env`, applique les migrations et
+remplit les données de démo. Il affiche à la fin les identifiants et liens de test.
+Ensuite, lancez l'API et le checkout (deux terminaux) :
+
+```powershell
+npm run dev --workspace=@paybrain/api
+npm run dev --workspace=@paybrain/checkout
+```
+
+Puis passez directement à la **section 5 (scénarios)**. Le détail manuel suit ci-dessous
+si vous préférez ne pas utiliser le script.
 
 ## 1. Démarrer la base de données
 
