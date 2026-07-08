@@ -19,14 +19,14 @@ Le produit d'appel grand public. Un compte, rechargé par MoMo, qui paie partout
 - Auth PIN Argon2id + JWT, idempotence, débits conditionnels anti-course, callbacks HMAC fail-closed
 - Crédit marchand intégré au settlement engine (operator=WALLET)
 
-**À construire pour le lancement** (issues Linear créées) :
-1. **Checkout « Payer avec PayBrain »** — bouton sur la page de paiement hébergée existante :
-   le client se connecte (phone + PIN + confirmation), le site marchand est payé depuis le wallet.
-   C'est LA brique « payer en ligne sur plusieurs plateformes ».
-2. **Paiement à l'étranger** — multi-devises depuis le wallet XAF : réutiliser le module FX
-   existant (ALP-151) pour débiter en XAF et régler le marchand en USD/EUR ; corridor CEMAC d'abord.
-3. Durcissements pré-fonds réels : OTP SMS inscription, QR signés, verrouillage PIN,
-   plafonds KYC/BEAC, réconciliation float.
+**Construit pour le lancement (fait ✅)** :
+1. **Checkout « Payer avec PayBrain »** (ALP-169) — app `apps/checkout` (`/pay/[id]`) + endpoint
+   `POST /v1/checkout/paylinks/:id/wallet` : le client paie un lien/QR marchand depuis son wallet.
+2. **Paiement à l'étranger multi-devises** (ALP-170) — un wallet XAF règle un lien en USD/EUR ;
+   conversion via le module FX (ALP-151), marchand crédité dans la devise du lien.
+3. **Durcissements** : OTP SMS inscription (ALP-171), QR signés (ALP-172), verrouillage PIN
+   (ALP-173), réconciliation float (ALP-175). **Reste** : plafonds KYC/BEAC (ALP-174, dépend de
+   la banque partenaire).
 
 ### Module 2 — Encaissement marchand par API (CONSTRUIT ✅)
 
@@ -40,10 +40,41 @@ Settlement engine, payouts MoMo, multi-devises FX, validation 4-eyes, réconcili
 ### Module 4 — Services additionnels (APRÈS traction)
 
 Dans l'ordre de valeur probable une fois la base clients acquise :
+- **Cartes virtuelles Visa/Mastercard** (partenaire émetteur — ALP-176) pour payer les sites
+  qui n'acceptent que la carte, en Europe et ailleurs. Priorité haute côté produit, bloqué sur
+  l'émetteur. Fondation déjà en place : wallet multi-devises + settlement + réconciliation.
 - Paiement de factures (électricité, eau, TV, scolarité)
-- Cartes virtuelles (partenaire émetteur) pour les sites qui n'acceptent que Visa/MC
 - Épargne / tontines digitales
 - USSD grand public (prêt côté code — attend le shortcode agrégateur)
+
+## Périmètre V1 — ce qui marche aujourd'hui (côté code)
+
+La V1 grand public couvre les trois usages demandés :
+
+| Usage | État | Comment |
+|-------|------|---------|
+| **Payer un marchand** (lien de paiement ou QR généré par le vendeur) | ✅ | QR signés (app caissier) + checkout web `/pay/:id`, en XAF **et** en devise étrangère (USD/EUR) |
+| **Envoyer / recevoir des fonds** (P2P) | ✅ | `POST /v1/wallet/p2p`, transfert instantané entre wallets par numéro |
+| **Recharger / retirer** | ✅ | cash-in / cash-out MTN & Airtel |
+
+## Paiement en ligne « type carte Visa » (fonds en Europe, etc.) — à cadrer
+
+C'est l'ambition finale : payer **n'importe quel** site (pas seulement un marchand intégré
+à PayBrain), y compris à l'étranger, comme avec une carte Visa. Deux modèles très différents :
+
+- **Closed-loop (fait ✅)** : payer un marchand qui a intégré PayBrain (lien/QR/checkout).
+  Fonctionne déjà, y compris cross-devises. C'est ce que couvre la V1.
+- **Open-loop / carte Visa (Module 4, dépendance partenaire)** : émettre une **carte virtuelle
+  Visa/Mastercard** adossée au wallet, utilisable sur tout site acceptant les cartes. **Cela
+  exige un émetteur licencié / sponsor de BIN** (Stripe Issuing, Marqeta, ou un émetteur
+  africain) — c'est une dépendance externe **du même ordre que les contrats MTN/Airtel**, pas
+  quelque chose qui se code seul. Le wallet multi-devises + le settlement constituent déjà la
+  fondation (le solde qui garantit la carte) ; il manque le partenaire émetteur et le KYC renforcé.
+
+> **En clair** : la V1 permet de payer en ligne partout où un marchand accepte PayBrain, même
+> à l'étranger. Payer sur un site qui n'accepte QUE Visa/Mastercard nécessitera la carte
+> virtuelle (Module 4), bloquée sur la signature d'un émetteur — à intégrer dès qu'il est trouvé,
+> potentiellement via la banque partenaire en cours de contractualisation.
 
 ## Séquence de lancement recommandée
 
