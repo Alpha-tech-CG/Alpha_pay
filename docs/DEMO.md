@@ -114,11 +114,53 @@ Essayez un P2P de `amountCents: 60000000` (600 000 XAF) : refusé en niveau N1 s
 au-dessus du plafond par opération. Les plafonds sont éditables via
 `PUT /internal/wallet-limits/:level` (en-tête `X-Internal-Token`).
 
-## 6. Applications mobiles (optionnel)
+## 6. Tester sur ton téléphone avec Expo Go
 
-Les apps client et caissier sont dans `mobile/` (Expo). Pour les lancer :
-`cd mobile && npm install && npx expo start`. Configurez `apiBaseUrl` vers
-`http://<votre-ip-locale>:3000` dans la config Expo.
+L'app mobile (client + caissier) est dans `mobile/`. Elle se teste sur un vrai
+téléphone via **Expo Go**, en se connectant à l'API qui tourne sur ton PC.
+
+### Prérequis
+- Le **backend tourne** (étapes 1→4 : Postgres + API sur le port 3000, base seedée).
+- Le **téléphone et le PC sont sur le même Wi-Fi**.
+- **Expo Go** installé (App Store / Play Store).
+
+### a) Pointer l'app vers ton PC
+L'app lit l'URL de l'API depuis `mobile/app.json` → `extra.apiBaseUrl`, déjà réglée
+sur `http://192.168.1.174:3000`. **Si l'IP de ton PC est différente**, remplace-la,
+ou lance sans éditer de fichier :
+
+```powershell
+# Trouver ton IP (Wi-Fi) :
+ipconfig | findstr /i "IPv4"
+# Lancer en surchargeant l'URL :
+$env:EXPO_PUBLIC_API_URL = "http://<TON_IP>:3000"
+```
+
+### b) Lancer Expo
+```powershell
+cd mobile
+npm install        # une seule fois
+npx expo start
+```
+Un **QR code** s'affiche dans le terminal.
+- **Android** : ouvre Expo Go → « Scan QR code ».
+- **iPhone** : ouvre l'appareil photo → scanne le QR → « Ouvrir dans Expo Go ».
+
+### c) Se connecter
+Sur l'écran d'accueil : **« Se connecter » → « Compte personnel »**, puis :
+- Numéro : `+242 06 600 0001`  ·  PIN : `1234`  (wallet de démo, 100 000 XAF)
+
+Tu peux alors : voir le solde, l'historique, **scanner un QR** marchand, **envoyer**
+vers `+242066000002`, etc. Le compte caissier se teste avec `+242066000009` / `1234`.
+
+### Dépannage
+- **« Network error » / rien ne charge** : l'`apiBaseUrl` ne pointe pas vers ton PC,
+  ou le **pare-feu Windows bloque le port 3000**. Autorise Node.js dans le pare-feu
+  (Panneau de configuration → Pare-feu → Autoriser une application), ou teste depuis
+  le navigateur du téléphone : `http://<TON_IP>:3000/health` doit répondre.
+- **QR ne s'ouvre pas** : lance `npx expo start --tunnel` (fonctionne même hors même Wi-Fi,
+  plus lent).
+- **Cache** : `npx expo start -c` pour repartir propre.
 
 ## Ce que la démo NE fait PAS (attendu)
 

@@ -8,16 +8,16 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#059669"
+      "backgroundColor": "#0035c5"
     },
     "ios": { "supportsTablet": true, "bundleIdentifier": "cg.paybrain.app" },
     "android": {
       "package": "cg.paybrain.app",
-      "adaptiveIcon": { "backgroundColor": "#059669" }
+      "adaptiveIcon": { "backgroundColor": "#0035c5" }
     },
     "plugins": ["expo-router", "expo-secure-store"],
     "extra": {
-      "apiBaseUrl": "http://192.168.1.10:3000"
+      "apiBaseUrl": "http://192.168.1.174:3000"
     }
   }
 }
