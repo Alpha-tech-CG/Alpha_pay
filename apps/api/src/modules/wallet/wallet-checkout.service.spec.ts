@@ -5,6 +5,7 @@ import { WalletFloatReconciliationService } from './wallet-float-reconciliation.
 import { NotificationService } from '../notifications/notification.service';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 import { CurrencyService } from '../currency/currency.service';
+import { WalletLimitsService } from './wallet-limits.service';
 
 /**
  * Client de transaction simulé : capture les créations wallet/transaction et
@@ -54,9 +55,13 @@ function makeService(opts: {
   const floatRecon = { assertFloatHealthy: jest.fn() } as unknown as WalletFloatReconciliationService;
   const webhookDelivery = { dispatch: jest.fn().mockResolvedValue(0) } as unknown as WebhookDeliveryService;
   const currency = { convert: opts.convert ?? jest.fn() } as unknown as CurrencyService;
+  const limits = {
+    assertWithinDebitLimits: jest.fn().mockResolvedValue(undefined),
+    assertWithinBalanceCap: jest.fn().mockResolvedValue(undefined),
+  } as unknown as WalletLimitsService;
 
   const service = new WalletService(
-    prisma, notifications, qrSigning, walletAuth, floatRecon, webhookDelivery, currency,
+    prisma, notifications, qrSigning, walletAuth, floatRecon, webhookDelivery, currency, limits,
   );
   return { service, created, prisma, currency, webhookDelivery };
 }

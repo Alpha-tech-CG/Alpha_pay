@@ -16,6 +16,7 @@ import { WalletAuthService } from './wallet-auth.service';
 import { WalletFloatReconciliationService } from './wallet-float-reconciliation.service';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 import { CurrencyService } from '../currency/currency.service';
+import { WalletLimitsService } from './wallet-limits.service';
 import { toCents, toMajor } from '../../common/money';
 
 /* ─────────────────────────────────────────────────
@@ -62,6 +63,7 @@ export class WalletService {
     private readonly floatReconciliation: WalletFloatReconciliationService,
     private readonly webhookDelivery: WebhookDeliveryService,
     private readonly currency: CurrencyService,
+    private readonly limits: WalletLimitsService,
   ) {}
 
   /* ── Solde ── */
@@ -121,6 +123,10 @@ export class WalletService {
     if (replayed) return replayed;
 
     const wallet = await this.#requireActive(actor.sub);
+
+    // Plafond de solde e-money (ALP-174) : refuser un rechargement qui ferait
+    // dépasser le solde maximum du niveau KYC.
+    await this.limits.assertWithinBalanceCap(wallet.kycLevel, wallet.balanceCents, BigInt(dto.amountCents));
 
     // Créer la transaction PENDING avant d'appeler l'opérateur
     let pendingTx;
@@ -298,6 +304,10 @@ export class WalletService {
 
     const amountCents = BigInt(qr.amountCents);
 
+    // Plafonds de volume sortant (ALP-174) — pré-contrôle avant débit.
+    const payer = await this.#requireActive(actor.sub);
+    await this.limits.assertWithinDebitLimits(actor.sub, payer.kycLevel, amountCents);
+
     // Transaction interactive → débit conditionnel anti-course (W1)
     let tx;
     try {
@@ -378,6 +388,9 @@ export class WalletService {
     const charge = await this.#resolveWalletCharge(link.amount, link.currency, wallet.currency);
     const walletDebitCents = charge.walletDebitCents;
     const merchantAmountCents = link.amount; // devise du lien, inchangée
+
+    // Plafonds de volume sortant (ALP-174) — sur le montant réellement débité (XAF).
+    await this.limits.assertWithinDebitLimits(wallet.id, wallet.kycLevel, walletDebitCents);
 
     let tx;
     try {
@@ -510,6 +523,10 @@ export class WalletService {
     await this.floatReconciliation.assertFloatHealthy();
 
     const amountCents = BigInt(dto.amountCents);
+
+    // Plafonds de volume sortant (ALP-174).
+    const payer = await this.#requireActive(actor.sub);
+    await this.limits.assertWithinDebitLimits(actor.sub, payer.kycLevel, amountCents);
 
     // Débit préventif conditionnel + enregistrement PENDING en transaction atomique (W1)
     let tx;
@@ -675,7 +692,7 @@ export class WalletService {
 
     const receiverWallet = await this.prisma.wallet.findUnique({
       where: { phone: toPhone },
-      select: { id: true, phone: true, balanceCents: true, status: true },
+      select: { id: true, phone: true, balanceCents: true, status: true, kycLevel: true },
     });
     if (!receiverWallet) throw new NotFoundException(`Aucun compte trouvé pour ${toPhone}`);
     if (receiverWallet.status !== 'ACTIVE') throw new BadRequestException('Destinataire inactif');
@@ -683,6 +700,11 @@ export class WalletService {
 
     const amountCents = BigInt(dto.amountCents);
     const desc = dto.description ?? `Transfert vers ${toPhone}`;
+
+    // Plafonds e-money (ALP-174) : volume sortant émetteur + plafond de solde destinataire.
+    const sender = await this.#requireActive(actor.sub);
+    await this.limits.assertWithinDebitLimits(actor.sub, sender.kycLevel, amountCents);
+    await this.limits.assertWithinBalanceCap(receiverWallet.kycLevel, receiverWallet.balanceCents, amountCents);
 
     // Transaction interactive — débit conditionnel anti-course (W1)
     let result;
@@ -805,7 +827,7 @@ export class WalletService {
   async #requireActive(walletId: string) {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
-      select: { id: true, balanceCents: true, status: true },
+      select: { id: true, balanceCents: true, status: true, kycLevel: true },
     });
     if (!wallet) throw new NotFoundException('Wallet introuvable');
     if (wallet.status !== 'ACTIVE') throw new BadRequestException('Compte suspendu');

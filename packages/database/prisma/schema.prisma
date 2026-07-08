@@ -156,6 +156,14 @@ enum WalletTxType {
   REFUND
 }
 
+// Niveaux KYC e-money (ALP-174). N0 = numéro vérifié (OTP) seulement ;
+// N1 = pièce d'identité vérifiée ; N2 = vérification renforcée.
+enum WalletKycLevel {
+  N0
+  N1
+  N2
+}
+
 // Portefeuille électronique du client final (closed-loop wallet).
 model Wallet {
   id           String        @id @default(uuid())
@@ -165,6 +173,7 @@ model Wallet {
   currency     String        @default("XAF")
   role         UserRole      @default(CLIENT)
   status       WalletStatus  @default(ACTIVE)
+  kycLevel     WalletKycLevel @default(N0) @map("kyc_level")
   fullName     String?       @map("full_name")
   pushToken    String?       @map("push_token")
   // Rattachement d'un caissier (MERCHANT_CASHIER) au marchand pour lequel il encaisse.
@@ -213,6 +222,20 @@ model WalletTransaction {
   @@index([merchantId])
   @@index([status])
   @@map("wallet_transactions")
+}
+
+// Plafonds e-money par niveau KYC (ALP-174). Table éditable (endpoint interne)
+// pour ajuster les seuils sans redéploiement, en fonction des exigences BEAC /
+// de la banque partenaire. Montants en centimes (×100), devise wallet (XAF).
+model WalletLimit {
+  level           WalletKycLevel @id
+  maxBalanceCents BigInt         @map("max_balance_cents")   // solde maximum autorisé
+  perTxCents      BigInt         @map("per_tx_cents")        // montant max par opération sortante
+  dailyCents      BigInt         @map("daily_cents")         // volume sortant / 24 h glissantes
+  monthlyCents    BigInt         @map("monthly_cents")       // volume sortant / 30 j glissants
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  @@map("wallet_limits")
 }
 
 model Merchant {

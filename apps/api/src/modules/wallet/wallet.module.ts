@@ -13,6 +13,8 @@ import { CashierRoleGuard } from './cashier-role.guard';
 import { QrSigningService } from './qr-signing.service';
 import { WalletFloatReconciliationService } from './wallet-float-reconciliation.service';
 import { WalletFloatReconciliationCron } from './wallet-float-reconciliation.cron';
+import { WalletLimitsService } from './wallet-limits.service';
+import { WalletLimitsController } from './wallet-limits.controller';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { CurrencyModule } from '../currency/currency.module';
@@ -43,6 +45,7 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
     WalletCallbacksController,
     WalletCheckoutController,
     WalletFloatReconciliationController,
+    WalletLimitsController,
   ],
   providers: [
     WalletAuthService,
@@ -52,6 +55,7 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
     QrSigningService,
     WalletFloatReconciliationService,
     WalletFloatReconciliationCron,
+    WalletLimitsService,
   ],
   exports: [CashierRoleGuard, QrSigningService],
 })
