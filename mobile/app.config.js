@@ -23,5 +23,6 @@ module.exports = () => ({
   plugins: ['expo-router', 'expo-secure-store', 'expo-font'],
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
+    eas: { projectId: '5fb2127e-f2ae-4820-bcb4-ccdb59f55b7a' },
   },
 });
