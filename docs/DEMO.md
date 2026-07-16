@@ -155,12 +155,68 @@ vers `+242066000002`, etc. Le compte caissier se teste avec `+242066000009` / `1
 
 ### Dépannage
 - **« Network error » / rien ne charge** : l'`apiBaseUrl` ne pointe pas vers ton PC,
-  ou le **pare-feu Windows bloque le port 3000**. Autorise Node.js dans le pare-feu
-  (Panneau de configuration → Pare-feu → Autoriser une application), ou teste depuis
-  le navigateur du téléphone : `http://<TON_IP>:3000/health` doit répondre.
+  ou le **pare-feu Windows bloque le port 3000** (voir ci-dessous).
 - **QR ne s'ouvre pas** : lance `npx expo start --tunnel` (fonctionne même hors même Wi-Fi,
-  plus lent).
+  plus lent). Bonus : le tunnel contourne aussi le pare-feu.
 - **Cache** : `npx expo start -c` pour repartir propre.
+
+### Autoriser le port 3000 dans le pare-feu Windows
+Ouvre **PowerShell en administrateur** (clic droit → « Exécuter en tant qu'administrateur »)
+puis :
+
+```powershell
+New-NetFirewallRule -DisplayName "PayBrain API (dev 3000)" -Direction Inbound `
+  -Action Allow -Protocol TCP -LocalPort 3000 -Profile Private
+```
+
+Alternative (aussi en admin) :
+```powershell
+netsh advfirewall firewall add rule name="PayBrain API 3000" dir=in action=allow protocol=TCP localport=3000
+```
+
+Vérifie ensuite depuis le **navigateur du téléphone** : `http://192.168.1.174:3000/health`
+doit répondre `{"status":"ok",...}`. Pour retirer la règle plus tard :
+`Remove-NetFirewallRule -DisplayName "PayBrain API (dev 3000)"`.
+
+## 7. Générer un APK téléchargeable (EAS Build)
+
+Expo Go suffit pour tester, mais si tu veux un **vrai APK installable** (à partager,
+ou pour tester sans Expo Go), utilise EAS Build (build dans le cloud d'Expo, gratuit).
+
+### Prérequis
+- Un compte **Expo** (gratuit) : https://expo.dev/signup
+- `eas.json` est déjà présent dans `mobile/` (profil `preview` = sortie APK).
+
+### Étapes
+```powershell
+cd mobile
+npm install -g eas-cli        # ou: npx eas-cli@latest
+eas login                      # connexion à ton compte Expo
+eas build -p android --profile preview
+```
+
+À la fin, EAS affiche une **URL de téléchargement de l'APK** (et un QR). Ouvre-la sur
+ton téléphone Android → télécharge → installe (autoriser « sources inconnues »).
+Le build prend ~10–20 min la première fois (EAS génère la clé de signature tout seul).
+
+### ⚠️ Important — l'APK doit pouvoir joindre l'API
+Un APK autonome garde en dur l'URL de l'API. Deux cas :
+
+- **Test sur le même Wi-Fi que ton PC** : construis avec l'IP locale (déjà par défaut).
+  L'APK marchera tant que le téléphone est sur ce Wi-Fi et que l'API tourne.
+- **Test n'importe où** : l'API locale n'est pas accessible depuis l'extérieur. Expose-la
+  via un tunnel, puis construis l'APK avec cette URL publique :
+  ```powershell
+  # 1) exposer l'API (dans un terminal, API déjà lancée) :
+  npx cloudflared tunnel --url http://localhost:3000
+  #    -> donne une URL https://xxxx.trycloudflare.com
+  # 2) construire l'APK pointant vers ce tunnel :
+  $env:EXPO_PUBLIC_API_URL = "https://xxxx.trycloudflare.com"
+  eas build -p android --profile preview
+  ```
+
+> Note : je ne peux pas lancer ce build à ta place (il faut ton compte Expo + une
+> connexion interactive). Mais tout est configuré : les 3 commandes ci-dessus suffisent.
 
 ## Ce que la démo NE fait PAS (attendu)
 
