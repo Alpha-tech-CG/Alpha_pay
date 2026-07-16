@@ -86,10 +86,10 @@ export interface SignupPayload {
  * Inscription via le site web — l'app ouvre la page d'inscription Clerk
  * dans le navigateur natif. On ne gère pas les credentials en mobile.
  */
-export const SIGNUP_URL =
-  (Constants.expoConfig?.extra as { dashboardUrl?: string } | undefined)?.dashboardUrl
-    ? `${(Constants.expoConfig.extra as { dashboardUrl: string }).dashboardUrl}/sign-up`
-    : 'https://dashboard.paybrain.cg/sign-up';
+const dashboardUrl = (Constants.expoConfig?.extra as { dashboardUrl?: string } | undefined)?.dashboardUrl;
+export const SIGNUP_URL = dashboardUrl
+  ? `${dashboardUrl}/sign-up`
+  : 'https://dashboard.paybrain.cg/sign-up';
 
 /* ─── CLIENT (Wallet) API ─── */
 
