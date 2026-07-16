@@ -20,7 +20,7 @@ module.exports = () => ({
     package: 'cg.paybrain.app',
     adaptiveIcon: { backgroundColor: '#0035c5' },
   },
-  plugins: ['expo-router', 'expo-secure-store', 'expo-font'],
+  plugins: ['expo-router', 'expo-secure-store', 'expo-font', 'expo-asset'],
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
     eas: { projectId: '5fb2127e-f2ae-4820-bcb4-ccdb59f55b7a' },
