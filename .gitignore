@@ -18,6 +18,9 @@ out/
 ## Turbo
 .turbo/
 
+## Docker override (machine-local port remaps, e.g. Postgres port conflicts)
+docker-compose.override.yml
+
 ## Logs
 *.log
 npm-debug.log*
