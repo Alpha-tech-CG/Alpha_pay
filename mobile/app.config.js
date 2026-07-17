@@ -19,6 +19,11 @@ module.exports = () => ({
   android: {
     package: 'cg.paybrain.app',
     adaptiveIcon: { backgroundColor: '#0035c5' },
+    // Autorise le trafic HTTP non chiffré (API locale de dev/démo en http://).
+    // Android 9+ bloque le cleartext par défaut, silencieusement — sans ça
+    // aucune requête ne quitte l'appareil (l'API ne voit jamais rien).
+    // À retirer/restreindre dès que l'API tourne en HTTPS (prod).
+    usesCleartextTraffic: true,
   },
   plugins: ['expo-router', 'expo-secure-store', 'expo-font', 'expo-asset'],
   extra: {
