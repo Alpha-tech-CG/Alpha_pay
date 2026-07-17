@@ -11,6 +11,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@paybrain/database';
+import { normalizePhone } from '@paybrain/shared';
 import * as argon2 from 'argon2';
 import { randomInt } from 'crypto';
 import { LoginWalletDto, RegisterWalletDto, ResendOtpDto, VerifyOtpDto } from './dto/wallet.dto';
@@ -75,7 +76,7 @@ export class WalletAuthService implements OnModuleInit {
   /* ── Inscription : compte PENDING_VERIFICATION + OTP SMS (ALP-171) ── */
 
   async register(dto: RegisterWalletDto) {
-    const phone = dto.phone.replace(/\s/g, '');
+    const phone = normalizePhone(dto.phone);
 
     const existing = await this.prisma.wallet.findUnique({ where: { phone } });
 
@@ -117,7 +118,7 @@ export class WalletAuthService implements OnModuleInit {
   /* ── Vérification OTP : active le compte et connecte directement ── */
 
   async verifyOtp(dto: VerifyOtpDto) {
-    const phone = dto.phone.replace(/\s/g, '');
+    const phone = normalizePhone(dto.phone);
     const wallet = await this.prisma.wallet.findUnique({ where: { phone } });
 
     if (!wallet) throw new BadRequestException('Aucune vérification en attente pour ce numéro');
@@ -158,7 +159,7 @@ export class WalletAuthService implements OnModuleInit {
   /* ── Renvoi d'OTP (rate-limité au niveau /v1/wallet/auth) ── */
 
   async resendOtp(dto: ResendOtpDto) {
-    const phone = dto.phone.replace(/\s/g, '');
+    const phone = normalizePhone(dto.phone);
     const wallet = await this.prisma.wallet.findUnique({ where: { phone } });
 
     // Réponse identique que le compte existe ou non (pas d'énumération de numéros).
@@ -183,7 +184,7 @@ export class WalletAuthService implements OnModuleInit {
    * Utilisé par le login ET par le checkout web (paiement sans session).
    */
   async verifyPin(rawPhone: string, pin: string) {
-    const phone = rawPhone.replace(/\s/g, '');
+    const phone = normalizePhone(rawPhone);
 
     const wallet = await this.prisma.wallet.findUnique({ where: { phone } });
 

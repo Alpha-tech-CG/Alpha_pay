@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
+import { normalizePhone } from '@paybrain/shared';
 import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors';
 import { CashInDto, CashOutDto, CheckoutWalletPayDto, CreateQrDto, P2PDto, PayQrDto } from './dto/wallet.dto';
 import { WalletJwtPayload } from './wallet-jwt.guard';
@@ -688,7 +689,7 @@ export class WalletService {
     const replayed = await this.#findReplay(actor.sub, dto.idempotencyKey);
     if (replayed) return replayed;
 
-    const toPhone = dto.toPhone.replace(/\s/g, '');
+    const toPhone = normalizePhone(dto.toPhone);
 
     const receiverWallet = await this.prisma.wallet.findUnique({
       where: { phone: toPhone },
