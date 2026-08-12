@@ -164,6 +164,19 @@ enum WalletKycLevel {
   N2
 }
 
+// Pièces d'identité uploadées par le client pour passer N0 → N1 (ALP-177).
+enum WalletKycDocType {
+  ID_FRONT
+  ID_BACK
+  SELFIE
+}
+
+enum WalletKycDocStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // Portefeuille électronique du client final (closed-loop wallet).
 model Wallet {
   id           String        @id @default(uuid())
@@ -191,6 +204,7 @@ model Wallet {
 
   sentTxs      WalletTransaction[] @relation("SenderWallet")
   receivedTxs  WalletTransaction[] @relation("ReceiverWallet")
+  kycDocuments WalletKycDocument[]
 
   @@index([phone])
   @@index([merchantId])
@@ -236,6 +250,27 @@ model WalletLimit {
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   @@map("wallet_limits")
+}
+
+// Pièce d'identité soumise par un client wallet lors de l'inscription (KYC N1).
+// Démo : l'image est stockée encodée en base (base64) — pas de dépendance S3.
+// En prod, remplacer `dataBase64` par une clé d'objet chiffré (bucket KYC).
+model WalletKycDocument {
+  id           String             @id @default(uuid())
+  walletId     String             @map("wallet_id")
+  wallet       Wallet             @relation(fields: [walletId], references: [id])
+  type         WalletKycDocType
+  mimeType     String             @map("mime_type")
+  dataBase64   String             @map("data_base64")     // image encodée (démo)
+  status       WalletKycDocStatus @default(PENDING)
+  reviewedBy   String?            @map("reviewed_by")     // officer (e-mail)
+  reviewReason String?            @map("review_reason")
+  reviewedAt   DateTime?          @map("reviewed_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  @@index([walletId])
+  @@index([status])
+  @@map("wallet_kyc_documents")
 }
 
 model Merchant {

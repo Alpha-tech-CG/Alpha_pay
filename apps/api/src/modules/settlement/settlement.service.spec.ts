@@ -162,7 +162,7 @@ describe("SettlementService (ALP-141)", () => {
   });
 
   it("flux send -> SENT puis confirm -> CONFIRMED + notifie le marchand", async () => {
-    const { svc, batches, notifications, webhooks } = deps();
+    const { svc, batches, notifications, webhooks, ledger } = deps();
     batches["bS"] = {
       id: "bS",
       status: "INITIATED",
@@ -173,6 +173,10 @@ describe("SettlementService (ALP-141)", () => {
     };
     const sent = await svc.send("bS");
     expect(sent).toMatchObject({ status: "SENT", externalReference: "pay-1" });
+    expect(ledger.postEntry).toHaveBeenCalledWith([
+      expect.objectContaining({ accountId: "settlement-transit", amountCents: 197000n, currency: "XAF" }),
+      expect.objectContaining({ accountId: "payout-external", amountCents: 197000n, currency: "XAF" }),
+    ]);
     const confirmed = await svc.confirm("bS");
     expect(confirmed.status).toBe("CONFIRMED");
     expect(notifications.send).toHaveBeenCalledWith(
@@ -226,5 +230,42 @@ describe("SettlementService (ALP-141)", () => {
     await svc.run("m1", P0, P1);
     expect(currency.convert).not.toHaveBeenCalled();
     expect(ledger.postConversion).not.toHaveBeenCalled();
+  });
+
+  it("FX payout : envoie le payout et le ledger dans la devise de settlement", async () => {
+    const { svc, batches, payout, ledger, notifications, webhooks } = deps();
+    batches["bFX"] = {
+      id: "bFX",
+      status: "INITIATED",
+      netCents: 100000n,
+      currency: "EUR",
+      settlementCurrency: "XAF",
+      settledNetCents: 65595700n,
+      batchNumber: "STL-FX",
+      merchantId: "m1",
+    };
+
+    await svc.send("bFX");
+
+    expect(payout.send).toHaveBeenCalledWith(
+      expect.objectContaining({ amountCents: 65595700n, currency: "XAF" }),
+    );
+    expect(ledger.postEntry).toHaveBeenCalledWith([
+      expect.objectContaining({ accountId: "settlement-transit-XAF", amountCents: 65595700n, currency: "XAF" }),
+      expect.objectContaining({ accountId: "payout-external", amountCents: 65595700n, currency: "XAF" }),
+    ]);
+
+    await svc.confirm("bFX");
+
+    expect(notifications.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ amount: 655957, currency: "XAF" }),
+      }),
+    );
+    expect(webhooks.dispatch).toHaveBeenCalledWith(
+      "m1",
+      "payment.succeeded",
+      expect.objectContaining({ amount: 655957, currency: "XAF" }),
+    );
   });
 });

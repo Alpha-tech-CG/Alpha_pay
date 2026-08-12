@@ -4,7 +4,8 @@ import { MetricsService } from './metrics.service';
 
 /**
  * Endpoint Prometheus scrape.
- * Protégé par Bearer token (METRICS_TOKEN) si défini, open en local si absent.
+ * Protege par Bearer token (METRICS_TOKEN) si defini.
+ * En production, un token absent ferme l'endpoint.
  */
 @Controller('metrics')
 export class MetricsController {
@@ -14,7 +15,9 @@ export class MetricsController {
   @Header('Cache-Control', 'no-store')
   async scrape(@Req() req: Request): Promise<string> {
     const token = process.env.METRICS_TOKEN;
-    if (token) {
+    if (!token) {
+      if (process.env.NODE_ENV === 'production') throw new UnauthorizedException();
+    } else {
       const auth = req.headers['authorization'] ?? '';
       if (auth !== `Bearer ${token}`) throw new UnauthorizedException();
     }

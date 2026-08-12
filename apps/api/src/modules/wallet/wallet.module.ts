@@ -4,6 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { WalletAuthController } from './wallet-auth.controller';
 import { WalletAuthService } from './wallet-auth.service';
 import { WalletController } from './wallet.controller';
+import { WalletAdminController } from './wallet-admin.controller';
+import { WalletKycController } from './wallet-kyc.controller';
+import { WalletKycAdminController } from './wallet-kyc-admin.controller';
 import { WalletCallbacksController } from './wallet-callbacks.controller';
 import { WalletCheckoutController } from './wallet-checkout.controller';
 import { WalletFloatReconciliationController } from './wallet-float-reconciliation.controller';
@@ -42,6 +45,9 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
   controllers: [
     WalletAuthController,
     WalletController,
+    WalletAdminController,
+    WalletKycController,
+    WalletKycAdminController,
     WalletCallbacksController,
     WalletCheckoutController,
     WalletFloatReconciliationController,

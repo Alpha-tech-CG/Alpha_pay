@@ -396,20 +396,25 @@ export class SettlementService {
       throw new BadRequestException("Échec du décaissement externe");
     }
 
-    // Écriture : débit transit → crédit compte de paiement externe.
+    // Écriture : débit transit → crédit compte de paiement externe, dans la devise
+    // réellement reversée après FX si une conversion a été effectuée à la création.
+    const payoutTransitAccount =
+      batch.settlementCurrency && batch.settlementCurrency !== batch.currency
+        ? `settlement-transit-${payoutCurrency}`
+        : "settlement-transit";
     await this.ledger.postEntry([
       {
-        accountId: "settlement-transit",
+        accountId: payoutTransitAccount,
         direction: "DEBIT",
-        amountCents: batch.netCents,
-        currency: batch.currency,
+        amountCents: payoutAmountCents,
+        currency: payoutCurrency,
         description: `payout ${batch.batchNumber}`,
       },
       {
         accountId: "payout-external",
         direction: "CREDIT",
-        amountCents: batch.netCents,
-        currency: batch.currency,
+        amountCents: payoutAmountCents,
+        currency: payoutCurrency,
         description: `payout ${batch.batchNumber}`,
       },
     ]);
@@ -458,10 +463,12 @@ export class SettlementService {
       where: { id: batch.merchantId },
       select: { emailEncrypted: true },
     });
+    const payoutAmountCents = batch.settledNetCents ?? batch.netCents;
+    const payoutCurrency = batch.settlementCurrency ?? batch.currency;
     const data = {
       batchNumber: batch.batchNumber,
-      amount: toMajor(batch.netCents),
-      currency: batch.currency,
+      amount: toMajor(payoutAmountCents),
+      currency: payoutCurrency,
     };
     if (merchant?.emailEncrypted) {
       await this.notifications.send({

@@ -81,7 +81,7 @@ describe('WalletService.payPaylink — multi-devises (ALP-170)', () => {
     expect(created.walletTx.metadata).toBeUndefined();
     expect(created.merchantTx.amount).toBe(500000n);
     expect(created.merchantTx.currency).toBe('XAF');
-    expect(res.amountCents).toBe(500000);
+    expect(res.amountCents).toBe("500000");
     expect(res.currency).toBe('XAF');
     expect(res.merchantCurrency).toBe('XAF');
     expect((webhookDelivery.dispatch as jest.Mock)).toHaveBeenCalledWith(
@@ -107,15 +107,15 @@ describe('WalletService.payPaylink — multi-devises (ALP-170)', () => {
     // Wallet débité en XAF (converti)
     expect(created.walletTx.amountCents).toBe(610000n);
     expect(created.walletTx.metadata).toEqual({
-      fx: { originalAmountCents: 1000, originalCurrency: 'USD', rate: 610, walletCurrency: 'XAF' },
+      fx: { originalAmountCents: "1000", originalCurrency: 'USD', rate: 610, walletCurrency: 'XAF' },
     });
     // Marchand crédité dans la devise du lien (USD), montant inchangé
     expect(created.merchantTx.amount).toBe(1000n);
     expect(created.merchantTx.currency).toBe('USD');
     // Réponse
-    expect(res.amountCents).toBe(610000);   // payé en XAF
+    expect(res.amountCents).toBe("610000");   // payé en XAF
     expect(res.currency).toBe('XAF');
-    expect(res.merchantAmountCents).toBe(1000);
+    expect(res.merchantAmountCents).toBe("1000");
     expect(res.merchantCurrency).toBe('USD');
     expect(res.fxRate).toBe(610);
     // Webhook marchand = devise du lien

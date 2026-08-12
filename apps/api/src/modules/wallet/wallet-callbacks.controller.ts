@@ -21,11 +21,6 @@ export class WalletCallbacksController {
     private readonly config: ConfigService,
   ) {}
 
-  /* ── MTN MoMo callback ──
-     MTN envoie un POST avec un body JSON contenant financialTransactionId,
-     externalId (= notre txId) et status.
-     La signature arrive dans X-Callback-Signature (HMAC-SHA256 du body brut).
-  */
   @Post('mtn/:type')
   async mtnCallback(
     @Param('type') type: string,
@@ -46,10 +41,6 @@ export class WalletCallbacksController {
     return { ok: true, ignored: true };
   }
 
-  /* ── Airtel Money callback ──
-     Airtel envoie un POST JSON avec transaction.id, transaction.status_code.
-     Signature : Authorization header = HMAC-SHA256 du body brut.
-  */
   @Post('airtel/:type')
   async airtelCallback(
     @Param('type') type: string,
@@ -63,7 +54,6 @@ export class WalletCallbacksController {
     const referenceId = String(tx['id'] ?? body['transactionId'] ?? '');
     const statusCode = String(tx['status_code'] ?? body['status'] ?? '');
 
-    // Airtel: TS = successful, TF = failed, TR = rejected
     let status: OperatorStatus = 'FAILED';
     if (statusCode === 'TS' || statusCode === 'SUCCESSFUL') status = 'SUCCESSFUL';
     else if (statusCode === 'TR' || statusCode === 'REJECTED') status = 'REJECTED';
@@ -76,17 +66,22 @@ export class WalletCallbacksController {
     return { ok: true, ignored: true };
   }
 
-  /* ── Vérification HMAC MTN ── */
+  #allowUnsignedCallbacks(): boolean {
+    return (
+      this.config.get<string>('NODE_ENV') !== 'production' &&
+      this.config.get<string>('ALLOW_UNSIGNED_OPERATOR_CALLBACKS') === 'true'
+    );
+  }
+
   #verifyMtnSignature(rawBody: Buffer | undefined, signature: string | undefined) {
     const secret = this.config.get<string>('MTN_WEBHOOK_SECRET');
     if (!secret) {
-      // Fail-closed en production : un callback non authentifié peut créditer
-      // des wallets — jamais de bypass hors sandbox/dev.
-      if (this.config.get<string>('NODE_ENV') === 'production') {
-        this.logger.error('MTN_WEBHOOK_SECRET non configuré — callback rejeté');
-        throw new UnauthorizedException();
+      if (this.#allowUnsignedCallbacks()) {
+        this.logger.warn('MTN unsigned callback accepted explicitly in sandbox/dev');
+        return;
       }
-      return; // sandbox/dev uniquement
+      this.logger.error('MTN_WEBHOOK_SECRET is not configured; callback rejected');
+      throw new UnauthorizedException();
     }
 
     if (!signature || !rawBody) {
@@ -102,15 +97,15 @@ export class WalletCallbacksController {
     }
   }
 
-  /* ── Vérification HMAC Airtel ── */
   #verifyAirtelSignature(rawBody: Buffer | undefined, authHeader: string | undefined) {
     const secret = this.config.get<string>('AIRTEL_WEBHOOK_SECRET');
     if (!secret) {
-      if (this.config.get<string>('NODE_ENV') === 'production') {
-        this.logger.error('AIRTEL_WEBHOOK_SECRET non configuré — callback rejeté');
-        throw new UnauthorizedException();
+      if (this.#allowUnsignedCallbacks()) {
+        this.logger.warn('Airtel unsigned callback accepted explicitly in sandbox/dev');
+        return;
       }
-      return; // sandbox/dev uniquement
+      this.logger.error('AIRTEL_WEBHOOK_SECRET is not configured; callback rejected');
+      throw new UnauthorizedException();
     }
 
     if (!authHeader || !rawBody) {

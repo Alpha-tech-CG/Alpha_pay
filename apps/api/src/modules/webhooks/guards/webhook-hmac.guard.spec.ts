@@ -26,17 +26,20 @@ function makeContext(headers: Record<string, string>, rawBody: Buffer | undefine
 
 describe('WebhookHmacGuard (ALP-158 + ALP-159)', () => {
   let guard: WebhookHmacGuard;
+  let metrics: { webhooksTotal: { inc: jest.Mock } };
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = { ...originalEnv, MTN_WEBHOOK_SECRET: SECRET };
-    guard = new WebhookHmacGuard();
+    metrics = { webhooksTotal: { inc: jest.fn() } };
+    guard = new WebhookHmacGuard(metrics as any);
   });
+
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it('accepte une signature valide', () => {
+  it('accepts a valid signature and records the metric', () => {
     const body = Buffer.from('{"status":"SUCCESSFUL"}');
     const ts = Math.floor(Date.now() / 1000);
     const { ctx } = makeContext(
@@ -44,16 +47,18 @@ describe('WebhookHmacGuard (ALP-158 + ALP-159)', () => {
       body,
     );
     expect(guard.canActivate(ctx)).toBe(true);
+    expect(metrics.webhooksTotal.inc).toHaveBeenCalledWith({ operator: 'MTN', result: 'valid' });
   });
 
-  it('refuse une signature absente avec un 401 à corps vide', () => {
+  it('rejects a missing signature with an empty 401 response', () => {
     const { ctx, res } = makeContext({}, Buffer.from('{}'));
     expect(guard.canActivate(ctx)).toBe(false);
     expect(res.statusCode).toBe(401);
     expect(res.ended).toBe(true);
+    expect(metrics.webhooksTotal.inc).toHaveBeenCalledWith({ operator: 'MTN', result: 'missing_headers' });
   });
 
-  it('refuse une signature invalide (401 vide)', () => {
+  it('rejects an invalid signature', () => {
     const ts = Math.floor(Date.now() / 1000);
     const { ctx, res } = makeContext(
       { 'x-timestamp': String(ts), 'x-signature-256': 'sha256=' + 'a'.repeat(64) },
@@ -61,12 +66,14 @@ describe('WebhookHmacGuard (ALP-158 + ALP-159)', () => {
     );
     expect(guard.canActivate(ctx)).toBe(false);
     expect(res.statusCode).toBe(401);
+    expect(metrics.webhooksTotal.inc).toHaveBeenCalledWith({ operator: 'MTN', result: 'signature_mismatch' });
   });
 
-  it('refuse si le secret n\'est pas configuré', () => {
+  it('rejects when the secret is not configured', () => {
     delete process.env.MTN_WEBHOOK_SECRET;
     const { ctx, res } = makeContext({}, Buffer.from('{}'));
     expect(guard.canActivate(ctx)).toBe(false);
     expect(res.statusCode).toBe(401);
+    expect(metrics.webhooksTotal.inc).toHaveBeenCalledWith({ operator: 'MTN', result: 'missing_secret' });
   });
 });

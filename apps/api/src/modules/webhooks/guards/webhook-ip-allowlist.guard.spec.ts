@@ -28,24 +28,44 @@ describe('WebhookIpAllowlistGuard (ALP-160)', () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env.MTN_WEBHOOK_IP_ALLOWLIST;
+    delete process.env.AIRTEL_WEBHOOK_IP_ALLOWLIST;
+    delete process.env.REQUIRE_WEBHOOK_IP_ALLOWLIST;
+    delete process.env.NODE_ENV;
     guard = new WebhookIpAllowlistGuard();
   });
+
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it('no-op (autorise) si aucune allowlist configurée', () => {
+  it('allows callbacks with no allowlist in local development', () => {
     const { ctx } = makeContext('8.8.8.8');
     expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('autorise une IP dans le bloc CIDR configuré', () => {
+  it('blocks callbacks in production when no allowlist is configured', () => {
+    process.env.NODE_ENV = 'production';
+    const { ctx, res } = makeContext('8.8.8.8');
+    expect(guard.canActivate(ctx)).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.ended).toBe(true);
+  });
+
+  it('blocks callbacks when allowlist is explicitly required', () => {
+    process.env.REQUIRE_WEBHOOK_IP_ALLOWLIST = 'true';
+    const { ctx, res } = makeContext('8.8.8.8');
+    expect(guard.canActivate(ctx)).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.ended).toBe(true);
+  });
+
+  it('allows an IP in the configured CIDR block', () => {
     process.env.MTN_WEBHOOK_IP_ALLOWLIST = '41.202.1.0/24';
     const { ctx } = makeContext('41.202.1.42');
     expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('bloque une IP hors allowlist avec un 403 corps vide', () => {
+  it('blocks an IP outside the allowlist with an empty 403 response', () => {
     process.env.MTN_WEBHOOK_IP_ALLOWLIST = '41.202.1.0/24';
     const { ctx, res } = makeContext('8.8.8.8');
     expect(guard.canActivate(ctx)).toBe(false);
@@ -53,7 +73,7 @@ describe('WebhookIpAllowlistGuard (ALP-160)', () => {
     expect(res.ended).toBe(true);
   });
 
-  it('utilise l\'allowlist Airtel pour un callback Airtel', () => {
+  it('uses the Airtel allowlist for Airtel callbacks', () => {
     process.env.AIRTEL_WEBHOOK_IP_ALLOWLIST = '197.149.0.0/16';
     const { ctx } = makeContext('197.149.5.5', 'airtel');
     expect(guard.canActivate(ctx)).toBe(true);

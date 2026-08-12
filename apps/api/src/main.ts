@@ -13,14 +13,15 @@ if (process.env.SENTRY_DSN) {
 }
 
 // Sérialisation JSON des BigInt (montants en centimes, séquences ledger) — ALP-168.
-// Sûr : nos montants (≤ 5 000 000 * 100) restent bien sous Number.MAX_SAFE_INTEGER.
-(BigInt.prototype as unknown as { toJSON: () => number }).toJSON = function () {
-  return Number(this as unknown as bigint);
+// Les clients doivent parser ces champs comme chaînes décimales.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return (this as unknown as bigint).toString();
 };
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import helmet from "helmet";
+import { json } from "express";
 import rateLimit from "express-rate-limit";
 import { AppModule } from "./app.module";
 import { WsAdapter } from "@nestjs/platform-ws";
@@ -32,6 +33,9 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { buildCorsOptions } from "./common/security/cors";
 
 const MAX_BODY_BYTES = 8 * 1024;
+// Upload de pièce d'identité client (image encodée base64) : borne dédiée.
+const KYC_DOC_MAX_BYTES = 6 * 1024 * 1024;
+const KYC_DOC_UPLOAD_PATH = "/v1/wallet/kyc/documents";
 
 async function bootstrap() {
   await loadSecretsFromAws();
@@ -46,6 +50,11 @@ async function bootstrap() {
   // pour que req.ip reflète l'IP client réelle (allowlist webhooks, ALP-160).
   app.set("trust proxy", 1);
 
+  // Exception ciblée : l'upload de pièce d'identité transporte une image encodée
+  // base64. Parser JSON dédié à 6 MiB pour ce seul chemin, enregistré AVANT le
+  // parser global pour qu'il traite le corps en premier (le reste reste à 8 KiB).
+  app.use(KYC_DOC_UPLOAD_PATH, json({ limit: KYC_DOC_MAX_BYTES }));
+
   // Borne le parser JSON à 8 KiB : un body plus gros → 413 automatique (ALP-153).
   app.useBodyParser("json", { limit: MAX_BODY_BYTES, strict: true });
   app.useBodyParser("urlencoded", { limit: MAX_BODY_BYTES, extended: false });
@@ -58,6 +67,9 @@ async function bootstrap() {
       formUrlencodedPaths: ["/webhooks/notifications/africastalking", "/ussd"],
       // Upload de pièce d'identité (onboarding développeur) : multipart borné à 6 MiB.
       multipartPaths: ["/v1/onboarding/developer"],
+      // Upload de pièce d'identité client wallet : JSON base64 borné à 6 MiB.
+      largeJsonPaths: [KYC_DOC_UPLOAD_PATH],
+      largeJsonMaxBytes: KYC_DOC_MAX_BYTES,
     }),
   );
 

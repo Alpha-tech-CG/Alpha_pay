@@ -11,6 +11,10 @@ export interface BodyGuardOptions {
   multipartPaths?: string[];
   /** Borne dédiée aux uploads multipart (défaut 6 MiB). */
   multipartMaxBytes?: number;
+  /** Chemins autorisés à envoyer un JSON volumineux (ex: image base64). */
+  largeJsonPaths?: string[];
+  /** Borne dédiée aux JSON volumineux (défaut 6 MiB). */
+  largeJsonMaxBytes?: number;
 }
 
 /** Borne et contrôle le type des corps HTTP avant leur traitement métier. */
@@ -19,6 +23,8 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
   const formUrlencodedPaths = options.formUrlencodedPaths ?? [];
   const multipartPaths = options.multipartPaths ?? [];
   const multipartMaxBytes = options.multipartMaxBytes ?? 6 * 1024 * 1024;
+  const largeJsonPaths = options.largeJsonPaths ?? [];
+  const largeJsonMaxBytes = options.largeJsonMaxBytes ?? 6 * 1024 * 1024;
 
   return function bodyGuardMiddleware(
     req: Request,
@@ -54,6 +60,21 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
         return res.status(413).json({
           code: "payload_too_large",
           message: `Corps limité à ${multipartMaxBytes} octets.`,
+        });
+      }
+      return next();
+    }
+
+    // JSON volumineux (image base64) : uniquement sur les chemins allowlistés,
+    // avec une borne dédiée (le reste de l'API reste borné à `maxBytes`).
+    if (
+      contentType === "application/json" &&
+      largeJsonPaths.some((path) => req.path?.startsWith(path))
+    ) {
+      if (Number.isFinite(len) && len > largeJsonMaxBytes) {
+        return res.status(413).json({
+          code: "payload_too_large",
+          message: `Corps limité à ${largeJsonMaxBytes} octets.`,
         });
       }
       return next();

@@ -28,6 +28,10 @@ function fmtAmount(cents: bigint | number): string {
   return (Number(cents) / 100).toLocaleString('fr-CG', { minimumFractionDigits: 0 });
 }
 
+function centsString(cents: bigint | number): string {
+  return typeof cents === 'bigint' ? cents.toString() : Math.trunc(cents).toString();
+}
+
 function maskPhone(phone: string): string {
   return phone.length > 4 ? `${phone.slice(0, phone.length - 6)}••••${phone.slice(-2)}` : phone;
 }
@@ -78,7 +82,7 @@ export class WalletService {
     return {
       phone: wallet.phone,
       fullName: wallet.fullName,
-      balanceCents: Number(wallet.balanceCents),
+      balanceCents: centsString(wallet.balanceCents),
       currency: wallet.currency,
     };
   }
@@ -101,8 +105,8 @@ export class WalletService {
     return txs.map((tx) => ({
       id: tx.id,
       type: tx.type,
-      amountCents: Number(tx.amountCents),
-      balanceAfter: Number(tx.balanceAfter),
+      amountCents: centsString(tx.amountCents),
+      balanceAfter: centsString(tx.balanceAfter),
       status: tx.status,
       description: tx.description,
       createdAt: tx.createdAt.toISOString(),
@@ -181,7 +185,7 @@ export class WalletService {
     });
 
     this.logger.log(`CASH_IN PENDING ${actor.sub} +${dto.amountCents} XAF ref=${referenceId}`);
-    return { ok: true, txId: pendingTx.id, referenceId, status: 'PENDING', amountCents: dto.amountCents };
+    return { ok: true, txId: pendingTx.id, referenceId, status: 'PENDING', amountCents: centsString(dto.amountCents) };
   }
 
   /* ── Callback Cash-In (appelé par le webhook opérateur) ── */
@@ -361,7 +365,7 @@ export class WalletService {
     }
 
     this.logger.log(`PAY ${actor.sub} → merchant:${qr.merchantId} ${qr.amountCents} XAF`);
-    return { ok: true, txId: tx.id, amountCents: qr.amountCents };
+    return { ok: true, txId: tx.id, amountCents: centsString(qr.amountCents) };
   }
 
   /* ── Checkout web « Payer avec PayBrain » (ALP-169) ──
@@ -471,9 +475,9 @@ export class WalletService {
     return {
       ok: true,
       txId: tx.id,
-      amountCents: Number(walletDebitCents),   // débité au payeur, en devise wallet
+      amountCents: centsString(walletDebitCents),   // débité au payeur, en devise wallet
       currency: wallet.currency,
-      merchantAmountCents: Number(merchantAmountCents),
+      merchantAmountCents: centsString(merchantAmountCents),
       merchantCurrency: link.currency,
       merchantName: link.merchant.name,
       ...(charge.fx ? { fxRate: charge.fx.rate } : {}),
@@ -489,7 +493,7 @@ export class WalletService {
     linkAmountCents: bigint,
     linkCurrency: string,
     walletCurrency: string,
-  ): Promise<{ walletDebitCents: bigint; fx: { originalAmountCents: number; originalCurrency: string; rate: number; walletCurrency: string } | null }> {
+  ): Promise<{ walletDebitCents: bigint; fx: { originalAmountCents: string; originalCurrency: string; rate: number; walletCurrency: string } | null }> {
     if (linkCurrency === walletCurrency) {
       return { walletDebitCents: linkAmountCents, fx: null };
     }
@@ -499,7 +503,7 @@ export class WalletService {
     return {
       walletDebitCents: toCents(quote.convertedAmount),
       fx: {
-        originalAmountCents: Number(linkAmountCents),
+        originalAmountCents: centsString(linkAmountCents),
         originalCurrency: linkCurrency,
         rate: quote.rate,
         walletCurrency,
@@ -595,7 +599,7 @@ export class WalletService {
     });
 
     this.logger.log(`CASH_OUT PENDING ${actor.sub} -${dto.amountCents} XAF ref=${referenceId}`);
-    return { ok: true, txId: tx.id, referenceId, status: 'PENDING', amountCents: dto.amountCents };
+    return { ok: true, txId: tx.id, referenceId, status: 'PENDING', amountCents: centsString(dto.amountCents) };
   }
 
   /* ── Callback Cash-Out (confirmation disbursement) ── */
@@ -769,7 +773,7 @@ export class WalletService {
       category: 'wallet',
     }).catch(() => {});
 
-    return { ok: true, txId: result.sendTx.id, amountCents: dto.amountCents, toPhone };
+    return { ok: true, txId: result.sendTx.id, amountCents: centsString(dto.amountCents), toPhone };
   }
 
   /* ── Privé ── */
@@ -818,7 +822,7 @@ export class WalletService {
     return {
       ok: true,
       txId: existing.id,
-      amountCents: Number(existing.amountCents),
+      amountCents: centsString(existing.amountCents),
       status: existing.status,
       ...(existing.operatorRef ? { referenceId: existing.operatorRef } : {}),
       idempotentReplay: true,
