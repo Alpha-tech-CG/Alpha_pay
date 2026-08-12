@@ -4,7 +4,13 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from '@/auth';
+import { ThemeProvider, useTheme } from '@/theme';
+import { PhotoProvider } from '@/photo';
+import { WalletProvider } from '@/wallet-store';
 
+// Les polices d'icônes (MaterialIcons / MaterialCommunityIcons) sont embarquées
+// nativement dans android/app/src/main/assets/fonts — elles sont donc disponibles
+// dès le démarrage, sans chargement JS (useFonts hangeait en release/bridgeless).
 export default function RootLayout() {
   const notifListener = useRef<Notifications.EventSubscription | null>(null);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
@@ -28,11 +34,26 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }} />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <PhotoProvider>
+            <WalletProvider>
+              <ThemedRoot />
+            </WalletProvider>
+          </PhotoProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
+  );
+}
+
+function ThemedRoot() {
+  const { C, isDark } = useTheme();
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
+    </>
   );
 }

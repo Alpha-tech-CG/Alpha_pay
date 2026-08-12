@@ -1,11 +1,12 @@
+import { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
 import Constants from 'expo-constants';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth';
-import { C } from '@/theme';
+import { useTheme, type Palette } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
 function SettingRow({ icon, label, subtitle, onPress, right }: {
   icon: IconName;
@@ -14,21 +15,25 @@ function SettingRow({ icon, label, subtitle, onPress, right }: {
   onPress?: () => void;
   right?: React.ReactNode;
 }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable onPress={onPress} style={s.row}>
       <View style={s.rowIcon}>
-        <MaterialIcons name={icon} size={20} color={C.primary} />
+        <Icon name={icon} size={20} color={C.primary} />
       </View>
       <View style={{ flex: 1, marginLeft: 14 }}>
         <Text style={s.rowLabel}>{label}</Text>
         {subtitle && <Text style={s.rowSub}>{subtitle}</Text>}
       </View>
-      {right ?? <MaterialIcons name="chevron-right" size={22} color={C.border} />}
+      {right ?? <Icon name="chevron-right" size={22} color={C.border} />}
     </Pressable>
   );
 }
 
 export default function Settings() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const { apiKey, signOut } = useAuth();
   const masked = apiKey ? `${apiKey.slice(0, 14)}…` : '—';
   const apiBaseUrl = (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl;
@@ -48,7 +53,7 @@ export default function Settings() {
             <Text style={s.avatarText}>JK</Text>
           </View>
           <Pressable style={s.editBtn}>
-            <MaterialIcons name="edit" size={14} color={C.onSecondary} />
+            <Icon name="edit" size={14} color={C.onSecondary} />
           </Pressable>
           <Text style={s.profileName}>Jean-Paul Kambou</Text>
           <Text style={s.profilePhone}>+242 065 000 000</Text>
@@ -64,7 +69,7 @@ export default function Settings() {
           <View style={s.divider} />
           <SettingRow icon="dns" label="Serveur" subtitle={apiBaseUrl ?? '—'} />
           <View style={s.divider} />
-          <SettingRow icon="info" label="Version" subtitle={`PayBrain v${version}`} />
+          <SettingRow icon="info" label="Version" subtitle={`AlphaPay v${version}`} />
         </View>
 
         {/* Sécurité */}
@@ -100,7 +105,7 @@ export default function Settings() {
 
         {/* Déconnexion */}
         <Pressable onPress={signOut} style={s.logoutBtn}>
-          <MaterialIcons name="logout" size={20} color={C.error} />
+          <Icon name="logout" size={20} color={C.error} />
           <Text style={s.logoutText}>Se déconnecter</Text>
         </Pressable>
         <Text style={s.versionNote}>La clé API est effacée du stockage chiffré à la déconnexion.</Text>
@@ -109,7 +114,7 @@ export default function Settings() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   topBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   pageTitle: { fontSize: 26, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
 

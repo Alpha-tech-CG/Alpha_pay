@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  View, Text, TextInput, Pressable, ActivityIndicator,
+  View, Text, TextInput, Pressable, ActivityIndicator, Image,
   ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useAuth } from '@/auth';
-import { verifyKey, loginClient, registerClient, verifyOtpClient, resendOtpClient, api } from '@/api';
-import { C } from '@/theme';
+import { Icon } from '@/components/Icon';
+import { useAuth, type UserRole } from '@/auth';
+import {
+  verifyKey, loginClient, registerClient, verifyOtpClient, resendOtpClient,
+  uploadKycDocument, type KycDocType, api,
+} from '@/api';
+import { useTheme, type Palette } from '@/theme';
+import { AnimatedBackground } from '@/components/AnimatedBackground';
 
 const DEV_SIGNUP_URL = 'https://paybrain.cg/fr/developer';
 
@@ -22,21 +27,25 @@ type Flow =
   | 'pending';
 
 function Logo() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={{ alignItems: 'center', marginBottom: 36 }}>
       <View style={s.logoBox}>
-        <Text style={s.logoLetter}>P</Text>
+        <Text style={s.logoLetter}>AP</Text>
       </View>
-      <Text style={s.logoText}>PayBrain</Text>
+      <Text style={s.logoText}>AlphaPay</Text>
       <Text style={s.logoSub}>Paiements Mobile Money</Text>
     </View>
   );
 }
 
 function BackBtn({ onPress }: { onPress: () => void }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable onPress={onPress} style={s.backBtn}>
-      <MaterialIcons name="arrow-back" size={20} color={C.primary} />
+      <Icon name="arrow-back" size={20} color={C.primary} />
       <Text style={s.backBtnText}>Retour</Text>
     </Pressable>
   );
@@ -45,6 +54,8 @@ function BackBtn({ onPress }: { onPress: () => void }) {
 function Field({
   label, optional, ...props
 }: React.ComponentProps<typeof TextInput> & { label: string; optional?: boolean }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   return (
     <>
       <Text style={s.fieldLabel}>
@@ -57,15 +68,19 @@ function Field({
 }
 
 function ErrorRow({ msg }: { msg: string }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={s.errorRow}>
-      <MaterialIcons name="error-outline" size={14} color={C.error} />
+      <Icon name="error-outline" size={14} color={C.error} />
       <Text style={s.errorText}>{msg}</Text>
     </View>
   );
 }
 
 export default function Auth() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const { ready, apiKey, role, signInMerchant, signInClient } = useAuth();
   const [flow, setFlow] = useState<Flow>('welcome');
 
@@ -75,8 +90,8 @@ export default function Auth() {
   const [clientBusy, setClientBusy]   = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
 
-  // ── Client signup state (3 étapes : identité → PIN → code SMS) ──
-  const [regStep, setRegStep]         = useState<1 | 2 | 3>(1);
+  // ── Client signup state (4 étapes : identité → PIN → code SMS → pièce d'identité) ──
+  const [regStep, setRegStep]         = useState<1 | 2 | 3 | 4>(1);
   const [regPhone, setRegPhone]       = useState('');
   const [regName, setRegName]         = useState('');
   const [regPin, setRegPin]           = useState('');
@@ -85,6 +100,13 @@ export default function Auth() {
   const [otpResent, setOtpResent]     = useState(false);
   const [regBusy, setRegBusy]         = useState(false);
   const [regError, setRegError]       = useState<string | null>(null);
+  // Étape 4 — vérification d'identité (KYC N1). Le JWT obtenu à l'OTP sert à
+  // uploader les pièces avant la connexion finale.
+  const [regToken, setRegToken]       = useState<string | null>(null);
+  const [regRole, setRegRole]         = useState<UserRole>('CLIENT');
+  type CapturedDoc = { mimeType: 'image/jpeg' | 'image/png'; dataBase64: string; uri: string };
+  const [docFront, setDocFront]       = useState<CapturedDoc | null>(null);
+  const [docSelfie, setDocSelfie]     = useState<CapturedDoc | null>(null);
 
   // ── Merchant login state ──
   const [apiKeyInput, setApiKeyInput]     = useState('');
@@ -147,6 +169,7 @@ export default function Auth() {
   const goToSignupClient = () => {
     setRegStep(1); setRegPhone(''); setRegName('');
     setRegPin(''); setRegPinConfirm(''); setRegError(null);
+    setRegToken(null); setDocFront(null); setDocSelfie(null);
     setFlow('signup-client');
   };
 
@@ -184,11 +207,67 @@ export default function Auth() {
     setRegBusy(true); setRegError(null);
     try {
       const data = await verifyOtpClient(regPhone.trim(), regOtp);
-      await signInClient(data.phone, data.token, data.role as import('@/auth').UserRole);
+      // Numéro vérifié (N0). On garde le JWT pour l'upload des pièces, puis on
+      // passe à l'étape identité au lieu de connecter tout de suite.
+      setRegToken(data.token);
+      setRegRole(data.role as UserRole);
+      setRegStep(4);
+      setRegBusy(false);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })
         ?.response?.data?.message;
       setRegError(msg ?? 'Code incorrect, réessayez.');
+      setRegBusy(false);
+    }
+  };
+
+  // Capture une image encodée base64 pour l'upload KYC. Tente la caméra ;
+  // si elle est indisponible/refusée, repli automatique sur la galerie.
+  const captureDoc = async (source: 'camera' | 'library'): Promise<CapturedDoc | null> => {
+    const opts: ImagePicker.ImagePickerOptions = { base64: true, quality: 0.5 };
+    let useLibrary = source === 'library';
+
+    if (!useLibrary) {
+      const cam = await ImagePicker.requestCameraPermissionsAsync();
+      if (!cam.granted) useLibrary = true; // caméra refusée → galerie
+    }
+    if (useLibrary) {
+      const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!lib.granted) {
+        setRegError('Autorisation caméra et galerie refusées. Activez-les dans les réglages.');
+        return null;
+      }
+    }
+
+    let res: ImagePicker.ImagePickerResult;
+    try {
+      res = useLibrary
+        ? await ImagePicker.launchImageLibraryAsync(opts)
+        : await ImagePicker.launchCameraAsync(opts);
+    } catch {
+      // Caméra indisponible sur l'appareil → dernier repli galerie.
+      res = await ImagePicker.launchImageLibraryAsync(opts);
+    }
+    const asset = res.canceled ? undefined : res.assets?.[0];
+    if (!asset?.base64) return null;
+    const mimeType = asset.mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
+    return { mimeType, dataBase64: asset.base64, uri: asset.uri };
+  };
+
+  const pickFront = async () => { const d = await captureDoc('camera'); if (d) { setRegError(null); setDocFront(d); } };
+  const pickSelfie = async () => { const d = await captureDoc('camera'); if (d) { setRegError(null); setDocSelfie(d); } };
+
+  // Upload des pièces capturées puis connexion finale.
+  const finishSignup = async (skip: boolean) => {
+    setRegBusy(true); setRegError(null);
+    try {
+      if (!skip && regToken) {
+        if (docFront) await uploadKycDocument(regToken, { type: 'ID_FRONT' as KycDocType, mimeType: docFront.mimeType, dataBase64: docFront.dataBase64 });
+        if (docSelfie) await uploadKycDocument(regToken, { type: 'SELFIE' as KycDocType, mimeType: docSelfie.mimeType, dataBase64: docSelfie.dataBase64 });
+      }
+      await signInClient(regPhone.trim(), regToken!, regRole);
+    } catch {
+      setRegError('Envoi des pièces impossible, réessayez.');
       setRegBusy(false);
     }
   };
@@ -225,21 +304,22 @@ export default function Auth() {
   if (flow === 'welcome') {
     return (
       <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+        <AnimatedBackground />
         <ScrollView contentContainerStyle={s.centered} showsVerticalScrollIndicator={false}>
           <Logo />
 
           <Pressable onPress={() => setFlow('choose-login')} style={s.btnPrimary}>
-            <MaterialIcons name="login" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Icon name="login" size={18} color="#fff" style={{ marginRight: 8 }} />
             <Text style={s.btnPrimaryText}>Se connecter</Text>
           </Pressable>
 
           <Pressable onPress={goToSignupClient} style={[s.btnOutline, { marginTop: 12 }]}>
-            <MaterialIcons name="account-balance-wallet" size={18} color={C.primary} style={{ marginRight: 8 }} />
+            <Icon name="account-balance-wallet" size={18} color={C.primary} style={{ marginRight: 8 }} />
             <Text style={s.btnOutlineText}>Créer un compte personnel</Text>
           </Pressable>
 
           <Pressable onPress={() => setFlow('signup')} style={[s.btnOutline, { marginTop: 10 }]}>
-            <MaterialIcons name="store" size={18} color={C.secondary} style={{ marginRight: 8 }} />
+            <Icon name="store" size={18} color={C.secondary} style={{ marginRight: 8 }} />
             <Text style={[s.btnOutlineText, { color: C.secondary }]}>Compte marchand</Text>
           </Pressable>
 
@@ -252,14 +332,14 @@ export default function Auth() {
           <Pressable onPress={() => Linking.openURL(DEV_SIGNUP_URL)} style={s.devBanner}>
             <View style={s.devBannerLeft}>
               <View style={s.devIconBox}>
-                <MaterialIcons name="code" size={20} color={C.primary} />
+                <Icon name="code" size={20} color={C.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.devBannerTitle}>Compte développeur</Text>
                 <Text style={s.devBannerSub}>Clés API + webhooks · Inscription sur le site</Text>
               </View>
             </View>
-            <MaterialIcons name="open-in-new" size={18} color={C.primary} />
+            <Icon name="open-in-new" size={18} color={C.primary} />
           </Pressable>
 
           <Pressable onPress={() => setFlow('pending')} style={{ marginTop: 20 }}>
@@ -286,28 +366,28 @@ export default function Auth() {
 
           {/* Client card */}
           <Pressable onPress={() => setFlow('login-client')} style={s.roleCard}>
-            <View style={[s.roleIconBox, { backgroundColor: '#eaf0ff' }]}>
-              <MaterialIcons name="account-balance-wallet" size={28} color={C.primary} />
+            <View style={[s.roleIconBox, { backgroundColor: C.primarySoft }]}>
+              <Icon name="account-balance-wallet" size={28} color={C.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.roleCardTitle}>Compte personnel</Text>
               <Text style={s.roleCardSub}>Payer par QR code · Recharger · Envoyer</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={22} color={C.muted} />
+            <Icon name="chevron-right" size={22} color={C.muted} />
           </Pressable>
 
           <View style={{ height: 12 }} />
 
           {/* Merchant card */}
           <Pressable onPress={() => setFlow('login-merchant')} style={s.roleCard}>
-            <View style={[s.roleIconBox, { backgroundColor: '#e6f7f6' }]}>
-              <MaterialIcons name="store" size={28} color={C.secondary} />
+            <View style={[s.roleIconBox, { backgroundColor: C.secondaryContainer }]}>
+              <Icon name="store" size={28} color={C.secondary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.roleCardTitle}>Compte marchand / développeur</Text>
               <Text style={s.roleCardSub}>Tableau de bord · API key · Reversements</Text>
             </View>
-            <MaterialIcons name="chevron-right" size={22} color={C.muted} />
+            <Icon name="chevron-right" size={22} color={C.muted} />
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -422,7 +502,7 @@ export default function Auth() {
               <View style={[s.stepLine, { backgroundColor: C.border }]} />
               <View style={[s.stepDot, { backgroundColor: C.border }]} />
             </View>
-            <Text style={s.stepLabel}>Étape 1 / 3 — Vos informations</Text>
+            <Text style={s.stepLabel}>Étape 1 / 4 — Vos informations</Text>
 
             <Field label="Nom complet *" value={regName} onChangeText={setRegName} placeholder="Jean-Paul Kambou" autoComplete="name" />
             <Field
@@ -440,7 +520,7 @@ export default function Auth() {
               style={[s.btnPrimary, (!regName.trim() || regPhone.trim().length < 8) && s.btnDisabled]}
             >
               <Text style={s.btnPrimaryText}>Continuer</Text>
-              <MaterialIcons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+              <Icon name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
             </Pressable>
 
             <Pressable onPress={() => setFlow('login-client')} style={{ marginTop: 16, alignSelf: 'center' }}>
@@ -472,7 +552,7 @@ export default function Auth() {
               <View style={[s.stepLine, { backgroundColor: C.secondary }]} />
               <View style={s.stepDot} />
             </View>
-            <Text style={s.stepLabel}>Étape 2 / 3 — Sécurité</Text>
+            <Text style={s.stepLabel}>Étape 2 / 4 — Sécurité</Text>
 
             <Field
               label="PIN (4 à 6 chiffres) *"
@@ -493,7 +573,7 @@ export default function Auth() {
             {regError && <ErrorRow msg={regError} />}
 
             <View style={[s.infoBox, { marginBottom: 20 }]}>
-              <MaterialIcons name="lock" size={16} color={C.primary} />
+              <Icon name="lock" size={16} color={C.primary} />
               <Text style={s.infoText}>
                 Votre PIN est haché (argon2id) · il ne quitte jamais votre appareil en clair
               </Text>
@@ -541,7 +621,7 @@ export default function Auth() {
 
             {otpResent && (
               <View style={[s.infoBox, { marginBottom: 12 }]}>
-                <MaterialIcons name="check-circle" size={16} color={C.secondary} />
+                <Icon name="check-circle" size={16} color={C.secondary} />
                 <Text style={[s.infoText, { color: C.secondary }]}>Nouveau code envoyé.</Text>
               </View>
             )}
@@ -573,6 +653,83 @@ export default function Auth() {
   }
 
   /* ══════════════════════════════════════════
+     SIGNUP CLIENT — étape 4 : pièce d'identité (KYC N1)
+  ══════════════════════════════════════════ */
+  if (flow === 'signup-client' && regStep === 4) {
+    const DocTile = ({ label, hint, doc, onPress }: {
+      label: string; hint: string; doc: CapturedDoc | null; onPress: () => void;
+    }) => (
+      <Pressable onPress={onPress} style={[s.docTile, doc && s.docTileDone]}>
+        {doc ? (
+          <Image source={{ uri: doc.uri }} style={s.docThumb} />
+        ) : (
+          <View style={s.docIconBox}>
+            <Icon name="add-a-photo" size={22} color={C.primary} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={s.docTileLabel}>{label}</Text>
+          <Text style={s.docTileHint}>{doc ? '✓ Photo ajoutée — appuyez pour reprendre' : hint}</Text>
+        </View>
+        <Icon name={doc ? 'check-circle' : 'chevron-right'} size={20} color={doc ? C.secondary : C.muted} />
+      </Pressable>
+    );
+
+    return (
+      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+            <Text style={s.pageTitle}>Vérifiez votre identité</Text>
+            <Text style={s.pageSubtitle}>
+              Ajoutez une pièce d'identité pour débloquer les plafonds élevés.
+              Vous pouvez aussi le faire plus tard.
+            </Text>
+
+            <Text style={s.stepLabel}>Étape 4 / 4 — Pièce d'identité</Text>
+
+            <DocTile
+              label="Pièce d'identité (recto)"
+              hint="CNI, passeport ou permis"
+              doc={docFront}
+              onPress={pickFront}
+            />
+            <View style={{ height: 12 }} />
+            <DocTile
+              label="Selfie"
+              hint="Une photo de votre visage"
+              doc={docSelfie}
+              onPress={pickSelfie}
+            />
+
+            <View style={[s.infoBox, { marginTop: 16, marginBottom: 20 }]}>
+              <Icon name="verified-user" size={16} color={C.primary} />
+              <Text style={s.infoText}>
+                Vos pièces sont transmises à notre équipe conformité pour validation manuelle.
+              </Text>
+            </View>
+
+            {regError && <ErrorRow msg={regError} />}
+
+            <Pressable
+              onPress={() => finishSignup(false)}
+              disabled={regBusy || (!docFront && !docSelfie)}
+              style={[s.btnPrimary, (regBusy || (!docFront && !docSelfie)) && s.btnDisabled]}
+            >
+              {regBusy
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnPrimaryText}>Envoyer et terminer</Text>}
+            </Pressable>
+
+            <Pressable onPress={() => finishSignup(true)} disabled={regBusy} style={{ marginTop: 16, alignSelf: 'center' }}>
+              <Text style={{ color: C.muted, fontSize: 13, fontWeight: '600' }}>Plus tard — accéder à mon compte →</Text>
+            </Pressable>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  /* ══════════════════════════════════════════
      SIGNUP — STANDARD (marchand)
   ══════════════════════════════════════════ */
   if (flow === 'signup') {
@@ -594,7 +751,7 @@ export default function Auth() {
             {signupError && <ErrorRow msg={signupError} />}
 
             <View style={[s.infoBox, { marginBottom: 20 }]}>
-              <MaterialIcons name="schedule" size={16} color={C.primary} />
+              <Icon name="schedule" size={16} color={C.primary} />
               <Text style={s.infoText}>
                 Votre demande sera examinée sous 24–48h. Vous recevrez votre clé API par SMS et email.
               </Text>
@@ -622,7 +779,7 @@ export default function Auth() {
     <SafeAreaView style={s.root} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={s.centered} showsVerticalScrollIndicator={false}>
         <View style={s.pendingIcon}>
-          <MaterialIcons name="hourglass-empty" size={32} color={C.pending} />
+          <Icon name="hourglass-empty" size={32} color={C.pending} />
         </View>
         <Text style={s.pendingTitle}>Demande en cours d'examen</Text>
         <Text style={s.pendingText}>
@@ -631,13 +788,13 @@ export default function Auth() {
           sous 24–48h ouvrées.
         </Text>
         <View style={[s.infoBox, { marginBottom: 24 }]}>
-          <MaterialIcons name="mail-outline" size={16} color={C.pending} />
+          <Icon name="mail-outline" size={16} color={C.pending} />
           <Text style={[s.infoText, { color: C.pending }]}>
             Vérifiez vos spams si vous ne recevez rien après 48h.
           </Text>
         </View>
         <Pressable onPress={() => setFlow('login-merchant')} style={s.btnPrimary}>
-          <MaterialIcons name="vpn-key" size={16} color="#fff" style={{ marginRight: 8 }} />
+          <Icon name="vpn-key" size={16} color="#fff" style={{ marginRight: 8 }} />
           <Text style={s.btnPrimaryText}>J'ai ma clé — Se connecter</Text>
         </Pressable>
         <Pressable onPress={() => setFlow('welcome')} style={{ marginTop: 16 }}>
@@ -648,7 +805,7 @@ export default function Auth() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   centered: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   scroll: { padding: 24, paddingBottom: 48 },
@@ -657,7 +814,7 @@ const s = StyleSheet.create({
   backBtnText: { fontSize: 14, fontWeight: '600', color: C.primary },
 
   logoBox: { width: 64, height: 64, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  logoLetter: { color: '#fff', fontSize: 34, fontWeight: '900' },
+  logoLetter: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: -1 },
   logoText: { fontSize: 28, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
   logoSub: { fontSize: 14, color: C.muted, marginTop: 4 },
 
@@ -703,4 +860,11 @@ const s = StyleSheet.create({
   stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.primary },
   stepLine: { flex: 1, height: 2, backgroundColor: C.primary, marginHorizontal: 6 },
   stepLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 20 },
+
+  docTile: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, padding: 14 },
+  docTileDone: { borderColor: C.secondary },
+  docIconBox: { width: 52, height: 52, borderRadius: 12, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  docThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: C.surfaceContainerHigh },
+  docTileLabel: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
+  docTileHint: { fontSize: 12, color: C.muted },
 });

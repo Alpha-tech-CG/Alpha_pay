@@ -1,12 +1,12 @@
 import { Tabs, Redirect } from 'expo-router';
 import { View, Text, Pressable } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth';
-import { C } from '@/theme';
+import { useTheme } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
 const TABS: { name: string; label: string; icon: IconName; iconFilled: IconName }[] = [
   { name: 'index',        label: 'Accueil',    icon: 'home',            iconFilled: 'home' },
@@ -18,6 +18,7 @@ const TABS: { name: string; label: string; icon: IconName; iconFilled: IconName 
 
 function KineticTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { C } = useTheme();
 
   return (
     <View
@@ -59,7 +60,7 @@ function KineticTabBar({ state, navigation }: BottomTabBarProps) {
                 gap: focused ? 4 : 0,
               }}
             >
-              <MaterialIcons
+              <Icon
                 name={focused ? tab.iconFilled : tab.icon}
                 size={22}
                 color={focused ? C.onSecondaryContainer : C.muted}

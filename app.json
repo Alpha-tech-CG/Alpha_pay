@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "2fb6bf79-9b1b-4625-9319-33138e7b47d7"
+      }
+    },
+    "android": {
+      "package": "com.m.mboniobambi.paybrainmonorepo"
+    }
+  }
+}

@@ -1,37 +1,40 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { useFocusEffect } from 'expo-router';
 import { getWalletHistory, WalletTx } from '@/api';
-import { C, STATUS } from '@/theme';
+import { useTheme, STATUS, type Palette } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
-const TX_META: Record<WalletTx['type'], { icon: IconName; label: string; sign: string; color: string }> = {
+const txMetaFactory = (C: Palette): Record<WalletTx['type'], { icon: IconName; label: string; sign: string; color: string }> => ({
   CASH_IN:      { icon: 'add-circle',        label: 'Rechargement',    sign: '+', color: C.success },
   PAY:          { icon: 'qr-code-scanner',   label: 'Paiement reçu',   sign: '+', color: C.success },
   CASH_OUT:     { icon: 'arrow-circle-down', label: 'Retrait',         sign: '−', color: C.error },
   P2P_SEND:     { icon: 'send',              label: 'Envoi',           sign: '−', color: C.error },
   P2P_RECEIVE:  { icon: 'call-received',     label: 'Reçu',            sign: '+', color: C.success },
   REFUND:       { icon: 'replay',            label: 'Remboursement',   sign: '+', color: C.success },
-};
+});
 
 function fmt(cents: number) {
   return (cents / 100).toLocaleString('fr-CG', { minimumFractionDigits: 0 });
 }
 
 function TxRow({ tx }: { tx: WalletTx }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
+  const TX_META = txMetaFactory(C);
   const meta  = TX_META[tx.type] ?? TX_META['PAY'];
   const badge = STATUS[tx.status as keyof typeof STATUS] ?? STATUS.PENDING;
   const date  = new Date(tx.createdAt);
   return (
     <View style={s.row}>
       <View style={[s.iconBox, { backgroundColor: meta.color + '18' }]}>
-        <MaterialIcons name={meta.icon} size={20} color={meta.color} />
+        <Icon name={meta.icon} size={20} color={meta.color} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.txLabel}>{meta.label}</Text>
@@ -51,6 +54,8 @@ function TxRow({ tx }: { tx: WalletTx }) {
 }
 
 export default function CashierHistory() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const [txs, setTxs]         = useState<WalletTx[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,7 +89,7 @@ export default function CashierHistory() {
         <View style={s.center}><ActivityIndicator color={C.primary} /></View>
       ) : error ? (
         <View style={s.center}>
-          <MaterialIcons name="error-outline" size={40} color={C.muted} />
+          <Icon name="error-outline" size={40} color={C.muted} />
           <Text style={s.emptyText}>{error}</Text>
         </View>
       ) : (
@@ -97,7 +102,7 @@ export default function CashierHistory() {
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           ListEmptyComponent={
             <View style={s.center}>
-              <MaterialIcons name="receipt-long" size={48} color={C.border} />
+              <Icon name="receipt-long" size={48} color={C.border} />
               <Text style={s.emptyText}>Aucune transaction</Text>
             </View>
           }
@@ -107,7 +112,7 @@ export default function CashierHistory() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   title: { fontSize: 26, fontWeight: '700', color: C.text, letterSpacing: -0.5 },

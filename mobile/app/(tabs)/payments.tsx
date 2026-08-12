@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createPaylink } from '@/api';
-import { C } from '@/theme';
+import { useTheme, type Palette } from '@/theme';
 
 interface Result { url: string; code: string; ussd: string; qrPayload: string }
 
 function CopyRow({ label, value }: { label: string; value: string }) {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await Clipboard.setStringAsync(value);
@@ -25,7 +27,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text style={s.copyValue} numberOfLines={1}>{value}</Text>
         <Pressable onPress={copy} style={[s.copyBtn, copied && { backgroundColor: C.secondaryContainer, borderColor: C.secondaryContainer }]}>
-          <MaterialIcons name={copied ? 'check' : 'content-copy'} size={16} color={copied ? C.onSecondaryContainer : C.muted} />
+          <Icon name={copied ? 'check' : 'content-copy'} size={16} color={copied ? C.onSecondaryContainer : C.muted} />
         </Pressable>
       </View>
     </View>
@@ -33,6 +35,8 @@ function CopyRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function Payments() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('XAF');
   const [description, setDescription] = useState('');
@@ -107,7 +111,7 @@ export default function Payments() {
             {busy
               ? <ActivityIndicator color="#fff" />
               : <>
-                  <MaterialIcons name="qr-code" size={20} color="#fff" />
+                  <Icon name="qr-code" size={20} color="#fff" />
                   <Text style={s.generateBtnText}>Générer les supports</Text>
                 </>
             }
@@ -115,7 +119,7 @@ export default function Payments() {
 
           {error && (
             <View style={s.errorBanner}>
-              <MaterialIcons name="error-outline" size={16} color={C.error} />
+              <Icon name="error-outline" size={16} color={C.error} />
               <Text style={s.errorText}>{error}</Text>
             </View>
           )}
@@ -131,7 +135,7 @@ export default function Payments() {
               <View style={s.qrBox}>
                 <QRCode value={result.qrPayload} size={160} color={C.primary} />
               </View>
-              <Text style={s.qrHint}>Faites scanner ce QR code avec l'app PayBrain</Text>
+              <Text style={s.qrHint}>Faites scanner ce QR code avec l'app AlphaPay</Text>
             </View>
 
             <View style={{ height: 1, backgroundColor: C.border, marginVertical: 16 }} />
@@ -146,7 +150,7 @@ export default function Payments() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   topBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   pageTitle: { fontSize: 26, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
   pageSubtitle: { fontSize: 14, color: C.muted, marginTop: 2 },

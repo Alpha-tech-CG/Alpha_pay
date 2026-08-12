@@ -137,6 +137,26 @@ export const verifyOtpClient = (phone: string, otp: string) =>
 export const resendOtpClient = (phone: string) =>
   api.post<{ ok: boolean }>('/v1/wallet/auth/resend-otp', { phone }).then((r) => r.data);
 
+export type KycDocType = 'ID_FRONT' | 'ID_BACK' | 'SELFIE';
+
+/**
+ * Envoie une pièce d'identité (image base64) pour vérification KYC (N0 → N1).
+ * Le token est passé explicitement : appelé pendant l'inscription, avant que le
+ * JWT client global ne soit posé par signInClient.
+ */
+export const uploadKycDocument = (
+  token: string,
+  doc: { type: KycDocType; mimeType: 'image/jpeg' | 'image/png'; dataBase64: string },
+) =>
+  api
+    .post<{ ok: boolean }>('/v1/wallet/kyc/documents', doc, {
+      headers: { Authorization: `Bearer ${token}` },
+      // Image encodée : on relève le plafond de taille pour cette requête.
+      maxBodyLength: 6 * 1024 * 1024,
+      maxContentLength: 6 * 1024 * 1024,
+    })
+    .then((r) => r.data);
+
 /** Solde et info du wallet */
 export const getWalletBalance = () =>
   api.get<WalletBalance>('/v1/wallet/balance').then((r) => r.data);

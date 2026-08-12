@@ -1,12 +1,12 @@
 import { Tabs, Redirect } from 'expo-router';
 import { View, Text, Pressable } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth';
-import { C } from '@/theme';
+import { useTheme } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
 const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'index',   label: 'Encaisser',  icon: 'qr-code' },
@@ -15,6 +15,7 @@ const TABS: { name: string; label: string; icon: IconName }[] = [
 
 function CashierTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { C } = useTheme();
   return (
     <View style={{
       flexDirection: 'row',
@@ -50,7 +51,7 @@ function CashierTabBar({ state, navigation }: BottomTabBarProps) {
               flexDirection: focused ? 'row' : 'column',
               gap: focused ? 4 : 0,
             }}>
-              <MaterialIcons name={tab.icon} size={22} color={focused ? C.onSecondaryContainer : C.muted} />
+              <Icon name={tab.icon} size={22} color={focused ? C.onSecondaryContainer : C.muted} />
               {focused && (
                 <Text style={{ fontSize: 11, fontWeight: '700', color: C.onSecondaryContainer }}>
                   {tab.label}

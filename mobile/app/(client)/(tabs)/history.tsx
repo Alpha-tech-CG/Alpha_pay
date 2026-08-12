@@ -1,118 +1,108 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet,
-  ActivityIndicator, RefreshControl,
-} from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, TextInput, Pressable, SectionList, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { getWalletHistory, WalletTx } from '@/api';
-import { C } from '@/theme';
+import { Icon } from '@/components/Icon';
+import { AP, soft, radius, formatXAF } from '@/design';
+import { useWallet, type Transaction } from '@/wallet-store';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
-
-const TX_META: Record<WalletTx['type'], { icon: IconName; label: string; colorSign: 1 | -1 }> = {
-  CASH_IN:      { icon: 'add-circle',           label: 'Rechargement',  colorSign: 1 },
-  PAY:          { icon: 'shopping-cart',         label: 'Paiement',      colorSign: -1 },
-  CASH_OUT:     { icon: 'arrow-circle-down',     label: 'Retrait',       colorSign: -1 },
-  P2P_SEND:     { icon: 'send',                  label: 'Envoi',         colorSign: -1 },
-  P2P_RECEIVE:  { icon: 'call-received',         label: 'Réception',     colorSign: 1 },
-  REFUND:       { icon: 'replay',                label: 'Remboursement', colorSign: 1 },
+const TINT: Record<Transaction['tint'], { fg: string; bg: string }> = {
+  primary: { fg: AP.primary, bg: soft.primary10 },
+  secondary: { fg: AP.secondary, bg: soft.secondary10 },
+  mtn: { fg: AP.mtn, bg: soft.mtn10 },
+  success: { fg: AP.chart3, bg: soft.chart3_10 },
+  failed: { fg: AP.chart4, bg: soft.chart4_10 },
+  chart5: { fg: AP.chart5, bg: soft.chart5_10 },
 };
 
-function fmt(cents: number) {
-  return (cents / 100).toLocaleString('fr-CG', { minimumFractionDigits: 0 });
-}
+export default function History() {
+  const { transactions } = useWallet();
+  const [query, setQuery] = useState('');
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-CG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
-
-function TxRow({ tx }: { tx: WalletTx }) {
-  const meta = TX_META[tx.type];
-  const positive = meta.colorSign === 1;
-  return (
-    <View style={s.txRow}>
-      <View style={[s.txIcon, { backgroundColor: positive ? '#e6f7f6' : '#fff0f0' }]}>
-        <MaterialIcons name={meta.icon} size={20} color={positive ? C.secondary : C.error} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.txLabel}>{meta.label}</Text>
-        {tx.description && <Text style={s.txDesc} numberOfLines={1}>{tx.description}</Text>}
-        <Text style={s.txDate}>{fmtDate(tx.createdAt)}</Text>
-      </View>
-      <Text style={[s.txAmount, { color: positive ? C.secondary : C.error }]}>
-        {positive ? '+' : '-'}{fmt(tx.amountCents)} XAF
-      </Text>
-    </View>
-  );
-}
-
-export default function HistoryScreen() {
-  const [txs, setTxs]           = useState<WalletTx[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const data = await getWalletHistory();
-      setTxs(data);
-      setError(null);
-    } catch {
-      setError("Impossible de charger l'historique");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? transactions.filter((t) => t.title.toLowerCase().includes(q) || t.subtitle.toLowerCase().includes(q))
+      : transactions;
+    const groups: Record<string, Transaction[]> = {};
+    const order: string[] = [];
+    for (const tx of filtered) {
+      if (!groups[tx.group]) { groups[tx.group] = []; order.push(tx.group); }
+      groups[tx.group].push(tx);
     }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-  const onRefresh = () => { setRefreshing(true); load(); };
+    return order.map((title) => ({ title, data: groups[title] }));
+  }, [transactions, query]);
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.titleBar}>
-        <Text style={s.title}>Historique</Text>
+      <View style={s.header}>
+        <Text style={s.headerTitle}>Transactions</Text>
+        <Pressable style={s.iconBtn}>
+          <Icon name="sliders-horizontal" size={18} color={AP.foreground} />
+        </Pressable>
       </View>
 
-      {loading ? (
-        <View style={s.center}><ActivityIndicator color={C.primary} /></View>
-      ) : error ? (
-        <View style={s.center}>
-          <MaterialIcons name="error-outline" size={36} color={C.muted} />
-          <Text style={s.emptyText}>{error}</Text>
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={txs.length === 0 ? s.center : s.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />}
-        >
-          {txs.length === 0 ? (
-            <>
-              <MaterialIcons name="receipt-long" size={40} color={C.muted} />
-              <Text style={s.emptyText}>Aucune transaction pour l'instant</Text>
-            </>
-          ) : (
-            txs.map((tx) => <TxRow key={tx.id} tx={tx} />)
-          )}
-        </ScrollView>
-      )}
+      <View style={s.searchWrap}>
+        <Icon name="search" size={18} color={AP.mutedForeground} style={s.searchIcon} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search transactions..."
+          placeholderTextColor={AP.mutedForeground}
+          style={s.search}
+        />
+      </View>
+
+      <SectionList
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={s.listContent}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        ListEmptyComponent={<Text style={s.empty}>Aucune transaction</Text>}
+        renderSectionHeader={({ section }) => <Text style={s.sectionHeader}>{section.title}</Text>}
+        renderItem={({ item }) => {
+          const t = TINT[item.tint];
+          const positive = item.direction === 'in';
+          return (
+            <View style={s.row}>
+              <View style={s.rowLeft}>
+                <View style={[s.rowIcon, { backgroundColor: t.bg }]}>
+                  <Icon name={item.icon} size={18} color={t.fg} />
+                </View>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={s.rowTitle}>{item.title}</Text>
+                  <Text style={s.rowSub}>{item.subtitle}</Text>
+                </View>
+              </View>
+              <Text style={[s.rowAmount, positive && { color: AP.chart3 }]}>
+                {positive ? '+' : '-'}{formatXAF(Math.abs(item.amountCents))}
+              </Text>
+            </View>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  titleBar: { padding: 20, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: '800', color: C.text },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  list: { padding: 20, gap: 2 },
-  emptyText: { fontSize: 14, color: C.muted, textAlign: 'center' },
+  root: { flex: 1, backgroundColor: AP.bg },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: AP.border },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: AP.foreground },
+  iconBtn: { width: 40, height: 40, borderRadius: radius.full, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center' },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
-  txIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  txLabel: { fontSize: 14, fontWeight: '700', color: C.text },
-  txDesc: { fontSize: 12, color: C.muted, marginTop: 1 },
-  txDate: { fontSize: 11, color: C.muted, marginTop: 2 },
-  txAmount: { fontSize: 14, fontWeight: '700' },
+  searchWrap: { marginHorizontal: 20, marginTop: 20, marginBottom: 4 },
+  searchIcon: { position: 'absolute', left: 16, top: 15, zIndex: 1 },
+  search: { height: 48, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, paddingLeft: 44, paddingRight: 16, color: AP.foreground, fontSize: 14 },
+
+  listContent: { paddingHorizontal: 20, paddingBottom: 24 },
+  sectionHeader: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: AP.mutedForeground, textTransform: 'uppercase', marginTop: 20, marginBottom: 12 },
+  empty: { textAlign: 'center', color: AP.mutedForeground, marginTop: 40 },
+
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, padding: 16, marginBottom: 12 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  rowIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  rowTitle: { fontSize: 14, fontWeight: '700', color: AP.foreground },
+  rowSub: { fontSize: 10, color: AP.mutedForeground, marginTop: 6 },
+  rowAmount: { fontSize: 14, fontWeight: '700', color: AP.foreground, fontVariant: ['tabular-nums'] },
 });

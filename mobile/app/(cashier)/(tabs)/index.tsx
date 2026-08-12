@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from '@/auth';
-import { C } from '@/theme';
+import { useTheme, type Palette } from '@/theme';
 import { walletCreateQr } from '@/api';
 
 function parseCents(raw: string): number {
@@ -20,6 +20,8 @@ function fmt(cents: number) {
 }
 
 export default function CashierEncaisser() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const { signOut } = useAuth();
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -66,12 +68,12 @@ export default function CashierEncaisser() {
             <View>
               <Text style={s.title}>Encaisser</Text>
               <View style={s.badge}>
-                <MaterialIcons name="store" size={12} color={C.secondary} />
+                <Icon name="store" size={12} color={C.secondary} />
                 <Text style={s.badgeText}>Compte caissier</Text>
               </View>
             </View>
             <Pressable onPress={signOut} style={s.avatarBtn}>
-              <MaterialIcons name="logout" size={20} color={C.muted} />
+              <Icon name="logout" size={20} color={C.muted} />
             </Pressable>
           </View>
 
@@ -101,15 +103,15 @@ export default function CashierEncaisser() {
               />
 
               <View style={s.infoBox}>
-                <MaterialIcons name="info-outline" size={14} color={C.primary} />
+                <Icon name="info-outline" size={14} color={C.primary} />
                 <Text style={s.infoText}>
-                  Un QR code sera généré. Faites-le scanner par votre client avec l'app PayBrain.
+                  Un QR code sera généré. Faites-le scanner par votre client avec l'app AlphaPay.
                 </Text>
               </View>
 
               {error ? (
                 <View style={[s.infoBox, { marginTop: 0 }]}>
-                  <MaterialIcons name="error-outline" size={14} color={C.error} />
+                  <Icon name="error-outline" size={14} color={C.error} />
                   <Text style={[s.infoText, { color: C.error }]}>{error}</Text>
                 </View>
               ) : null}
@@ -119,7 +121,7 @@ export default function CashierEncaisser() {
                 disabled={!canGenerate}
                 style={[s.btn, !canGenerate && s.btnDisabled]}
               >
-                <MaterialIcons name="qr-code" size={20} color="#fff" />
+                <Icon name="qr-code" size={20} color="#fff" />
                 <Text style={s.btnText}>{busy ? 'Génération…' : 'Générer le QR'}</Text>
               </Pressable>
             </View>
@@ -137,12 +139,12 @@ export default function CashierEncaisser() {
               </View>
 
               <Text style={s.qrHint}>
-                Montrez ce QR à votre client — il le scanne depuis l'app PayBrain.
+                Montrez ce QR à votre client — il le scanne depuis l'app AlphaPay.
                 Valable 2 minutes, usage unique.
               </Text>
 
               <Pressable onPress={reset} style={[s.btn, { backgroundColor: C.secondary, marginTop: 8 }]}>
-                <MaterialIcons name="refresh" size={20} color="#fff" />
+                <Icon name="refresh" size={20} color="#fff" />
                 <Text style={s.btnText}>Nouvel encaissement</Text>
               </Pressable>
             </View>
@@ -153,7 +155,7 @@ export default function CashierEncaisser() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { padding: 20, paddingBottom: 48 },
 

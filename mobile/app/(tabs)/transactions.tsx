@@ -1,16 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   View, Text, FlatList, Pressable, RefreshControl,
   ActivityIndicator, TextInput, StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pill } from '@/ui';
 import { getStats, Stats } from '@/api';
-import { C } from '@/theme';
+import { useTheme, type Palette } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
 const FILTERS: { key: string; label: string }[] = [
   { key: 'ALL', label: '30 derniers jours' },
@@ -19,12 +19,12 @@ const FILTERS: { key: string; label: string }[] = [
   { key: 'FAILED', label: 'Échoués' },
 ];
 
-const TXN_ICONS: Record<string, { icon: IconName; bg: string; color: string }> = {
+const txnIconsFactory = (C: Palette): Record<string, { icon: IconName; bg: string; color: string }> => ({
   SUCCESSFUL: { icon: 'payments',        bg: 'rgba(0,106,98,0.1)',   color: C.secondary },
   PENDING:    { icon: 'schedule',        bg: 'rgba(180,83,9,0.1)',   color: C.pending },
   FAILED:     { icon: 'cancel',          bg: 'rgba(186,26,26,0.1)',  color: C.error },
   DEFAULT:    { icon: 'account-balance', bg: C.surfaceContainerHigh, color: C.muted },
-};
+});
 
 function groupByDate(items: Stats['recent']) {
   const groups: { date: string; items: Stats['recent'] }[] = [];
@@ -44,6 +44,9 @@ function groupByDate(items: Stats['recent']) {
 }
 
 export default function Transactions() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
+  const TXN_ICONS = txnIconsFactory(C);
   const [stats, setStats] = useState<Stats | null>(null);
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -91,7 +94,7 @@ export default function Transactions() {
 
       {/* Search */}
       <View style={s.searchWrap}>
-        <MaterialIcons name="search" size={20} color={C.muted} style={s.searchIcon} />
+        <Icon name="search" size={20} color={C.muted} style={s.searchIcon} />
         <TextInput
           style={s.searchInput}
           placeholder="Rechercher paiements, numéros…"
@@ -135,7 +138,7 @@ export default function Transactions() {
           return (
             <Pressable style={s.txnCard}>
               <View style={[s.txnIcon, { backgroundColor: ico.bg }]}>
-                <MaterialIcons name={ico.icon} size={22} color={ico.color} style={{ fontVariationSettings: "'FILL' 1" } as object} />
+                <Icon name={ico.icon} size={22} color={ico.color} style={{ fontVariationSettings: "'FILL' 1" } as object} />
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={s.txnName} numberOfLines={1}>{item.payerPhone}</Text>
@@ -157,7 +160,7 @@ export default function Transactions() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   topBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   pageTitle: { fontSize: 26, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
 

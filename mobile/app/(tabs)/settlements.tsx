@@ -1,29 +1,32 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import {
   View, Text, FlatList, RefreshControl,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Icon } from '@/components/Icon';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getSettlements, Settlement } from '@/api';
-import { C } from '@/theme';
+import { useTheme, type Palette } from '@/theme';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+type IconName = string;
 
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string; icon: IconName }> = {
+const statusMapFactory = (C: Palette): Record<string, { label: string; color: string; bg: string; icon: IconName }> => ({
   CONFIRMED:          { label: 'Confirmé',        color: C.secondary, bg: C.successBg,              icon: 'check-circle' },
   SENT:               { label: 'Envoyé',           color: C.primary,   bg: C.surfaceContainerHigh,   icon: 'send' },
   INITIATED:          { label: 'Initié',           color: C.muted,     bg: C.surfaceContainerHighest, icon: 'schedule' },
   PENDING_VALIDATION: { label: 'En validation',    color: C.pending,   bg: C.pendingBg,              icon: 'hourglass-empty' },
   FAILED:             { label: 'Échoué',           color: C.error,     bg: C.errorContainer,         icon: 'cancel' },
-};
+});
 
 function money(cents: number) {
   return (Number(cents) / 100).toLocaleString('fr-FR');
 }
 
 export default function Settlements() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
+  const STATUS_MAP = statusMapFactory(C);
   const [rows, setRows] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,7 +71,7 @@ export default function Settlements() {
                   <Text style={s.summaryAmount}>{money(totalConfirmed)} XAF</Text>
                 </View>
                 <View style={s.summaryBadge}>
-                  <MaterialIcons name="account-balance" size={20} color={C.primary} />
+                  <Icon name="account-balance" size={20} color={C.primary} />
                 </View>
               </View>
               <View style={s.summaryMeta}>
@@ -81,7 +84,7 @@ export default function Settlements() {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingTop: 60 }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: C.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <MaterialIcons name="account-balance" size={28} color={C.muted} />
+              <Icon name="account-balance" size={28} color={C.muted} />
             </View>
             <Text style={{ fontSize: 16, fontWeight: '600', color: C.text, marginBottom: 6 }}>Aucun reversement</Text>
             <Text style={{ fontSize: 14, color: C.muted, textAlign: 'center' }}>Vos reversements apparaîtront ici une fois les transactions confirmées.</Text>
@@ -95,7 +98,7 @@ export default function Settlements() {
             <View style={s.card}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={[s.cardIcon, { backgroundColor: st.bg }]}>
-                  <MaterialIcons name={st.icon} size={22} color={st.color} />
+                  <Icon name={st.icon} size={22} color={st.color} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 14 }}>
                   <Text style={s.batchNum}>{item.batchNumber}</Text>
@@ -110,7 +113,7 @@ export default function Settlements() {
               </View>
               {item.settledNetCents != null && (
                 <View style={s.conversionRow}>
-                  <MaterialIcons name="swap-horiz" size={14} color={C.muted} />
+                  <Icon name="swap-horiz" size={14} color={C.muted} />
                   <Text style={s.conversionText}>Encaissé : {money(item.netCents)} {item.currency} → converti en {currency}</Text>
                 </View>
               )}
@@ -129,7 +132,7 @@ export default function Settlements() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   topBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   pageTitle: { fontSize: 26, fontWeight: '700', color: C.text, letterSpacing: -0.5 },
   pageSubtitle: { fontSize: 14, color: C.muted, marginTop: 2 },

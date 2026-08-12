@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { C } from '@/theme';
+import { Icon } from '@/components/Icon';
+import { useTheme, type Palette } from '@/theme';
 import { genIdemKey, walletPay } from '@/api';
 
 // CameraView from expo-camera — imported lazily so build doesn't fail if not installed
@@ -57,6 +57,8 @@ function parseQr(data: string): QrPreview | null {
 }
 
 export default function ScanScreen() {
+  const { C } = useTheme();
+  const s = useMemo(() => makeStyles(C), [C]);
   const [modal, setModal] = useState<ModalState>({ phase: 'idle' });
 
   const dismiss = () => setModal({ phase: 'idle' });
@@ -65,7 +67,7 @@ export default function ScanScreen() {
     return (
       <SafeAreaView style={s.root} edges={['top']}>
         <View style={s.center}>
-          <MaterialIcons name="qr-code-scanner" size={56} color={C.muted} />
+          <Icon name="qr-code-scanner" size={56} color={C.muted} />
           <Text style={s.unavailableTitle}>Scanner non disponible</Text>
           <Text style={s.unavailableText}>
             Installez expo-camera pour activer cette fonctionnalité.
@@ -80,7 +82,7 @@ export default function ScanScreen() {
 
     const qr = parseQr(data);
     if (!qr) {
-      setModal({ phase: 'error', message: 'QR code non reconnu. Assurez-vous de scanner un QR PayBrain.' });
+      setModal({ phase: 'error', message: 'QR code non reconnu. Assurez-vous de scanner un QR AlphaPay.' });
       return;
     }
     setModal({ phase: 'preview', qr });
@@ -151,7 +153,7 @@ export default function ScanScreen() {
             {modal.phase === 'preview' && (
               <>
                 <View style={s.modalIcon}>
-                  <MaterialIcons name="qr-code" size={32} color={C.primary} />
+                  <Icon name="qr-code" size={32} color={C.primary} />
                 </View>
                 <Text style={s.modalTitle}>Confirmer le paiement</Text>
                 {modal.qr.description ? (
@@ -166,7 +168,7 @@ export default function ScanScreen() {
                     <Text style={s.modalBtnCancelText}>Annuler</Text>
                   </Pressable>
                   <Pressable onPress={confirmPay} style={[s.modalBtn, s.modalBtnConfirm]}>
-                    <MaterialIcons name="lock" size={16} color="#fff" />
+                    <Icon name="lock" size={16} color="#fff" />
                     <Text style={s.modalBtnConfirmText}>Payer</Text>
                   </Pressable>
                 </View>
@@ -176,8 +178,8 @@ export default function ScanScreen() {
             {/* Success */}
             {modal.phase === 'success' && (
               <>
-                <View style={[s.modalIcon, { backgroundColor: '#e6f9f3' }]}>
-                  <MaterialIcons name="check-circle" size={36} color={C.secondary} />
+                <View style={[s.modalIcon, { backgroundColor: C.successBg }]}>
+                  <Icon name="check-circle" size={36} color={C.secondary} />
                 </View>
                 <Text style={s.modalTitle}>Paiement réussi</Text>
                 <Text style={s.modalDesc}>{formatXAF(modal.amountCents)} débités</Text>
@@ -190,8 +192,8 @@ export default function ScanScreen() {
             {/* Error */}
             {modal.phase === 'error' && (
               <>
-                <View style={[s.modalIcon, { backgroundColor: '#fdecea' }]}>
-                  <MaterialIcons name="error-outline" size={36} color={C.error} />
+                <View style={[s.modalIcon, { backgroundColor: C.errorContainer }]}>
+                  <Icon name="error-outline" size={36} color={C.error} />
                 </View>
                 <Text style={s.modalTitle}>Paiement échoué</Text>
                 <Text style={[s.modalDesc, { color: C.error }]}>{modal.message}</Text>
@@ -212,7 +214,7 @@ const FINDER = 240;
 const CORNER = 24;
 const THICKNESS = 3;
 
-const s = StyleSheet.create({
+const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: C.bg },
   unavailableTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 16, textAlign: 'center' },
@@ -245,7 +247,7 @@ const s = StyleSheet.create({
   },
   modalIcon: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#eaf0ff', alignItems: 'center', justifyContent: 'center', marginBottom: 4,
+    backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4,
   },
   modalTitle: { fontSize: 20, fontWeight: '800', color: C.text, textAlign: 'center' },
   modalDesc: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },

@@ -1,76 +1,67 @@
+import { useMemo } from 'react';
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
-import { C } from '@/theme';
+import { Icon } from '@/components/Icon';
+import { AP } from '@/design';
 
-type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
+// Onglets AlphaPay (maquette Home) : Home / Cards / History / Settings.
+const TABS: Record<string, { label: string; icon: string }> = {
+  index: { label: 'Home', icon: 'layout-dashboard' },
+  card: { label: 'Cards', icon: 'credit-card' },
+  history: { label: 'History', icon: 'history' },
+  settings: { label: 'Settings', icon: 'settings' },
+};
 
-const TABS: { name: string; label: string; icon: IconName }[] = [
-  { name: 'index',   label: 'Accueil',    icon: 'account-balance-wallet' },
-  { name: 'scan',    label: 'Scanner',    icon: 'qr-code-scanner' },
-  { name: 'history', label: 'Historique', icon: 'receipt-long' },
-  { name: 'profile', label: 'Profil',     icon: 'person' },
-];
-
-function ClientTabBar({ state, descriptors, navigation }: any) {
+function ClientTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const s = useMemo(() => styles, []);
   return (
-    <View style={[s.bar, { paddingBottom: insets.bottom + 6 }]}>
-      {state.routes.map((route: any, i: number) => {
-        const tab = TABS[i];
-        const focused = state.index === i;
-        return (
-          <View key={route.key} style={s.tabItem}>
-            {focused && <View style={s.pill} />}
-            <MaterialIcons
-              name={tab.icon}
-              size={24}
-              color={focused ? C.secondary : C.muted}
+    <View style={[s.bar, { paddingBottom: insets.bottom + 8, height: 72 + insets.bottom }]}>
+      {state.routes
+        .filter((r: any) => TABS[r.name])
+        .map((route: any) => {
+          const tab = TABS[route.name];
+          const focused = state.routes[state.index]?.name === route.name;
+          const color = focused ? AP.primary : AP.mutedForeground;
+          return (
+            <Pressable
+              key={route.key}
+              style={s.tabItem}
               onPress={() => navigation.navigate(route.name)}
-            />
-          </View>
-        );
-      })}
+              accessibilityRole="button"
+              accessibilityState={{ selected: focused }}
+            >
+              <Icon name={tab.icon} size={24} color={color} />
+              <Text style={[s.label, { color }]}>{tab.label}</Text>
+            </Pressable>
+          );
+        })}
     </View>
   );
 }
 
 export default function ClientTabLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <ClientTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
-    >
-      {TABS.map((t) => (
-        <Tabs.Screen key={t.name} name={t.name} options={{ title: t.label }} />
-      ))}
+    <Tabs tabBar={(props) => <ClientTabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="card" options={{ title: 'Cards' }} />
+      <Tabs.Screen name="history" options={{ title: 'History' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
     </Tabs>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: C.surface,
+    backgroundColor: AP.bg,
     borderTopWidth: 1,
-    borderTopColor: C.border,
+    borderTopColor: AP.border,
     paddingTop: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    alignItems: 'flex-start',
   },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    paddingBottom: 2,
-  },
-  pill: {
-    position: 'absolute',
-    top: -10,
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: C.secondaryContainer,
-  },
+  tabItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  label: { fontSize: 10, fontWeight: '600' },
 });
