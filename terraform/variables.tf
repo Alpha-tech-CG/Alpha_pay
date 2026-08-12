@@ -54,6 +54,18 @@ variable "api_image_tag" {
   default     = "latest"
 }
 
+variable "github_repository" {
+  description = "Repository GitHub autorise a assumer le role OIDC de deploiement (format owner/repo)."
+  type        = string
+  default     = ""
+}
+
+variable "github_deploy_branch" {
+  description = "Branche GitHub autorisee pour le role OIDC de deploiement."
+  type        = string
+  default     = "main"
+}
+
 variable "db_rotation_lambda_arn" {
   description = "ARN de la Lambda de rotation RDS PostgreSQL single-user (AWS SAR). Vide tant que la rotation n'est pas activée (Option A)."
   type        = string
@@ -73,7 +85,7 @@ variable "webhook_ip_allowlist_airtel" {
 }
 
 variable "acm_certificate_arn" {
-  description = "ARN du certificat ACM pour HTTPS sur l'ALB. Vide = listener HTTP only (avant d'avoir le domaine)."
+  description = "ARN du certificat ACM pour HTTPS sur l'ALB. Obligatoire en prod ; vide tolere uniquement hors prod."
   type        = string
   default     = ""
 }
@@ -85,5 +97,17 @@ variable "db_username" {
 
 variable "db_password" {
   description = "PostgreSQL password"
+  sensitive   = true
+}
+
+variable "redis_node_type" {
+  description = "Classe ElastiCache Redis de l'environnement"
+  type        = string
+  default     = "cache.t4g.micro"
+}
+
+variable "redis_auth_token" {
+  description = "AUTH token Redis (>= 16 caractères). Fourni via tfvars/secret, jamais commité."
+  type        = string
   sensitive   = true
 }

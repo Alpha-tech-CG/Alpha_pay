@@ -1,0 +1,54 @@
+groups:
+  - name: paybrain-wallet-safety
+    rules:
+      - alert: PayBrainWalletFloatDrift
+        expr: abs(paybrain_wallet_float_drift_cents) > 0
+        for: 1m
+        labels:
+          severity: critical
+          area: wallet
+        annotations:
+          summary: "Wallet float drift detected"
+          description: "paybrain_wallet_float_drift_cents is {{ $value }}. Any non-zero drift requires immediate reconciliation."
+
+      - alert: PayBrainWalletPinBruteforceSpike
+        expr: sum(increase(paybrain_wallet_pin_failures_total{result="invalid"}[5m])) > 20
+        for: 2m
+        labels:
+          severity: high
+          area: wallet
+        annotations:
+          summary: "Wallet PIN failure spike"
+          description: "More than 20 invalid PIN attempts were observed in 5 minutes."
+
+      - alert: PayBrainWalletLockoutSpike
+        expr: sum(increase(paybrain_wallet_pin_failures_total{result="locked"}[5m])) > 5
+        for: 2m
+        labels:
+          severity: high
+          area: wallet
+        annotations:
+          summary: "Wallet lockout spike"
+          description: "More than 5 wallet lockout events were observed in 5 minutes."
+
+  - name: paybrain-api-safety
+    rules:
+      - alert: PayBrainApiDown
+        expr: up{job="paybrain-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          area: api
+        annotations:
+          summary: "PayBrain API metrics endpoint is down"
+          description: "Prometheus cannot scrape the PayBrain API for more than 1 minute."
+
+      - alert: PayBrainWebhookHmacFailures
+        expr: sum(increase(paybrain_webhooks_received_total{result!="valid"}[5m])) > 10
+        for: 2m
+        labels:
+          severity: high
+          area: webhooks
+        annotations:
+          summary: "Webhook authentication failures"
+          description: "More than 10 invalid webhook authentication attempts were observed in 5 minutes."

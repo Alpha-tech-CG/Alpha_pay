@@ -4,3 +4,7 @@ db_instance_class = "db.t3.micro"
 api_desired_count = 1
 db_username       = "<TO_BE_FILLED>"
 db_password       = "<TO_BE_FILLED>"
+
+# Redis (ElastiCache) — AUTH token >= 16 caractères (générer : openssl rand -base64 24)
+redis_auth_token = "REMPLACER_PAR_UN_TOKEN_ALEATOIRE"
+redis_node_type  = "cache.t4g.micro"

@@ -101,6 +101,13 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
 
+  lifecycle {
+    precondition {
+      condition     = var.environment != "prod" || var.acm_certificate_arn != ""
+      error_message = "acm_certificate_arn est obligatoire en prod : l'ALB ne doit pas forwarder du HTTP clair."
+    }
+  }
+
   default_action {
     type = var.acm_certificate_arn == "" ? "forward" : "redirect"
 
@@ -160,6 +167,8 @@ resource "aws_ecs_task_definition" "api" {
       { name = "RECONCILIATION_REPORTS_BUCKET", value = aws_s3_bucket.reconciliation_reports.bucket },
       { name = "SETTLEMENT_DOCUMENTS_BUCKET", value = aws_s3_bucket.reconciliation_reports.bucket },
       { name = "KYC_DOCUMENTS_BUCKET", value = aws_s3_bucket.kyc_documents.bucket },
+      # REDIS_URL (rediss:// avec AUTH) est stocké chiffré ; l'app le charge au boot.
+      { name = "REDIS_URL_SECRET_ARN", value = aws_secretsmanager_secret.redis_url.arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -177,8 +186,19 @@ resource "aws_ecs_service" "api" {
   cluster                           = aws_ecs_cluster.main.id
   task_definition                   = aws_ecs_task_definition.api.arn
   desired_count                     = var.api_desired_count
-  launch_type                       = "FARGATE"
+  # FARGATE_SPOT en beta/staging = jusqu'à 70% moins cher (~$3/mo au lieu de $11)
+  # Risque : la task peut être interrompue par AWS avec 2 min de préavis.
+  # En prod (api_desired_count >= 2) : utiliser FARGATE pur ou un mix 50/50.
+  launch_type                       = var.environment == "prod" ? "FARGATE" : null
   health_check_grace_period_seconds = 60
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.environment != "prod" ? [1] : []
+    content {
+      capacity_provider = "FARGATE_SPOT"
+      weight            = 1
+    }
+  }
 
   deployment_circuit_breaker {
     enable   = true

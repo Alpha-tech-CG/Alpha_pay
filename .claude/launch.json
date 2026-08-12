@@ -4,6 +4,7 @@
     { "name": "dashboard", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "dashboard", "run", "dev"], "port": 5174 },
     { "name": "marketing", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "apps/marketing", "run", "dev"], "port": 4321 },
     { "name": "admin", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "admin", "run", "dev"], "port": 5180 },
-    { "name": "checkout", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "apps/checkout", "run", "dev"], "port": 5174 }
+    { "name": "checkout", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "apps/checkout", "run", "dev"], "port": 5174 },
+    { "name": "prototype", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "apps/prototype", "run", "dev"], "port": 4400 }
   ]
 }

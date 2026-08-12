@@ -44,8 +44,8 @@ resource "aws_iam_role_policy" "ecs_kyc_documents" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
-      Action = ["s3:PutObject", "s3:GetObject", "s3:PutObjectRetention"]
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:PutObjectRetention"]
       Resource = "${aws_s3_bucket.kyc_documents.arn}/*"
     }]
   })

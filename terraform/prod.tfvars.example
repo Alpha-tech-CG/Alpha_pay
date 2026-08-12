@@ -4,4 +4,10 @@ db_instance_class = "db.t3.small"
 api_desired_count = 2
 db_username       = "<TO_BE_FILLED>"
 db_password       = "<TO_BE_FILLED>"
-acm_certificate_arn = ""
+acm_certificate_arn = "<ACM_CERTIFICATE_ARN_REQUIRED_IN_PROD>"
+github_repository   = "<owner>/<repo>"
+github_deploy_branch = "main"
+
+# Redis (ElastiCache) — AUTH token >= 16 caractères (générer : openssl rand -base64 24)
+redis_auth_token = "REMPLACER_PAR_UN_TOKEN_ALEATOIRE"
+redis_node_type  = "cache.t4g.micro"
