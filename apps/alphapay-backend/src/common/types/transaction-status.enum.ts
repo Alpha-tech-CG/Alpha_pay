@@ -1,0 +1,8 @@
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SUCCESSFUL = 'SUCCESSFUL',
+  FAILED = 'FAILED',
+  REJECTED = 'REJECTED',
+  REFUNDED = 'REFUNDED',
+}

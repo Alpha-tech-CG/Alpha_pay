@@ -1,0 +1,42 @@
+export enum TransactionType {
+  PAYMENT_LOCAL = 'PAYMENT_LOCAL',
+  PAYMENT_INTERNATIONAL = 'PAYMENT_INTERNATIONAL',
+  REMITTANCE_SEND = 'REMITTANCE_SEND',
+  REMITTANCE_RECEIVE = 'REMITTANCE_RECEIVE',
+  CARD_TOPUP = 'CARD_TOPUP',
+  CARD_PAYMENT = 'CARD_PAYMENT',
+}
+
+export enum MerchantStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum CardNetwork {
+  VISA = 'VISA',
+  MASTERCARD = 'MASTERCARD',
+}
+
+export enum CardStatus {
+  ACTIVE = 'ACTIVE',
+  FROZEN = 'FROZEN',
+  DELETED = 'DELETED',
+}
+
+export enum ApiEnvironment {
+  SANDBOX = 'SANDBOX',
+  PRODUCTION = 'PRODUCTION',
+}
+
+export enum KycLevel {
+  LEVEL_1 = 'LEVEL_1',
+  LEVEL_2 = 'LEVEL_2',
+}
+
+export enum KycStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}

@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+/*
+  AlphaPay design tokens — reproduced verbatim from the client mockups
+  (home.html / send-money.html / receive-money.html). Dark, number-first,
+  coral accent. Same palette as the mobile app theme.
+*/
+:root {
+  --background: #0f0f1a;
+  --foreground: #f7f8fc;
+  --primary: #e94560;
+  --primary-foreground: #ffffff;
+  --secondary: #2a2a45;
+  --secondary-foreground: #f7f8fc;
+  --muted: #1e1e36;
+  --muted-foreground: #8f95b2;
+  --accent: #2a2a45;
+  --accent-foreground: #f7f8fc;
+  --destructive: #ef4444;
+  --success: #00c896;
+  --warning: #f5a623;
+  --info: #3b82f6;
+  --card: #1a1a2e;
+  --card-foreground: #f7f8fc;
+  --popover: #1a1a2e;
+  --border: #2a2a45;
+  --input: #1e1e36;
+  --ring: #e94560;
+  --chart-1: #e94560;
+  --chart-2: #00c896;
+  --chart-3: #f5a623;
+  --chart-4: #3b82f6;
+  --chart-5: #8b5cf6;
+  --radius: 1rem;
+}
+
+/* Theme: Dark (coral) — explicit selection, same as default. */
+:root[data-theme='dark'] {
+  --background: #0f0f1a;
+  --foreground: #f7f8fc;
+  --primary: #e94560;
+  --primary-foreground: #ffffff;
+  --secondary: #2a2a45;
+  --secondary-foreground: #f7f8fc;
+  --muted: #1e1e36;
+  --muted-foreground: #8f95b2;
+  --accent: #2a2a45;
+  --accent-foreground: #f7f8fc;
+  --card: #1a1a2e;
+  --card-foreground: #f7f8fc;
+  --popover: #1a1a2e;
+  --border: #2a2a45;
+  --input: #1e1e36;
+  --ring: #e94560;
+  --chart-1: #e94560;
+}
+
+/* Theme: Green / White */
+:root[data-theme='green'] {
+  --background: #f6f9f8;
+  --foreground: #10231d;
+  --primary: #00b589;
+  --primary-foreground: #ffffff;
+  --secondary: #e6f6f0;
+  --secondary-foreground: #0f3d30;
+  --muted: #eef2f1;
+  --muted-foreground: #5c7268;
+  --accent: #e6f6f0;
+  --accent-foreground: #0f3d30;
+  --destructive: #ef4444;
+  --success: #00a67e;
+  --warning: #e08600;
+  --info: #2563eb;
+  --card: #ffffff;
+  --card-foreground: #10231d;
+  --popover: #ffffff;
+  --border: #dbe7e2;
+  --input: #eef4f2;
+  --ring: #00b589;
+  --chart-1: #00b589;
+  --chart-2: #34d399;
+  --chart-3: #e08600;
+}
+
+/* Theme: Blue / White */
+:root[data-theme='blue'] {
+  --background: #f6f8fc;
+  --foreground: #0f1729;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eefb;
+  --secondary-foreground: #16305f;
+  --muted: #eef1f6;
+  --muted-foreground: #5f6b83;
+  --accent: #e8eefb;
+  --accent-foreground: #16305f;
+  --destructive: #ef4444;
+  --success: #059669;
+  --warning: #d97706;
+  --info: #2563eb;
+  --card: #ffffff;
+  --card-foreground: #0f1729;
+  --popover: #ffffff;
+  --border: #dee5f1;
+  --input: #eef2f9;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-2: #60a5fa;
+  --chart-3: #d97706;
+}
+
+/* Map raw tokens to Tailwind v4 color utilities (bg-card, text-primary, …). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), var(--font-inter), sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Squircle corners where supported — matches the mockups. Progressive only. */
+@supports (corner-shape: squircle) {
+  .squircle {
+    corner-shape: squircle;
+  }
+}
+
+/* Hide scrollbars (mockup parity). */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+.font-mono {
+  font-family: var(--font-mono);
+}
