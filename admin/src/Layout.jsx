@@ -1,18 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
+import { UserButton } from '@clerk/clerk-react';
 import { can, roleOf } from './rbac';
+import { DEMO, useSessionUser } from './session';
 import { useIdleLogout } from './useIdleLogout';
 
 const NAV = [
   { to: '/', label: 'Recherche', cap: 'search.view' },
-  { to: '/kyc', label: 'KYC (queue)', cap: 'kyc.view' },
+  { to: '/kyc', label: 'KYC marchands', cap: 'kyc.view' },
+  { to: '/client-kyc', label: '🪪 Pièces d’identité clients', cap: 'kyc.view' },
+  { to: '/wallets', label: '👛 Wallets clients', cap: 'wallet.view' },
   { to: '/settlements', label: 'Settlements', cap: 'settlement.view' },
   { to: '/reconciliation', label: 'Réconciliation', cap: 'reconciliation.view' },
 ];
 
 export default function Layout({ children }) {
   useIdleLogout();
-  const { user } = useUser();
+  const { user } = useSessionUser();
   const role = roleOf(user);
   const loc = useLocation();
   const items = NAV.filter((n) => can(role, n.cap));
@@ -39,7 +42,9 @@ export default function Layout({ children }) {
         <header style={{ height: 56, borderBottom: '1px solid #232a40', display: 'flex', alignItems: 'center', gap: 12, padding: '0 20px', background: '#141929' }}>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: '#7b86a3' }}>Rôle :</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#5b7cfa', textTransform: 'uppercase' }}>{role}</span>
-          <UserButton afterSignOutUrl="/sign-in" />
+          {DEMO
+            ? <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', border: '1px solid #d97706', borderRadius: 6, padding: '2px 8px' }}>DÉMO</span>
+            : <UserButton afterSignOutUrl="/sign-in" />}
         </header>
         <main style={{ padding: 24, flex: 1, maxWidth: 1100 }}>{children}</main>
       </div>

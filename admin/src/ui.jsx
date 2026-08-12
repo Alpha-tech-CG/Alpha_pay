@@ -22,9 +22,9 @@ export function Button({ children, onClick, disabled, variant = 'primary', style
 }
 
 const STATUS_COLOR = {
-  APPROVED: '#16a34a', SUCCESSFUL: '#16a34a', CONFIRMED: '#16a34a', SENT: '#16a34a',
-  REJECTED: '#dc2626', FAILED: '#dc2626',
-  IN_REVIEW: '#d97706', PENDING_VALIDATION: '#d97706', SUBMITTED: '#d97706', PENDING: '#d97706', NEEDS_MORE: '#d97706',
+  APPROVED: '#16a34a', SUCCESSFUL: '#16a34a', CONFIRMED: '#16a34a', SENT: '#16a34a', ACTIVE: '#16a34a',
+  REJECTED: '#dc2626', FAILED: '#dc2626', SUSPENDED: '#dc2626', BLOCKED: '#dc2626',
+  IN_REVIEW: '#d97706', PENDING_VALIDATION: '#d97706', SUBMITTED: '#d97706', PENDING: '#d97706', NEEDS_MORE: '#d97706', PENDING_VERIFICATION: '#d97706',
 };
 
 export function Badge({ value }) {

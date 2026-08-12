@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useSessionUser as useUser } from '../session';
 import { api } from '../api';
 import { roleOf, can } from '../rbac';
 import { Card, Button, Badge, Table, td } from '../ui';

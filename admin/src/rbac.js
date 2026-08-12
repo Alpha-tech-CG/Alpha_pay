@@ -8,6 +8,8 @@ const MATRIX = {
   'search.view': ['support', 'compliance', 'finance', 'engineering', 'admin'],
   'kyc.view': ['compliance', 'admin'],
   'kyc.decide': ['compliance', 'admin'],
+  'wallet.view': ['support', 'compliance', 'admin'],
+  'wallet.block': ['compliance', 'admin'],
   'settlement.view': ['finance', 'admin'],
   'settlement.validate': ['finance', 'admin'],
   'reconciliation.view': ['finance', 'compliance', 'admin'],
