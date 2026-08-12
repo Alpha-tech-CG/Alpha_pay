@@ -50,3 +50,6 @@ coverage/
 tmp/
 *.zip
 securite/scan-results/
+
+## Toolchain portable locale (JDK/SDK Android pour build APK) — machine-locale, jamais dans le repo
+.tools/
