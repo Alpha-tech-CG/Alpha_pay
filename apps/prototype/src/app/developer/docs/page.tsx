@@ -1,63 +1,8 @@
-'use client';
-import { useState } from 'react';
-import { Copy } from 'lucide-react';
-import { docsSections } from '@/lib/mock-data';
-import { cn } from '@/lib/utils';
+// Reproduit verbatim depuis l'export de maquettes AlphaPay : developer-portal-documentation-layout.html
+// Corps HTML injecte tel quel — Tailwind v4 scanne ces classes et les genere,
+// Iconify (layout) rend les icones. Aucune modification du design d'origine.
+const HTML = "<div class=\"min-h-screen bg-[#0d1117] text-white font-sans flex\">\n      <aside\n        class=\"w-72 border-r border-white/10 fixed inset-y-0 left-0 z-20 bg-[#0d1117] overflow-y-auto\"\n      >\n        <div class=\"h-20 flex items-center px-8 border-b border-white/10\">\n          <h2 class=\"text-xl font-bold tracking-tight text-primary\">\n            AlphaPay<span class=\"text-white/40 text-[10px] ml-2 font-medium tracking-normal\"\n              >Docs</span\n            >\n          </h2>\n        </div>\n        <div class=\"p-8 space-y-8\">\n          <div class=\"space-y-4\">\n            <h4 class=\"text-[10px] font-bold uppercase tracking-widest text-white/30\">\n              Getting Started\n            </h4>\n            <nav class=\"flex flex-col gap-2\">\n              <a href=\"#\" class=\"text-sm font-bold text-primary\">Introduction</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Authentication</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Errors &amp; Codes</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Idempotency</a\n              >\n            </nav>\n          </div>\n          <div class=\"space-y-4\">\n            <h4 class=\"text-[10px] font-bold uppercase tracking-widest text-white/30\">Payments</h4>\n            <nav class=\"flex flex-col gap-2\">\n              <a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Create Payment</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Retrieve Payment</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Refunds</a\n              ><a\n                href=\"#\"\n                class=\"text-sm font-medium text-white/60 hover:text-white transition-colors\"\n                >Webhooks</a\n              >\n            </nav>\n          </div>\n        </div>\n      </aside>\n      <main class=\"flex-1 pl-72\">\n        <header\n          class=\"h-20 border-b border-white/10 flex items-center justify-between px-12 sticky top-0 bg-[#0d1117]/90 backdrop-blur-xl z-10\"\n        >\n          <div class=\"flex items-center gap-4 text-xs font-medium text-white/40\">\n            <span>Documentation</span\n            ><iconify-icon icon=\"lucide:chevron-right\" class=\"text-[10px]\"></iconify-icon\n            ><span class=\"text-white/80\">Introduction</span>\n          </div>\n          <div class=\"flex items-center gap-6\">\n            <div class=\"relative\">\n              <iconify-icon\n                icon=\"lucide:search\"\n                class=\"absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm\"\n              ></iconify-icon\n              ><input\n                type=\"text\"\n                class=\"bg-white/5 border border-white/10 rounded-lg h-9 w-64 pl-9 pr-4 text-xs focus:outline-none focus:border-primary/50\"\n                placeholder=\"Search docs...\"\n              />\n            </div>\n            <button class=\"bg-white text-secondary h-9 px-4 rounded-lg font-bold text-xs\">\n              Dashboard\n            </button>\n          </div>\n        </header>\n        <div class=\"grid grid-cols-1 lg:grid-cols-2\">\n          <div class=\"p-12 space-y-10 max-w-2xl border-r border-white/5\">\n            <div class=\"space-y-4\">\n              <h1 class=\"text-4xl font-bold font-heading tracking-tight\">Introduction</h1>\n              <p class=\"text-lg text-white/60 leading-relaxed\">\n                Welcome to the AlphaPay API reference. AlphaPay provides a unified payment\n                infrastructure to collect money via mobile money (MTN, Airtel) and bank cards in\n                Central and North Africa.\n              </p>\n            </div>\n            <div class=\"space-y-6\">\n              <h2 class=\"text-2xl font-bold font-heading\">Base URL</h2>\n              <p class=\"text-white/60\">\n                All API requests should be made over HTTPS to our base URL:\n              </p>\n              <code\n                class=\"block bg-white/5 border border-white/10 rounded-lg p-4 font-mono text-primary text-sm\"\n                >https://api.alphapay.africa/v1</code\n              >\n            </div>\n            <div class=\"space-y-6\">\n              <h2 class=\"text-2xl font-bold font-heading\">Authentication</h2>\n              <p class=\"text-white/60 leading-relaxed\">\n                The AlphaPay API uses API keys to authenticate requests. You can view and manage\n                your API keys in the AlphaPay Dashboard. Authenticate your requests by providing\n                your secret key in the Authorization header.\n              </p>\n              <div\n                class=\"bg-primary/5 border border-primary/20 rounded-xl p-6 flex items-start gap-4\"\n              >\n                <iconify-icon\n                  icon=\"lucide:alert-triangle\"\n                  class=\"text-xl text-primary mt-0.5\"\n                ></iconify-icon>\n                <p class=\"text-sm text-white/80 leading-relaxed\">\n                  Your API keys carry many privileges, so be sure to keep them secure! Do not share\n                  your secret API keys in publicly accessible areas such as GitHub.\n                </p>\n              </div>\n            </div>\n          </div>\n          <div\n            class=\"p-12 space-y-8 bg-[#0d1117] sticky top-20 h-[calc(100vh-80px)] overflow-y-auto\"\n          >\n            <div class=\"space-y-4\">\n              <div class=\"flex items-center justify-between\">\n                <h4 class=\"text-xs font-bold uppercase tracking-widest text-white/30\">\n                  Example Request\n                </h4>\n                <div class=\"flex gap-2\">\n                  <span class=\"px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold text-white/50\"\n                    >CURL</span\n                  ><span class=\"px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold text-white/50\"\n                    >NODE</span\n                  >\n                </div>\n              </div>\n              <div\n                class=\"bg-[#161b22] border border-white/10 rounded-xl overflow-hidden shadow-2xl\"\n              >\n                <div class=\"p-6 font-mono text-xs leading-relaxed overflow-x-auto text-blue-400\">\n                  <pre>curl https://api.alphapay.africa/v1/payments \\</pre>\n                  <pre>  -u sk_live_...: \\</pre>\n                  <pre>  -d amount=<span class=\"text-orange-400\">2000</span> \\</pre>\n                  <pre>  -d currency=<span class=\"text-green-400\">\"XAF\"</span> \\</pre>\n                  <pre>  -d description=<span class=\"text-green-400\">\"Order #1024\"</span></pre>\n                </div>\n              </div>\n            </div>\n            <div class=\"space-y-4\">\n              <h4 class=\"text-xs font-bold uppercase tracking-widest text-white/30\">\n                Response Body\n              </h4>\n              <div class=\"bg-[#161b22] border border-white/10 rounded-xl overflow-hidden\">\n                <div class=\"p-6 font-mono text-xs leading-relaxed text-white/80\">\n                  <pre>{</pre>\n                  <pre><span class=\"text-blue-400\">\"id\"</span>: <span class=\"text-green-400\">\"pay_823190\"</span>,</pre>\n                  <pre><span class=\"text-blue-400\">\"status\"</span>: <span class=\"text-green-400\">\"succeeded\"</span>,</pre>\n                  <pre><span class=\"text-blue-400\">\"amount\"</span>: <span class=\"text-orange-400\">2000</span>,</pre>\n                  <pre><span class=\"text-blue-400\">\"currency\"</span>: <span class=\"text-green-400\">\"XAF\"</span></pre>\n                  <pre>}</pre>\n                </div>\n              </div>\n            </div>\n          </div>\n        </div>\n      </main>\n    </div>";
 
-const LANGS = ['Node.js', 'Python', 'cURL', 'PHP'];
-
-const SNIPPETS: Record<string, string> = {
-  'Node.js': `import AlphaPay from '@alphapay/sdk';
-const client = new AlphaPay(process.env.ALPHAPAY_KEY);
-await client.payments.request({ amount: 5000, currency: 'XAF', phone: '+242060000000' });`,
-  Python: `import alphapay
-client = alphapay.Client(api_key)
-client.payments.request(amount=5000, currency="XAF", phone="+242060000000")`,
-  cURL: `curl -X POST https://api.alphapay.co/v1/payments/request \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{"amount":5000,"currency":"XAF","phone":"+242060000000"}'`,
-  PHP: `$client = new AlphaPay\\Client($apiKey);
-$client->payments->request(['amount'=>5000,'currency'=>'XAF','phone'=>'+242060000000']);`,
-};
-
-const BODY: Record<string, { title: string; text: string }> = {
-  Authentication: { title: 'Authentication', text: 'All API requests are authenticated with a Bearer token. Use your sandbox key (alp_sk_test_…) for testing and your production key (alp_sk_live_…) for live payments. Never expose secret keys in client-side code.' },
-  Payments: { title: 'Payments', text: 'Create a payment request with POST /v1/payments/request. The customer receives a mobile-money prompt (MTN/Airtel) or a bank authorization (Libya). Poll GET /v1/payments/:id or subscribe to the payment.confirmed webhook.' },
-  Cards: { title: 'Cards', text: 'Issue a virtual Visa card with POST /v1/cards/issue. Cards are funded from the linked mobile-money balance. The PAN and CVV are returned once and never stored.' },
-  Webhooks: { title: 'Webhooks', text: 'Configure an endpoint to receive events: payment.confirmed, payment.failed, card.charged, refund.initiated. Each delivery is signed with your whsec_ secret — verify the signature before trusting the payload.' },
-  Errors: { title: 'Errors', text: 'Errors use standard HTTP codes. 4xx indicates a client error (invalid phone, insufficient funds); 5xx indicates an upstream/operator issue. Every error includes an "error" code and a human-readable "message".' },
-  Changelog: { title: 'Changelog', text: '2026-07 — Libya bank rails (LYD) added. 2026-06 — USDC corridors (Congo ↔ Libya ↔ Europe). 2026-05 — Virtual cards GA. 2026-04 — Webhooks v2 with signed payloads.' },
-};
-
-export default function DevDocs() {
-  const [section, setSection] = useState(docsSections[0]);
-  const [lang, setLang] = useState('Node.js');
-  const doc = BODY[section];
-
-  return (
-    <div className="mx-auto flex max-w-6xl gap-6">
-      <aside className="hidden w-48 shrink-0 md:block">
-        <nav className="sticky top-5 space-y-1">
-          {docsSections.map((s) => (
-            <button key={s} onClick={() => setSection(s)} className={cn('block w-full rounded-lg px-3 py-2 text-left text-sm', section === s ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-accent')}>{s}</button>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="min-w-0 flex-1">
-        <h1 className="mb-2 font-heading text-2xl font-bold">{doc.title}</h1>
-        <p className="mb-6 leading-relaxed text-muted-foreground">{doc.text}</p>
-
-        <div className="mb-2 flex gap-1 border-b border-border">
-          {LANGS.map((l) => (
-            <button key={l} onClick={() => setLang(l)} className={cn('px-3 py-2 text-sm font-medium', lang === l ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground')}>{l}</button>
-          ))}
-        </div>
-        <div className="relative">
-          <button onClick={() => navigator.clipboard?.writeText(SNIPPETS[lang])} className="absolute right-3 top-3 flex items-center gap-1 rounded-lg border border-border bg-card px-2 py-1 text-xs hover:bg-accent"><Copy size={13} /> Copy</button>
-          <pre className="overflow-auto rounded-xl bg-[#0c0c16] p-4 pt-12 font-mono text-xs leading-relaxed text-foreground/90">{SNIPPETS[lang]}</pre>
-        </div>
-      </div>
-    </div>
-  );
+export default function Page_developer_docs() {
+  return <div dangerouslySetInnerHTML={{ __html: HTML }} />;
 }

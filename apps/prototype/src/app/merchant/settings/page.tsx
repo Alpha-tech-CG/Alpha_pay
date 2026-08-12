@@ -1,55 +1,8 @@
-'use client';
-import { Plus } from 'lucide-react';
-import { merchant } from '@/lib/mock-data';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input, Label } from '@/components/ui/input';
-import { Switch } from '@/components/ui/misc';
+// Reproduit verbatim depuis l'export de maquettes AlphaPay : merchant-dashboard-settings.html
+// Corps HTML injecte tel quel — Tailwind v4 scanne ces classes et les genere,
+// Iconify (layout) rend les icones. Aucune modification du design d'origine.
+const HTML = "<div class=\"min-h-screen bg-background text-foreground font-sans flex\">\n      <aside class=\"w-64 bg-secondary text-white flex flex-col fixed inset-y-0 left-0 z-20\">\n        <div class=\"p-8\">\n          <h2 class=\"text-2xl font-bold tracking-tight text-primary\">AlphaPay</h2>\n        </div>\n        <nav class=\"flex-1 px-4 space-y-1\">\n          <a\n            href=\"#\"\n            class=\"flex items-center gap-3 px-4 py-3 text-white/70 hover:bg-white/5 rounded-lg\"\n            >Overview</a\n          ><a\n            href=\"#\"\n            class=\"flex items-center gap-3 px-4 py-3 bg-primary/10 text-primary rounded-lg font-semibold\"\n            ><iconify-icon icon=\"lucide:settings\"></iconify-icon> Settings</a\n          >\n        </nav>\n      </aside>\n      <main class=\"flex-1 pl-64\">\n        <header\n          class=\"h-20 border-b border-border bg-card flex items-center px-8 sticky top-0 z-10\"\n        >\n          <h1 class=\"text-xl font-bold font-heading\">Settings</h1>\n        </header>\n        <div class=\"p-8 max-w-4xl space-y-12\">\n          <section class=\"space-y-6\">\n            <h3 class=\"text-sm font-bold uppercase tracking-widest text-muted-foreground\">\n              Business Profile\n            </h3>\n            <div class=\"bg-card border border-border rounded-xl p-8 space-y-6\">\n              <div class=\"flex items-center gap-6\">\n                <div\n                  class=\"w-20 h-20 rounded-2xl bg-muted flex items-center justify-center text-4xl\"\n                >\n                  🏢\n                </div>\n                <button\n                  class=\"h-10 px-4 border border-border rounded-lg text-sm font-bold hover:bg-muted transition-colors\"\n                >\n                  Change Logo\n                </button>\n              </div>\n              <div class=\"grid grid-cols-2 gap-6\">\n                <div class=\"space-y-2\">\n                  <label class=\"text-xs font-bold text-muted-foreground uppercase\"\n                    >Business Name</label\n                  ><input\n                    type=\"text\"\n                    class=\"w-full h-11 px-4 bg-muted border border-border rounded-lg text-sm font-medium\"\n                    value=\"Alpha Tech Congo\"\n                  />\n                </div>\n                <div class=\"space-y-2\">\n                  <label class=\"text-xs font-bold text-muted-foreground uppercase\"\n                    >Support Email</label\n                  ><input\n                    type=\"email\"\n                    class=\"w-full h-11 px-4 bg-muted border border-border rounded-lg text-sm font-medium\"\n                    value=\"support@alphatech.cg\"\n                  />\n                </div>\n              </div>\n            </div>\n          </section>\n          <section class=\"space-y-6\">\n            <div class=\"flex items-center justify-between\">\n              <h3 class=\"text-sm font-bold uppercase tracking-widest text-muted-foreground\">\n                Team Members\n              </h3>\n              <button class=\"text-primary text-xs font-bold\">+ Invite Member</button>\n            </div>\n            <div class=\"bg-card border border-border rounded-xl overflow-hidden\">\n              <table class=\"w-full text-left text-sm\">\n                <tbody class=\"divide-y divide-border\">\n                  <tr class=\"p-4\">\n                    <td class=\"px-6 py-4 flex items-center gap-4\">\n                      <div\n                        class=\"w-8 h-8 rounded-full bg-primary text-secondary flex items-center justify-center font-bold\"\n                      >\n                        MF\n                      </div>\n                      <div>\n                        <p class=\"font-bold\">Miche Fresneil</p>\n                        <p class=\"text-xs text-muted-foreground\">Owner</p>\n                      </div>\n                    </td>\n                    <td class=\"px-6 py-4 text-right\">\n                      <span class=\"text-xs font-semibold text-muted-foreground\">Admin</span>\n                    </td>\n                  </tr>\n                  <tr class=\"p-4\">\n                    <td class=\"px-6 py-4 flex items-center gap-4\">\n                      <img\n                        src=\"https://randomuser.me/api/portraits/women/65.jpg\"\n                        class=\"w-8 h-8 rounded-full\"\n                      />\n                      <div>\n                        <p class=\"font-bold\">Sarah Mayaka</p>\n                        <p class=\"text-xs text-muted-foreground\">Finance Manager</p>\n                      </div>\n                    </td>\n                    <td class=\"px-6 py-4 text-right\">\n                      <button\n                        class=\"text-muted-foreground hover:text-destructive transition-colors\"\n                      >\n                        <iconify-icon icon=\"lucide:trash-2\"></iconify-icon>\n                      </button>\n                    </td>\n                  </tr>\n                </tbody>\n              </table>\n            </div>\n          </section>\n        </div>\n      </main>\n    </div>";
 
-export default function MerchantSettings() {
-  return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="font-heading text-2xl font-bold">Settings</h1>
-
-      <Card className="p-5">
-        <h2 className="mb-4 font-heading font-bold">Business profile</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div><Label>Business name</Label><Input defaultValue={merchant.business} /></div>
-          <div><Label>Merchant ID</Label><Input defaultValue={merchant.id} disabled /></div>
-          <div><Label>Sector</Label><Input defaultValue="Retail" /></div>
-          <div><Label>Country</Label><Input defaultValue="Congo 🇨🇬" /></div>
-        </div>
-      </Card>
-
-      <Card className="p-5">
-        <h2 className="mb-4 font-heading font-bold">Notifications</h2>
-        {['SMS per transaction', 'Push notifications', 'Email daily summary'].map((n) => (
-          <div key={n} className="flex items-center justify-between border-b border-border py-3 last:border-0">
-            <span className="text-sm">{n}</span><Switch defaultOn={n !== 'Email daily summary'} />
-          </div>
-        ))}
-      </Card>
-
-      <Card className="p-5">
-        <h2 className="mb-1 font-heading font-bold">Webhook</h2>
-        <p className="mb-3 text-sm text-muted-foreground">Notify your own system on each payment.</p>
-        <Label>Webhook URL</Label>
-        <Input placeholder="https://myshop.cg/webhooks/alphapay" />
-      </Card>
-
-      <Card className="p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-heading font-bold">Team</h2>
-          <Button size="sm" variant="outline"><Plus size={16} /> Add cashier</Button>
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-border p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-xs font-bold">FK</div>
-            <div><p className="text-sm font-medium">Fatou Kello</p><p className="text-xs text-muted-foreground">Cashier · view-only</p></div>
-          </div>
-          <span className="text-xs text-muted-foreground">Active</span>
-        </div>
-      </Card>
-    </div>
-  );
+export default function Page_merchant_settings() {
+  return <div dangerouslySetInnerHTML={{ __html: HTML }} />;
 }

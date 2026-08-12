@@ -1,115 +1,12 @@
 @import 'tailwindcss';
 
 /*
-  AlphaPay design tokens — reproduced verbatim from the client mockups
-  (home.html / send-money.html / receive-money.html). Dark, number-first,
-  coral accent. Same palette as the mobile app theme.
+  AlphaPay design tokens — reproduits verbatim depuis l'export de maquettes
+  (export-html : home.html, send-money.html, merchant/developer, marketing…).
+  Thème clair, cyan #00b4d8 / navy #0b1e3d sur fond #f5f7fa. Icônes Iconify
+  (solar/mdi), polices Inter / JetBrains Mono / Playfair Display.
 */
-:root {
-  --background: #0f0f1a;
-  --foreground: #f7f8fc;
-  --primary: #e94560;
-  --primary-foreground: #ffffff;
-  --secondary: #2a2a45;
-  --secondary-foreground: #f7f8fc;
-  --muted: #1e1e36;
-  --muted-foreground: #8f95b2;
-  --accent: #2a2a45;
-  --accent-foreground: #f7f8fc;
-  --destructive: #ef4444;
-  --success: #00c896;
-  --warning: #f5a623;
-  --info: #3b82f6;
-  --card: #1a1a2e;
-  --card-foreground: #f7f8fc;
-  --popover: #1a1a2e;
-  --border: #2a2a45;
-  --input: #1e1e36;
-  --ring: #e94560;
-  --chart-1: #e94560;
-  --chart-2: #00c896;
-  --chart-3: #f5a623;
-  --chart-4: #3b82f6;
-  --chart-5: #8b5cf6;
-  --radius: 1rem;
-}
 
-/* Theme: Dark (coral) — explicit selection, same as default. */
-:root[data-theme='dark'] {
-  --background: #0f0f1a;
-  --foreground: #f7f8fc;
-  --primary: #e94560;
-  --primary-foreground: #ffffff;
-  --secondary: #2a2a45;
-  --secondary-foreground: #f7f8fc;
-  --muted: #1e1e36;
-  --muted-foreground: #8f95b2;
-  --accent: #2a2a45;
-  --accent-foreground: #f7f8fc;
-  --card: #1a1a2e;
-  --card-foreground: #f7f8fc;
-  --popover: #1a1a2e;
-  --border: #2a2a45;
-  --input: #1e1e36;
-  --ring: #e94560;
-  --chart-1: #e94560;
-}
-
-/* Theme: Green / White */
-:root[data-theme='green'] {
-  --background: #f6f9f8;
-  --foreground: #10231d;
-  --primary: #00b589;
-  --primary-foreground: #ffffff;
-  --secondary: #e6f6f0;
-  --secondary-foreground: #0f3d30;
-  --muted: #eef2f1;
-  --muted-foreground: #5c7268;
-  --accent: #e6f6f0;
-  --accent-foreground: #0f3d30;
-  --destructive: #ef4444;
-  --success: #00a67e;
-  --warning: #e08600;
-  --info: #2563eb;
-  --card: #ffffff;
-  --card-foreground: #10231d;
-  --popover: #ffffff;
-  --border: #dbe7e2;
-  --input: #eef4f2;
-  --ring: #00b589;
-  --chart-1: #00b589;
-  --chart-2: #34d399;
-  --chart-3: #e08600;
-}
-
-/* Theme: Blue / White */
-:root[data-theme='blue'] {
-  --background: #f6f8fc;
-  --foreground: #0f1729;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --secondary: #e8eefb;
-  --secondary-foreground: #16305f;
-  --muted: #eef1f6;
-  --muted-foreground: #5f6b83;
-  --accent: #e8eefb;
-  --accent-foreground: #16305f;
-  --destructive: #ef4444;
-  --success: #059669;
-  --warning: #d97706;
-  --info: #2563eb;
-  --card: #ffffff;
-  --card-foreground: #0f1729;
-  --popover: #ffffff;
-  --border: #dee5f1;
-  --input: #eef2f9;
-  --ring: #2563eb;
-  --chart-1: #2563eb;
-  --chart-2: #60a5fa;
-  --chart-3: #d97706;
-}
-
-/* Map raw tokens to Tailwind v4 color utilities (bg-card, text-primary, …). */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -122,12 +19,10 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -138,12 +33,125 @@
   --color-chart-5: var(--chart-5);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-jakarta), var(--font-inter), sans-serif;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
+@theme {
+  --radius-xs: calc(var(--radius) - 8px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
+  --radius-4xl: calc(var(--radius) + 24px);
+}
+
 * {
-  border-color: var(--border);
+  corner-shape: var(--shape, round);
+}
+
+.rounded-full, .rounded-none,
+.rounded-t-full, .rounded-t-none,
+.rounded-r-full, .rounded-r-none,
+.rounded-b-full, .rounded-b-none,
+.rounded-l-full, .rounded-l-none,
+.rounded-s-full, .rounded-s-none,
+.rounded-e-full, .rounded-e-none,
+.rounded-tl-full, .rounded-tl-none,
+.rounded-tr-full, .rounded-tr-none,
+.rounded-bl-full, .rounded-bl-none,
+.rounded-br-full, .rounded-br-none,
+.rounded-ss-full, .rounded-ss-none,
+.rounded-se-full, .rounded-se-none,
+.rounded-es-full, .rounded-es-none,
+.rounded-ee-full, .rounded-ee-none {
+  corner-shape: round;
+}
+
+@utility rounded-* {
+  border-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-t-* {
+  border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-r-* {
+  border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-b-* {
+  border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-l-* {
+  border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-tl-* {
+  border-top-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-tr-* {
+  border-top-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-bl-* {
+  border-bottom-left-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-br-* {
+  border-bottom-right-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-s-* {
+  border-start-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-end-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-e-* {
+  border-start-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+  border-end-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-ss-* {
+  border-start-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-se-* {
+  border-start-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-es-* {
+  border-end-start-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+@utility rounded-ee-* {
+  border-end-end-radius: calc(--value(--radius-*, [length], [percentage]) * var(--shape-multiplier, 1));
+}
+
+:root {
+  --shape: round;
+  --shape-multiplier: 1;
+
+  --background: #f5f7fa;
+  --foreground: #0b1e3d;
+  --primary: #00b4d8;
+  --primary-foreground: #0b1e3d;
+  --secondary: #0b1e3d;
+  --secondary-foreground: #ffffff;
+  --muted: #e2e8f0;
+  --muted-foreground: #64748b;
+  --accent: #00b4d8;
+  --accent-foreground: #0b1e3d;
+  --destructive: #e53e3e;
+  --card: #ffffff;
+  --card-foreground: #0b1e3d;
+  --popover: #ffffff;
+  --popover-foreground: #0b1e3d;
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #00b4d8;
+  --chart-1: #00b4d8;
+  --chart-2: #0b1e3d;
+  --chart-3: #38a169;
+  --chart-4: #e53e3e;
+  --chart-5: #f6ad55;
+
+  --radius: 0.75rem;
 }
 
 html,
@@ -153,15 +161,17 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Squircle corners where supported — matches the mockups. Progressive only. */
-@supports (corner-shape: squircle) {
-  .squircle {
-    corner-shape: squircle;
-  }
+/* Prevent layout shift for icons without explicit dimensions */
+iconify-icon:not([width]):not([height]) {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
 }
 
-/* Hide scrollbars (mockup parity). */
-* {
+/* Hide scrollbars (parité maquettes) */
+*,
+*::before,
+*::after {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -171,6 +181,9 @@ body {
 
 .font-heading {
   font-family: var(--font-heading);
+}
+.font-serif {
+  font-family: var(--font-serif);
 }
 .font-mono {
   font-family: var(--font-mono);

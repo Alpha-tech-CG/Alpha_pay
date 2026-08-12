@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
-import { ThemeProvider } from '@/components/ThemeProvider';
+import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakarta' });
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
 const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' });
 
 export const metadata: Metadata = {
@@ -14,14 +14,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable}`}>
-      <body className="min-h-screen bg-background text-foreground antialiased">
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('alphapay_theme')||'dark';}catch(e){}`,
-          }}
-        />
-        <ThemeProvider>{children}</ThemeProvider>
+    <html lang="en" className={`${inter.variable} ${playfair.variable} ${jetbrains.variable}`}>
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+        {/* Iconify web-component — mêmes icônes que l'export (solar/mdi/…).
+            Stratégie par défaut (afterInteractive) : le custom element upgrade
+            les <iconify-icon> rendus côté serveur dès que le script est chargé. */}
+        <Script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js" />
+        {children}
       </body>
     </html>
   );
