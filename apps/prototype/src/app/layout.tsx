@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
+import { NavDrawer } from '@/components/NavDrawer';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             les <iconify-icon> rendus côté serveur dès que le script est chargé. */}
         <Script src="https://code.iconify.design/iconify-icon/3.0.0/iconify-icon.min.js" />
         {children}
+        <NavDrawer />
       </body>
     </html>
   );

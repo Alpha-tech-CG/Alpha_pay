@@ -53,3 +53,6 @@ securite/scan-results/
 
 ## Toolchain portable locale (JDK/SDK Android pour build APK) — machine-locale, jamais dans le repo
 .tools/
+
+## Projets natifs Android générés (Capacitor / Expo prebuild) — régénérables, jamais dans le repo
+apps/prototype/android/
