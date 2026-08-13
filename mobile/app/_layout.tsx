@@ -7,6 +7,7 @@ import { AuthProvider } from '@/auth';
 import { ThemeProvider, useTheme } from '@/theme';
 import { PhotoProvider } from '@/photo';
 import { WalletProvider } from '@/wallet-store';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 // Les polices d'icônes (MaterialIcons / MaterialCommunityIcons) sont embarquées
 // nativement dans android/app/src/main/assets/fonts — elles sont donc disponibles
@@ -54,6 +55,7 @@ function ThemedRoot() {
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
+      <AccountSwitcher />
     </>
   );
 }

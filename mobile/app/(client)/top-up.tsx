@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  KeyboardAvoidingView, Platform, Alert,
-} from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
@@ -11,134 +8,128 @@ import { useWallet, type TopUpSource } from '@/wallet-store';
 
 const QUICK = [5000, 10000, 25000];
 
-const BRAND: Record<TopUpSource['brand'], { bg: string; fg: string; label: string }> = {
-  mtn: { bg: AP.mtn, fg: '#000', label: 'MTN' },
-  airtel: { bg: AP.airtel, fg: '#fff', label: 'airtel' },
-  card: { bg: AP.secondary, fg: '#fff', label: '' },
-};
+function Brand({ source }: { source: TopUpSource }) {
+  if (source.brand === 'mtn') return <View style={[s.brand, { backgroundColor: AP.mtn }]}><Text style={[s.brandText, { color: '#000' }]}>MTN</Text></View>;
+  if (source.brand === 'airtel') return <View style={[s.brand, { backgroundColor: AP.airtel }]}><Text style={[s.brandText, { color: '#fff' }]}>airtel</Text></View>;
+  return <View style={[s.brand, { backgroundColor: AP.secondary }]}><Icon name="credit-card" size={24} color="#fff" /></View>;
+}
 
 export default function TopUp() {
   const router = useRouter();
   const { topUpSources, topUp } = useWallet();
   const [amount, setAmount] = useState('');
-  const [source, setSource] = useState<TopUpSource>(topUpSources[0]);
+  const [sourceId, setSourceId] = useState(topUpSources.find((x) => !x.disabled)?.id ?? topUpSources[0].id);
 
-  const amountCents = Math.round((parseFloat(amount) || 0) * 100);
-  const canConfirm = amountCents > 0 && !source.disabled;
+  const amountCents = Math.round((parseFloat(amount.replace(/[^0-9.]/g, '')) || 0) * 100);
+  const source = topUpSources.find((x) => x.id === sourceId)!;
+  const addQuick = (v: number) => setAmount(String((parseInt(amount || '0', 10) || 0) + v));
 
   const confirm = () => {
-    if (amountCents <= 0) { Alert.alert('Montant', 'Entrez un montant à ajouter.'); return; }
+    if (amountCents <= 0) return Alert.alert('Amount', 'Enter an amount to add.');
+    if (source.disabled) return Alert.alert('Unavailable', 'This source is not available yet.');
     topUp(source, amountCents);
-    Alert.alert('Dépôt confirmé', `${formatXAF(amountCents)} XAF ajoutés via ${source.name}.`, [
+    Alert.alert('Deposit successful', `${formatXAF(amountCents)} XAF added via ${source.name}.`, [
       { text: 'OK', onPress: () => router.back() },
     ]);
   };
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View style={s.header}>
-          <Pressable style={s.back} onPress={() => router.back()}>
-            <Icon name="arrow-left" size={20} color={AP.foreground} />
-          </Pressable>
-          <Text style={s.headerTitle}>Top-up Wallet</Text>
+    <SafeAreaView style={s.root} edges={['top']}>
+      <View style={s.header}>
+        <Pressable style={s.backBtn} onPress={() => router.back()}>
+          <Icon name="arrow-left" size={20} color={AP.secondary} />
+        </Pressable>
+        <Text style={s.title}>Top-up Wallet</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={s.sectionLabel}>Amount to add</Text>
+        <View style={s.amountCard}>
+          <View style={s.amountRow}>
+            <Text style={s.amountCurrency}>XAF</Text>
+            <TextInput
+              style={s.amountInput}
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor="rgba(11,30,61,0.25)"
+            />
+          </View>
+          <View style={s.quickRow}>
+            {QUICK.map((v) => (
+              <Pressable key={v} style={({ pressed }) => [s.quickChip, pressed && s.pressed]} onPress={() => addQuick(v)}>
+                <Text style={s.quickText}>+ {v.toLocaleString('fr-FR').replace(/\s/g, ',')}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <Text style={s.sectionLabel}>AMOUNT TO ADD</Text>
-          <View style={s.amountCard}>
-            <View style={s.amountRow}>
-              <Text style={s.amountCurrency}>XAF</Text>
-              <TextInput
-                value={amount}
-                onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                style={s.amountInput}
-                placeholder="0"
-                placeholderTextColor={AP.mutedForeground}
-              />
-            </View>
-            <View style={s.quickRow}>
-              {QUICK.map((q) => (
-                <Pressable key={q} style={s.quickBtn} onPress={() => setAmount(String((parseInt(amount || '0', 10)) + q))}>
-                  <Text style={s.quickText}>+ {q.toLocaleString('fr-FR').replace(/\s/g, ',')}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          <Text style={[s.sectionLabel, { marginTop: 32 }]}>SELECT SOURCE</Text>
-          <View style={{ gap: 12 }}>
-            {topUpSources.map((src) => {
-              const b = BRAND[src.brand];
-              const selected = source.id === src.id;
-              return (
-                <Pressable
-                  key={src.id}
-                  style={[s.source, selected && s.sourceSelected, src.disabled && s.sourceDisabled]}
-                  onPress={() => !src.disabled && setSource(src)}
-                  disabled={src.disabled}
-                >
-                  <View style={s.sourceLeft}>
-                    <View style={[s.sourceBadge, { backgroundColor: b.bg }]}>
-                      {src.brand === 'card'
-                        ? <Icon name="credit-card" size={22} color="#fff" />
-                        : <Text style={[s.sourceBadgeText, { color: b.fg }]}>{b.label}</Text>}
-                    </View>
-                    <View>
-                      <Text style={s.sourceName}>{src.name}</Text>
-                      <Text style={s.sourceHint}>{src.hint}</Text>
-                    </View>
+        <Text style={[s.sectionLabel, { marginTop: 32 }]}>Select Source</Text>
+        <View style={{ gap: 12, marginTop: 16 }}>
+          {topUpSources.map((src) => {
+            const active = src.id === sourceId;
+            return (
+              <Pressable
+                key={src.id}
+                style={[s.source, active && s.sourceActive, src.disabled && { opacity: 0.6 }]}
+                onPress={() => !src.disabled && setSourceId(src.id)}
+              >
+                <View style={s.sourceLeft}>
+                  <Brand source={src} />
+                  <View>
+                    <Text style={s.sourceName}>{src.name}</Text>
+                    <Text style={s.sourceHint}>{src.hint}</Text>
                   </View>
-                  <View style={[s.radio, selected && s.radioOn]}>
-                    {selected && <View style={s.radioDot} />}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        <View style={s.footer}>
-          <Pressable style={[s.cta, !canConfirm && s.ctaDisabled, shadow(8, AP.primary, 0.2)]} onPress={confirm} disabled={!canConfirm}>
-            <Text style={s.ctaText}>Confirm Deposit</Text>
-          </Pressable>
+                </View>
+                <View style={[s.radio, active && s.radioActive]}>
+                  {active && <View style={s.radioDot} />}
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
+
+      <View style={s.footer}>
+        <Pressable style={({ pressed }) => [s.cta, pressed && s.pressed]} onPress={confirm}>
+          <Text style={s.ctaText}>Confirm Deposit</Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
-  back: { width: 40, height: 40, borderRadius: radius.full, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: AP.foreground },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
+  backBtn: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
+  title: { fontSize: 20, fontWeight: '700', color: AP.secondary },
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },
 
-  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, color: AP.mutedForeground, marginBottom: 16 },
-  amountCard: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xxl, padding: 24, gap: 24 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', letterSpacing: 1, color: AP.mutedForeground, textTransform: 'uppercase', marginBottom: 16 },
+
+  amountCard: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xxl, padding: 24, gap: 24, ...shadow(2) },
   amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  amountCurrency: { fontSize: 22, fontWeight: '700', color: AP.mutedForeground },
-  amountInput: { fontSize: 36, fontWeight: '800', color: AP.foreground, minWidth: 120, textAlign: 'center', fontVariant: ['tabular-nums'], padding: 0 },
+  amountCurrency: { fontSize: 24, fontWeight: '700', color: AP.mutedForeground, fontVariant: ['tabular-nums'] },
+  amountInput: { fontSize: 40, fontWeight: '800', color: AP.secondary, textAlign: 'center', minWidth: 160, fontVariant: ['tabular-nums'] },
   quickRow: { flexDirection: 'row', gap: 8 },
-  quickBtn: { flex: 1, height: 40, backgroundColor: soft.muted50, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  quickText: { fontSize: 12, fontWeight: '700', color: AP.foreground },
+  quickChip: { flex: 1, height: 40, borderRadius: radius.sm, backgroundColor: soft.muted50, alignItems: 'center', justifyContent: 'center' },
+  quickText: { fontSize: 12, fontWeight: '700', color: AP.secondary },
 
-  source: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl },
-  sourceSelected: { borderColor: AP.primary },
-  sourceDisabled: { opacity: 0.6 },
+  source: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.lg, padding: 16 },
+  sourceActive: { borderColor: AP.primary, borderWidth: 1.5 },
   sourceLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  sourceBadge: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  sourceBadgeText: { fontSize: 13, fontWeight: '900' },
-  sourceName: { fontSize: 15, fontWeight: '700', color: AP.foreground },
-  sourceHint: { fontSize: 12, color: AP.mutedForeground },
-  radio: { width: 24, height: 24, borderRadius: radius.full, borderWidth: 2, borderColor: AP.border, alignItems: 'center', justifyContent: 'center' },
-  radioOn: { borderColor: AP.primary },
-  radioDot: { width: 12, height: 12, borderRadius: radius.full, backgroundColor: AP.primary },
+  brand: { width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  brandText: { fontSize: 13, fontWeight: '900' },
+  sourceName: { fontSize: 15, fontWeight: '700', color: AP.secondary },
+  sourceHint: { fontSize: 12, color: AP.mutedForeground, marginTop: 2 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: AP.border, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: AP.primary },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: AP.primary },
 
-  footer: { paddingHorizontal: 20, paddingTop: 8 },
-  cta: { height: 56, backgroundColor: AP.primary, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center' },
-  ctaDisabled: { opacity: 0.5 },
-  ctaText: { fontSize: 16, fontWeight: '700', color: AP.primaryForeground },
+  footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  cta: { height: 56, backgroundColor: AP.primary, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', ...shadow(10, AP.primary, 0.25) },
+  ctaText: { fontSize: 16, fontWeight: '800', color: AP.primaryForeground },
 });

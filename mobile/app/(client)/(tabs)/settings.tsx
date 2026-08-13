@@ -76,7 +76,7 @@ export default function Settings() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
-  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 120 },
   title: { fontSize: 20, fontWeight: '700', color: AP.foreground, paddingTop: 8, paddingBottom: 24 },
 
   profile: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: AP.secondary, borderRadius: radius.xxl, padding: 20 },

@@ -3,50 +3,62 @@ import { View, Text, Pressable, Image, ScrollView, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
-import { AP, soft, radius, formatXAF } from '@/design';
+import { AP, soft, radius, shadow, formatXAF } from '@/design';
 import { useWallet, type Transaction } from '@/wallet-store';
 
-const TINT: Record<Transaction['tint'], { fg: string; bg: string; border: string }> = {
-  primary: { fg: AP.primary, bg: soft.primary10, border: soft.primary20 },
-  secondary: { fg: AP.secondary, bg: soft.secondary10, border: soft.secondary20 },
-  mtn: { fg: AP.mtn, bg: soft.mtn10, border: soft.mtn20 },
-  success: { fg: AP.chart3, bg: soft.chart3_10, border: soft.chart3_10 },
-  failed: { fg: AP.chart4, bg: soft.chart4_10, border: soft.chart4_20 },
-  chart5: { fg: AP.chart5, bg: soft.chart5_10, border: soft.chart5_10 },
+const STACK = [
+  'https://randomuser.me/api/portraits/men/32.jpg',
+  'https://randomuser.me/api/portraits/women/44.jpg',
+  'https://randomuser.me/api/portraits/men/12.jpg',
+];
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 18) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+const TINT: Record<Transaction['tint'], { fg: string; bg: string }> = {
+  primary: { fg: AP.primary, bg: soft.primary10 },
+  secondary: { fg: AP.secondary, bg: soft.secondary10 },
+  mtn: { fg: AP.mtn, bg: soft.mtn10 },
+  success: { fg: AP.chart3, bg: soft.chart3_10 },
+  failed: { fg: AP.chart4, bg: soft.chart4_10 },
+  chart5: { fg: AP.chart5, bg: soft.chart5_10 },
 };
 
-function ActionCard({ icon, label, fg, bg, onPress }: { icon: string; label: string; fg: string; bg: string; onPress: () => void }) {
+function QuickAction({ icon, label, color, onPress }: { icon: string; label: string; color: string; onPress: () => void }) {
   return (
-    <Pressable style={({ pressed }) => [s.action, pressed && s.pressed]} onPress={onPress}>
-      <View style={[s.actionIcon, { backgroundColor: bg }]}>
-        <Icon name={icon} size={20} color={fg} />
-      </View>
-      <Text style={s.actionLabel}>{label}</Text>
-    </Pressable>
+    <View style={s.quickCol}>
+      <Pressable style={({ pressed }) => [s.quickBtn, pressed && s.pressed]} onPress={onPress}>
+        <Icon name={icon} size={24} color={color} />
+      </Pressable>
+      <Text style={s.quickLabel}>{label}</Text>
+    </View>
   );
 }
 
 function TxRow({ tx }: { tx: Transaction }) {
   const t = TINT[tx.tint];
   const positive = tx.direction === 'in';
-  const statusColor = tx.status === 'failed' ? AP.chart4 : AP.chart3;
-  const statusBg = tx.status === 'failed' ? soft.chart4_10 : soft.chart3_10;
+  const failed = tx.status === 'failed';
   return (
-    <View style={s.txRow}>
+    <View style={[s.txRow, failed && { opacity: 0.7 }]}>
       <View style={s.txLeft}>
-        <View style={[s.txIcon, { backgroundColor: t.bg, borderColor: t.border }]}>
-          <Icon name={tx.icon} size={20} color={t.fg} />
+        <View style={[s.txIcon, { backgroundColor: t.bg }]}>
+          <Icon name={tx.icon} size={22} color={t.fg} />
         </View>
         <View style={{ gap: 2, flexShrink: 1 }}>
           <Text style={s.txTitle}>{tx.title}</Text>
           <Text style={s.txSub}>{tx.subtitle}</Text>
         </View>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 3 }}>
+      <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Text style={s.txAmount}>{positive ? '+' : '-'}{formatXAF(Math.abs(tx.amountCents))}</Text>
-        <Text style={[s.txStatus, { color: statusColor, backgroundColor: statusBg }]}>
-          {tx.status === 'failed' ? 'Failed' : 'Success'}
-        </Text>
+        <View style={[s.txBadge, { backgroundColor: failed ? soft.chart4_10 : soft.chart3_10 }]}>
+          <Text style={[s.txBadgeText, { color: failed ? AP.chart4 : AP.chart3 }]}>{failed ? 'Failed' : 'Success'}</Text>
+        </View>
       </View>
     </View>
   );
@@ -60,46 +72,70 @@ export default function Home() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={s.header}>
           <View style={s.headerLeft}>
-            <Image source={{ uri: user.avatar }} style={s.avatar} />
             <View>
-              <Text style={s.welcome}>WELCOME BACK</Text>
+              <Image source={{ uri: user.avatar }} style={s.avatar} />
+              <View style={s.onlineDot} />
+            </View>
+            <View>
+              <Text style={s.greeting}>{greeting()}</Text>
               <Text style={s.name}>{user.name}</Text>
             </View>
           </View>
           <Pressable style={s.bell}>
-            <Icon name="bell" size={22} color={AP.foreground} />
+            <Icon name="bell" size={22} color={AP.secondary} />
             <View style={s.bellDot} />
           </Pressable>
         </View>
 
-        <View style={s.balanceBlock}>
-          <View style={s.balanceTop}>
-            <Text style={s.balanceLabel}>Total Balance</Text>
-            <View style={s.currencyChip}>
-              <Text style={s.currencyText}>{currency}</Text>
-              <Icon name="chevron-down" size={12} color={AP.mutedForeground} />
+        {/* Balance card (navy) */}
+        <View style={s.balanceCard}>
+          <View style={s.glowTop} />
+          <View style={s.balanceHead}>
+            <View style={s.walletChip}>
+              <Text style={s.walletChipText}>{currency === 'XAF' ? 'CONGO WALLET' : currency}</Text>
+              <Icon name="chevron-down" size={12} color="rgba(255,255,255,0.9)" />
             </View>
           </View>
-          <View style={s.balanceRow}>
-            <Text style={s.balanceAmount}>{formatXAF(balanceCents)}</Text>
-            <Text style={s.balanceCents}>.00</Text>
+          <View style={{ gap: 4 }}>
+            <Text style={s.balanceLabel}>Total Balance</Text>
+            <View style={s.balanceRow}>
+              <Text style={s.balanceAmount}>{formatXAF(balanceCents)}</Text>
+              <Text style={s.balanceCurrency}>{currency}</Text>
+            </View>
+          </View>
+          <View style={s.balanceFoot}>
+            <View style={s.avatarStack}>
+              {STACK.map((uri, i) => (
+                <Image key={uri} source={{ uri }} style={[s.stackAvatar, { marginLeft: i === 0 ? 0 : -12 }]} />
+              ))}
+              <View style={[s.stackAvatar, s.stackMore, { marginLeft: -12 }]}>
+                <Text style={s.stackMoreText}>+12</Text>
+              </View>
+            </View>
+            <Pressable style={({ pressed }) => [s.topupBtn, pressed && s.pressed]} onPress={() => router.push('/(client)/top-up')}>
+              <Icon name="add-circle" size={18} color={AP.secondary} />
+              <Text style={s.topupText}>Top-up</Text>
+            </Pressable>
           </View>
         </View>
 
-        <View style={s.actionsGrid}>
-          <ActionCard icon="arrow-up-right" label="Send Money" fg={AP.primary} bg={soft.primary10} onPress={() => router.push('/(client)/send')} />
-          <ActionCard icon="arrow-down-left" label="Receive" fg={AP.secondary} bg={soft.secondary10} onPress={() => router.push('/(client)/receive')} />
-          <ActionCard icon="scan-line" label="Pay Merchant" fg={AP.chart5} bg={soft.chart5_10} onPress={() => router.push('/(client)/scan')} />
-          <ActionCard icon="wallet" label="Top-up Wallet" fg={AP.chart3} bg={soft.chart3_10} onPress={() => router.push('/(client)/top-up')} />
+        {/* Quick actions */}
+        <View style={s.quickGrid}>
+          <QuickAction icon="send" label="Send" color={AP.primary} onPress={() => router.push('/(client)/send')} />
+          <QuickAction icon="qr-code" label="Receive" color={AP.secondary} onPress={() => router.push('/(client)/receive')} />
+          <QuickAction icon="store" label="Pay" color={AP.chart5} onPress={() => router.push('/(client)/scan')} />
+          <QuickAction icon="receipt-long" label="Bills" color={AP.chart3} onPress={() => router.push('/(client)/top-up')} />
         </View>
 
+        {/* Recent activities */}
         <View style={s.sectionHead}>
-          <Text style={s.sectionTitle}>Recent Transactions</Text>
-          <Pressable style={s.seeAll} onPress={() => router.push('/(client)/(tabs)/history')}>
-            <Text style={s.seeAllText}>See all</Text>
-            <Icon name="chevron-right" size={12} color={AP.primary} />
+          <Text style={s.sectionTitle}>Recent Activities</Text>
+          <Pressable style={s.viewAll} onPress={() => router.push('/(client)/(tabs)/history')}>
+            <Text style={s.viewAllText}>VIEW ALL</Text>
+            <Icon name="chevron-right" size={14} color={AP.primary} />
           </Pressable>
         </View>
         <View style={{ gap: 12 }}>
@@ -112,41 +148,51 @@ export default function Home() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
-  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 128 },
+  pressed: { opacity: 0.9, transform: [{ scale: 0.97 }] },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, paddingBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 44, height: 44, borderRadius: radius.full, borderWidth: 1, borderColor: AP.border },
-  welcome: { fontSize: 11, color: AP.mutedForeground, fontWeight: '600', letterSpacing: 1 },
-  name: { fontSize: 16, fontWeight: '600', color: AP.foreground },
-  bell: { width: 44, height: 44, borderRadius: radius.full, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center' },
-  bellDot: { position: 'absolute', top: 11, right: 11, width: 8, height: 8, borderRadius: 4, backgroundColor: AP.chart4 },
+  avatar: { width: 48, height: 48, borderRadius: radius.xxl, borderWidth: 2, borderColor: '#fff', ...shadow(4) },
+  onlineDot: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: AP.chart3, borderWidth: 2, borderColor: AP.bg },
+  greeting: { fontSize: 10, color: AP.mutedForeground, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
+  name: { fontSize: 18, fontWeight: '700', color: AP.secondary },
+  bell: { width: 48, height: 48, borderRadius: radius.xxl, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
+  bellDot: { position: 'absolute', top: 13, right: 13, width: 10, height: 10, borderRadius: 5, backgroundColor: AP.chart4, borderWidth: 2, borderColor: '#fff' },
 
-  balanceBlock: { paddingVertical: 8, gap: 4 },
-  balanceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  balanceLabel: { fontSize: 14, fontWeight: '500', color: AP.mutedForeground },
-  currencyChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: soft.muted50, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.md, borderWidth: 1, borderColor: AP.border },
-  currencyText: { fontSize: 10, fontWeight: '700', letterSpacing: 1, color: AP.mutedForeground },
-  balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 6 },
-  balanceAmount: { fontSize: 46, fontWeight: '800', letterSpacing: -1, color: AP.foreground, fontVariant: ['tabular-nums'] },
-  balanceCents: { fontSize: 18, fontWeight: '500', color: AP.mutedForeground, marginBottom: 8 },
+  balanceCard: { backgroundColor: AP.secondary, borderRadius: 40, padding: 32, gap: 24, overflow: 'hidden', ...shadow(20, AP.secondary, 0.2) },
+  glowTop: { position: 'absolute', top: -64, right: -64, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(0,180,216,0.18)' },
+  balanceHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  walletChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  walletChipText: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(255,255,255,0.7)' },
+  balanceLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.6)' },
+  balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  balanceAmount: { fontSize: 40, fontWeight: '800', letterSpacing: -1.5, color: '#fff', fontVariant: ['tabular-nums'] },
+  balanceCurrency: { fontSize: 20, fontWeight: '500', color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+  balanceFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
+  avatarStack: { flexDirection: 'row', alignItems: 'center' },
+  stackAvatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: AP.secondary },
+  stackMore: { backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  stackMoreText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  topupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: AP.primary, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.full },
+  topupText: { fontSize: 12, fontWeight: '700', color: AP.secondary },
 
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingVertical: 24 },
-  action: { width: '47%', flexGrow: 1, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, padding: 16, minHeight: 96, justifyContent: 'space-between', alignItems: 'flex-start' },
-  actionIcon: { width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
-  actionLabel: { fontSize: 14, fontWeight: '600', color: AP.foreground },
+  quickGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 24 },
+  quickCol: { alignItems: 'center', gap: 8, flex: 1 },
+  quickBtn: { width: 56, height: 56, borderRadius: radius.xl, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
+  quickLabel: { fontSize: 11, fontWeight: '700', color: AP.secondary },
 
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: AP.foreground },
-  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  seeAllText: { fontSize: 14, fontWeight: '500', color: AP.primary },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, marginTop: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: AP.secondary },
+  viewAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  viewAllText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: AP.primary },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, padding: 16 },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  txIcon: { width: 48, height: 48, borderRadius: radius.full, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  txTitle: { fontSize: 14, fontWeight: '600', color: AP.foreground },
-  txSub: { fontSize: 12, color: AP.mutedForeground },
-  txAmount: { fontSize: 14, fontWeight: '600', color: AP.foreground, fontVariant: ['tabular-nums'] },
-  txStatus: { fontSize: 10, fontWeight: '500', paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.xs, overflow: 'hidden' },
+  txRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xxxl, padding: 16, ...shadow(2) },
+  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  txIcon: { width: 48, height: 48, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center' },
+  txTitle: { fontSize: 14, fontWeight: '700', color: AP.secondary },
+  txSub: { fontSize: 11, color: AP.mutedForeground },
+  txAmount: { fontSize: 14, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  txBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
+  txBadgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
 });
