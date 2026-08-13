@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
 import { AP, shadow } from '@/design';
+import { MerchantProvider } from '@/merchant-store';
 
 const TABS: Record<string, { label: string; icon: string }> = {
   index: { label: 'Home', icon: 'layout-dashboard' },
@@ -36,6 +37,7 @@ function MerchantTabBar({ state, navigation }: any) {
 
 export default function MerchantLayout() {
   return (
+    <MerchantProvider>
     <Tabs tabBar={(props) => <MerchantTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: AP.bg } }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="transactions" />
@@ -46,6 +48,7 @@ export default function MerchantLayout() {
       <Tabs.Screen name="api-keys" options={{ href: null }} />
       <Tabs.Screen name="webhooks" options={{ href: null }} />
     </Tabs>
+    </MerchantProvider>
   );
 }
 

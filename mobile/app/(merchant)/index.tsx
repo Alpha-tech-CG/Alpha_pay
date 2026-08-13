@@ -3,12 +3,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AP, soft, radius, shadow } from '@/design';
 import { Card, SectionTitle, StatCard } from '@/dash';
-import { kpis, revenueBars, realtime, merchant } from '@/merchant-data';
+import { revenueBars, merchant } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 const CHART_H = 150;
 
 export default function MerchantDashboard() {
   const router = useRouter();
+  const { kpis, realtime } = useMerchant();
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>

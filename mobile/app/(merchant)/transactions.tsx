@@ -4,13 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow } from '@/design';
 import { StatusPill } from '@/dash';
-import { merchantTx } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 export default function MerchantTransactions() {
+  const { merchantTx } = useMerchant();
   const [query, setQuery] = useState('');
   const data = useMemo(
     () => merchantTx.filter((t) => t.customer.toLowerCase().includes(query.toLowerCase()) || t.amount.includes(query)),
-    [query],
+    [merchantTx, query],
   );
 
   return (
