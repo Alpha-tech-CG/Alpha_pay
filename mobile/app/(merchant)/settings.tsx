@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, Image, ScrollView, TextInput, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow } from '@/design';
 import { Card, SectionTitle } from '@/dash';
-import { merchant, team } from '@/merchant-data';
+import { team } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 export default function MerchantSettings() {
   const router = useRouter();
-  const [name, setName] = useState(merchant.business);
-  const [email, setEmail] = useState(merchant.email);
+  const { business } = useMerchant();
+  const [name, setName] = useState(business.business);
+  const [email, setEmail] = useState(business.email);
+
+  // Resynchronise quand le profil live arrive.
+  useEffect(() => { setName(business.business); setEmail(business.email); }, [business]);
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>

@@ -103,6 +103,33 @@ export interface WebhookDelivery {
 export const getWebhookDeliveries = (id: string) =>
   api.get<WebhookDelivery[]>(`/v1/webhook-endpoints/${id}/deliveries`).then((r) => r.data);
 
+export interface PaylinkItem {
+  id: string;
+  description: string;
+  amount: number;      // devise majeure (ex: 15000)
+  currency: string;
+  code: string | null;
+  active: boolean;
+  used: boolean;
+  expired: boolean;
+  totalPaid: number;
+  createdAt: string;
+}
+export const getPaylinks = () => api.get<PaylinkItem[]>('/paylinks').then((r) => r.data);
+
+export interface MerchantProfile {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  companyName: string | null;
+  merchantType: string;
+  country: string | null;
+  website: string | null;
+  createdAt: string;
+}
+export const getMerchantProfile = () =>
+  api.get<MerchantProfile>('/v1/merchant/profile').then((r) => r.data);
+
 /** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
 export const registerPushToken = (token: string) =>
   api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);

@@ -4,12 +4,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from '@/auth';
 import {
   getStats, getSettlements, getApiKeys, getWebhookEndpoints, getWebhookDeliveries,
+  getPaylinks, getMerchantProfile,
   type Stats, type Settlement, type ApiKeyItem, type WebhookEndpoint, type WebhookDelivery,
+  type PaylinkItem, type MerchantProfile,
 } from '@/api';
 import {
   kpis as MOCK_KPIS, realtime as MOCK_RT, merchantTx as MOCK_TX,
   settlement as MOCK_SETTLEMENT, apiKeys as MOCK_KEYS, webhook as MOCK_WEBHOOK,
-  type MerchantTx,
+  payLinks as MOCK_PAYLINKS, merchant as MOCK_MERCHANT,
+  type MerchantTx, type PayLink,
 } from '@/merchant-data';
 
 type Kpi = { key: string; label: string; value: string; unit: string; delta: string; trend: 'up' | 'flat'; hint: string };
@@ -17,6 +20,7 @@ type Realtime = { id: string; name: string; net: 'mtn' | 'airtel'; ago: string; 
 type SettlementView = typeof MOCK_SETTLEMENT;
 type ApiKeysView = typeof MOCK_KEYS;
 type WebhookView = typeof MOCK_WEBHOOK;
+type BusinessView = { business: string; email: string };
 
 type MerchantState = {
   mode: 'live' | 'demo';
@@ -26,6 +30,8 @@ type MerchantState = {
   settlement: SettlementView;
   apiKeys: ApiKeysView;
   webhook: WebhookView;
+  payLinks: PayLink[];
+  business: BusinessView;
   refresh: () => Promise<void>;
 };
 
@@ -103,6 +109,21 @@ function webhookFromLive(endpoints: WebhookEndpoint[], deliveries: WebhookDelive
   };
 }
 
+function payLinksFromList(list: PaylinkItem[]): PayLink[] {
+  if (list.length === 0) return MOCK_PAYLINKS;
+  return list.map((l) => ({
+    id: l.id,
+    title: l.description,
+    detail: `${l.amount.toLocaleString('en-US')} ${l.currency}`,
+    status: l.active ? 'active' : 'disabled',
+    totalPaid: `${l.totalPaid.toLocaleString('en-US')} ${l.currency}`,
+  }));
+}
+
+function businessFromProfile(p: MerchantProfile): BusinessView {
+  return { business: p.companyName ?? p.name, email: p.email ?? '' };
+}
+
 const Ctx = createContext<MerchantState | null>(null);
 
 export function MerchantProvider({ children }: { children: ReactNode }) {
@@ -114,10 +135,12 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
   const [settlement, setSettlement] = useState<SettlementView>(MOCK_SETTLEMENT);
   const [apiKeys, setApiKeys] = useState<ApiKeysView>(MOCK_KEYS);
   const [webhook, setWebhook] = useState<WebhookView>(MOCK_WEBHOOK);
+  const [payLinks, setPayLinks] = useState<PayLink[]>(MOCK_PAYLINKS);
+  const [business, setBusiness] = useState<BusinessView>({ business: MOCK_MERCHANT.business, email: MOCK_MERCHANT.email });
 
   const refresh = useCallback(async () => {
-    const [statsR, setlR, keysR, hooksR] = await Promise.allSettled([
-      getStats(), getSettlements(), getApiKeys(), getWebhookEndpoints(),
+    const [statsR, setlR, keysR, hooksR, linksR, profR] = await Promise.allSettled([
+      getStats(), getSettlements(), getApiKeys(), getWebhookEndpoints(), getPaylinks(), getMerchantProfile(),
     ]);
 
     if (statsR.status === 'fulfilled') {
@@ -144,6 +167,8 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
       }
       setWebhook(webhookFromLive(endpoints, deliveries));
     }
+    if (linksR.status === 'fulfilled') setPayLinks(payLinksFromList(linksR.value));
+    if (profR.status === 'fulfilled') setBusiness(businessFromProfile(profR.value));
 
     // LIVE dès que le cœur (stats) répond ; sinon on garde DEMO.
     if (statsR.status === 'fulfilled') setMode('live');
@@ -160,8 +185,8 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
   }, [auth.ready, auth.role, auth.apiKey, refresh]);
 
   const value = useMemo<MerchantState>(
-    () => ({ mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, refresh }),
-    [mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, refresh],
+    () => ({ mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, refresh }),
+    [mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, refresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

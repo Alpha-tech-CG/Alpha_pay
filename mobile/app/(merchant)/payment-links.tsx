@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow } from '@/design';
 import { StatusPill } from '@/dash';
-import { payLinks as SEED, type PayLink } from '@/merchant-data';
+import { type PayLink } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 export default function PaymentLinks() {
-  const [links, setLinks] = useState<PayLink[]>(SEED);
+  const { payLinks } = useMerchant();
+  const [links, setLinks] = useState<PayLink[]>(payLinks);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Resynchronise quand les liens live arrivent.
+  useEffect(() => { setLinks(payLinks); }, [payLinks]);
 
   const copy = async (l: PayLink) => {
     await Clipboard.setStringAsync(`https://alphapay.africa/pay/${l.id}`);
