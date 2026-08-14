@@ -65,6 +65,33 @@ export class PaylinksService {
     };
   }
 
+  /** Liste les liens de paiement d'un marchand (back-office). */
+  async list(merchantId: string) {
+    const links = await this.prisma.paymentLink.findMany({
+      where: { merchantId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    const now = new Date();
+    return links.map((l) => {
+      const expired = !!l.expiresAt && l.expiresAt < now;
+      const used = !!l.usedAt;
+      return {
+        id: l.id,
+        description: l.description,
+        amount: toMajor(l.amount),
+        currency: l.currency,
+        code: l.code,
+        active: !used && !expired,
+        used,
+        expired,
+        // Lien à usage unique : payé => montant réglé, sinon 0.
+        totalPaid: used ? toMajor(l.amount) : 0,
+        createdAt: l.createdAt,
+      };
+    });
+  }
+
   async findById(id: string) {
     const link = await this.prisma.paymentLink.findUnique({
       where: { id },

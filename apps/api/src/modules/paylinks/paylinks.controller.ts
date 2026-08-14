@@ -19,6 +19,13 @@ export class PaylinksController {
     return this.paylinksService.create(dto, req.merchant.id);
   }
 
+  @Get()
+  @UseGuards(ApiKeyGuard, ScopesGuard)
+  @RequiredScopes('paylinks:read')
+  list(@Req() req: any) {
+    return this.paylinksService.list(req.merchant.id);
+  }
+
   @Get(':id')
   findById(@Param('id') id: string) {
     return this.paylinksService.findById(id);
