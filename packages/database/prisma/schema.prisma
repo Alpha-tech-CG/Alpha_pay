@@ -289,6 +289,7 @@ model Merchant {
   rejectionReason  String?          @map("rejection_reason")
   isActive         Boolean          @default(false) @map("is_active")
   clerkUserId      String?          @unique @map("clerk_user_id")
+  ownerUserId      String?          @map("owner_user_id")
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
   transactions     Transaction[]
@@ -296,6 +297,10 @@ model Merchant {
   apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
   cashierWallets   Wallet[]
+  owner            AppUser?             @relation("MerchantOwner", fields: [ownerUserId], references: [id])
+  members          MerchantMember[]
+  invitations      MerchantInvitation[]
+  memberEvents     MerchantMemberEvent[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -794,4 +799,118 @@ model CurrencyRate {
 
   @@unique([base, quote])
   @@map("currency_rates")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Équipe marchand / multi-tenant (ALP-team). Un utilisateur peut appartenir à
+// plusieurs marchands avec un rôle par marchand. Identité locale = AppUser
+// (miroir Clerk, alimenté par le webhook Clerk). Voir migrations 13/14.
+// ─────────────────────────────────────────────────────────────────────────
+
+enum MerchantMemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+enum MerchantMemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+}
+
+enum MerchantMemberEventType {
+  INVITATION_SENT
+  INVITATION_ACCEPTED
+  INVITATION_REVOKED
+  ROLE_CHANGED
+  MEMBER_SUSPENDED
+  MEMBER_REACTIVATED
+  MEMBER_REMOVED
+  OWNERSHIP_TRANSFERRED
+}
+
+/// Utilisateur local (miroir Clerk). PII chiffrée comme Merchant.
+model AppUser {
+  id             String   @id @default(uuid())
+  clerkUserId    String?  @unique @map("clerk_user_id")
+  emailEncrypted Bytes    @map("email_encrypted")
+  emailHash      Bytes    @unique @map("email_hash")
+  fullName       String?  @map("full_name")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  memberships     MerchantMember[]
+  invitationsSent MerchantInvitation[]  @relation("InvitedBy")
+  memberEvents    MerchantMemberEvent[] @relation("Actor")
+  ownedMerchants  Merchant[]            @relation("MerchantOwner")
+
+  @@map("app_users")
+}
+
+/// Appartenance d'un utilisateur à un marchand (source de vérité).
+model MerchantMember {
+  id          String               @id @default(uuid())
+  merchantId  String               @map("merchant_id")
+  userId      String               @map("user_id")
+  role        MerchantMemberRole   @default(MEMBER)
+  status      MerchantMemberStatus @default(INVITED)
+  invitedAt   DateTime?            @map("invited_at")
+  joinedAt    DateTime?            @map("joined_at")
+  suspendedAt DateTime?            @map("suspended_at")
+  removedAt   DateTime?            @map("removed_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  user     AppUser  @relation(fields: [userId], references: [id])
+
+  // NB : un index unique PARTIEL « un seul OWNER actif par marchand » est créé
+  // dans la migration SQL (Prisma ne gère pas les index partiels).
+  @@unique([merchantId, userId])
+  @@index([merchantId, status])
+  @@index([userId, status])
+  @@map("merchant_members")
+}
+
+/// Invitation par e-mail. Token JAMAIS stocké en clair (SHA-256).
+model MerchantInvitation {
+  id             String             @id @default(uuid())
+  merchantId     String             @map("merchant_id")
+  emailHash      Bytes              @map("email_hash")
+  emailEncrypted Bytes              @map("email_encrypted")
+  role           MerchantMemberRole @default(MEMBER)
+  tokenHash      String             @unique @map("token_hash")
+  invitedById    String             @map("invited_by")
+  expiresAt      DateTime           @map("expires_at")
+  acceptedAt     DateTime?          @map("accepted_at")
+  revokedAt      DateTime?          @map("revoked_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  merchant  Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invitedBy AppUser  @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  // Index partiel « une seule invitation en attente par (marchand,email) » → migration SQL.
+  @@index([merchantId])
+  @@map("merchant_invitations")
+}
+
+/// Journal d'audit append-only des actions d'équipe.
+model MerchantMemberEvent {
+  id          String                  @id @default(uuid())
+  merchantId  String                  @map("merchant_id")
+  memberId    String?                 @map("member_id")
+  actorUserId String?                 @map("actor_user_id")
+  eventType   MerchantMemberEventType @map("event_type")
+  metadata    Json                    @default("{}")
+  createdAt   DateTime                @default(now()) @map("created_at")
+
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  actor    AppUser? @relation("Actor", fields: [actorUserId], references: [id])
+
+  @@index([merchantId, createdAt])
+  @@map("merchant_member_events")
 }
