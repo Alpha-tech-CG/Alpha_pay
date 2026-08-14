@@ -2,9 +2,10 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AP, soft, radius, shadow } from '@/design';
 import { Card, SectionTitle, StatusPill } from '@/dash';
-import { settlement } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 export default function Settlement() {
+  const { settlement } = useMerchant();
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>

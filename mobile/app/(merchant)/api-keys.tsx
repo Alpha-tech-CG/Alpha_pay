@@ -6,7 +6,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow, font } from '@/design';
 import { Segmented } from '@/dash';
-import { apiKeys } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 function KeyCard({ title, desc, value, secret }: { title: string; desc: string; value: string; secret?: boolean }) {
   const [reveal, setReveal] = useState(!secret);
@@ -37,6 +37,7 @@ function KeyCard({ title, desc, value, secret }: { title: string; desc: string; 
 
 export default function ApiKeys() {
   const router = useRouter();
+  const { apiKeys } = useMerchant();
   const [env, setEnv] = useState('Live');
   return (
     <SafeAreaView style={s.root} edges={['top']}>

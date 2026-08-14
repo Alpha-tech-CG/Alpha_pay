@@ -69,6 +69,40 @@ export interface Settlement {
 
 export const getSettlements = () => api.get<Settlement[]>('/v1/settlements').then((r) => r.data);
 
+export interface ApiKeyItem {
+  id: string;
+  name: string;
+  mode: string;       // 'live' | 'test'
+  prefix: string;     // ex: 'pk_live_51P8vBq' — le secret complet n'est jamais renvoyé
+  scopes: string[];
+  revoked: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+export const getApiKeys = () => api.get<ApiKeyItem[]>('/v1/api-keys').then((r) => r.data);
+
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  events: string[];
+  status: string;
+  secret: string;
+  createdAt: string;
+}
+export const getWebhookEndpoints = () =>
+  api.get<WebhookEndpoint[]>('/v1/webhook-endpoints').then((r) => r.data);
+
+export interface WebhookDelivery {
+  id: string;
+  event: string;
+  status: string;
+  responseStatus: number | null;
+  attempts: number;
+  createdAt: string;
+}
+export const getWebhookDeliveries = (id: string) =>
+  api.get<WebhookDelivery[]>(`/v1/webhook-endpoints/${id}/deliveries`).then((r) => r.data);
+
 /** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
 export const registerPushToken = (token: string) =>
   api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);

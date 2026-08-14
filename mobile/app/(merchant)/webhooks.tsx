@@ -3,10 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow, font } from '@/design';
-import { webhook } from '@/merchant-data';
+import { useMerchant } from '@/merchant-store';
 
 export default function Webhooks() {
   const router = useRouter();
+  const { webhook } = useMerchant();
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
