@@ -30,6 +30,7 @@
 | `a00a989` | **Étape A — Auth Clerk + sync `app_users`**. `@clerk/backend` installé. `apps/api/src/modules/team/auth/` : `clerk-session.guard.ts` (vérifie le Bearer via `verifyToken`, charge/upsert `app_users`, pose `req.appUser`), `require-member.guard.ts` (membership ACTIVE par `:merchantId` du path uniquement, pose `req.membership`), `require-action.decorator.ts` + `require-action.guard.ts` (`@RequireAction('team:invite')` → `can()`), `team-auth.module.ts` (exporte les 3 guards, pas encore importé dans `AppModule` — aucun controller ne les utilise avant l'étape C). `apps/api/src/modules/users/users.service.ts` (`upsertFromClerk`, `findByClerkUserId`, `markDeletedByClerkUserId` — ne supprime jamais la ligne, détache juste `clerk_user_id`). Webhook Clerk existant étendu : `user.created` (déjà présent) synchronise maintenant aussi `app_users`, + nouveaux handlers `user.updated`/`user.deleted` branchés dans `clerk-webhook.controller.ts`. | `tsc` propre, 300/300 tests verts (25 nouveaux) |
 | `edefcc4` | **Étape B — Services transactionnels**. `apps/api/src/modules/team/services/` : `member-events.service.ts` (audit append-only, `record(tx, …)` exige un client de transaction) ; `members.service.ts` (`list`/`changeRole`/`suspend`/`reactivate`/`remove`, `$transaction` + anti-escalade `canActOn` + garde « dernier OWNER » défensive) ; `invitations.service.ts` (`create`/`list`/`revoke`/`preview`/`accept`, token 32o aléatoire → hash SHA-256, expiration 7j, email `team.invitation` via `NotificationService`, `accept()` vérifie l'email du compte Clerk vs celui invité) ; `ownership.service.ts` (`transfer` ordonné : démet l'ancien OWNER avant de promouvoir le nouveau, re-vérifie l'OWNER actif contre la DB). `team-services.module.ts` exporte les 4 services, pas encore importé dans `AppModule` (attend l'étape C). | `tsc` propre, 339/339 tests verts (39 nouveaux) |
 | `cced4cf` | **Étape C — Controllers + DTOs + module, `TeamModule` enregistré dans `AppModule`**. `team.controller.ts` (list/changeRole/suspend/reactivate/remove/events), `invitations.controller.ts` (create/list/revoke, gate `team:invite` route + `team:invite_admin` fin dans le service), `ownership.controller.ts` (transfer), `invitations-public.controller.ts` (`GET /v1/invitations/:token` public + `POST /v1/invitations/accept` Clerk seul sans membership), `team-members-readonly.controller.ts` (`GET /v1/team/members` sous `ApiKeyGuard`, décision 2A mobile). DTOs `class-validator` dans `dto/` (rôles assignables excluent OWNER). Nouvelle action RBAC `team:audit` (ADMIN min). `main.ts` : schéma Swagger `Bearer` ajouté. **Fix DI important** : `UsersModule` passé `@Global()` (comme `DatabaseModule`/`NotificationModule`) — `ClerkSessionGuard` en dépend et Nest ne le résolvait pas depuis `TeamModule` sinon ; détecté en bootant le graphe DI complet via `Test.createTestingModule({imports:[AppModule]})` (les tests unitaires instancient les classes directement et ne l'auraient pas capté — **toujours faire ce check après avoir enregistré un nouveau module dans `AppModule`**). | `tsc` propre, 351/351 tests verts (39 nouveaux), graphe DI validé |
+| `50c6f5b` | **Étape D — Infra + tests e2e HTTP** (première infra e2e du repo, `apps/api/test/`). `utils/app.ts` boote le VRAI `AppModule` via `Test.createTestingModule` (donc revalide le graphe DI à chaque run — plus jamais besoin d'un script jetable). `utils/seed.ts` : fixtures réelles (merchant/app_user/membership/clé API). 3 fichiers × 27 tests contre Postgres réel (`paybrain_test`) : guards 401/403, `merchantId` body/query ignoré, anti-escalade et garde dernier-OWNER en conditions réelles, contrainte d'index partiel « 1 invitation pending » (409 réel), invite→accept avec repli `ClerkSessionGuard` (nouvel utilisateur Clerk jamais vu), transfert de propriété atomique (1 seul OWNER actif vérifié en DB après coup). Seuls `@clerk/backend` (réseau Clerk) et `NotificationService` (email) sont stubés — guards/services/DB restent réels. **Base de test créée manuellement** (`paybrain_test`, schéma cloné de la base dev via `pg_dump --schema-only`, PAS via `prisma migrate deploy` — bloqué par un bug préexistant hors sujet sur la migration 12, tâche flag séparément, cf. §10 pour la recréer). | `tsc` propre (src+e2e), 351/351 unitaires + 27/27 e2e verts |
 
 **État DB dev** : les 4 tables existent, l'index unique **partiel** `merchant_members_one_active_owner` (un seul OWNER actif/marchand) et `merchant_invitations_one_pending` (une seule invitation en attente/(marchand,email)) sont créés. Backfill migration 14 : idempotent, n'a rien converti en dev (le seul marchand n'a pas de `clerk_user_id`).
 
@@ -49,13 +50,9 @@ Fichiers clés déjà en place :
 
 ### Étape C — Controllers + DTOs + module — ✅ FAIT (`cced4cf`, cf. §1)
 
-### Étape D — Tests d'intégration end-to-end  ← COMMENCER ICI
-Les étapes A/B/C ont déjà de nombreux tests **unitaires** verts (guards/services/controllers avec Prisma mocké — 351/351 au total sur le repo, cf. §1). Ce qui manque et que des mocks ne peuvent PAS couvrir :
-- **Le graphe DI réel** (déjà piégé une fois : `UsersModule` non-`@Global()` cassait la résolution de `ClerkSessionGuard` depuis `TeamModule`, invisible en unitaire). Avant de considérer une étape « terminée » après avoir touché `app.module.ts`, faire tourner un check DI complet : `Test.createTestingModule({ imports: [AppModule] }).compile()` (voir commit `cced4cf` pour un exemple de script jetable via `ts-node`).
-- **Les contraintes DB réelles** (Postgres) : index partiels (1 seul OWNER actif, 1 invitation pending), `FOR UPDATE` dans `guardLastOwner`/`accept`, transactions `$transaction` bout-en-bout.
-- **HTTP end-to-end** (supertest, cf. `apps/api/test/jest-e2e.json`) contre une vraie DB de test : Clerk token invalide → 401 ; pas de membership → 403 ; `merchantId` du body/query ignoré (seul le path fait foi) ; invitation → accept → membership ACTIVE ; transfert de propriété → ancien OWNER redevient ADMIN.
+### Étape D — Tests d'intégration end-to-end — ✅ FAIT (`50c6f5b`, cf. §1)
 
-### Étape E — Frontend
+### Étape E — Frontend  ← COMMENCER ICI
 - **Web dashboard** (le vrai dashboard sous Clerk ; sinon `apps/prototype/src/app/merchant/team/page.tsx` + `apps/prototype/src/app/invite/page.tsx`) : liste, inviter, changer rôle, suspendre/retirer, transfert, acceptation. Actions masquées selon un **miroir client** de `can()` (UI only, jamais autoritatif).
 - **Mobile (`mobile/`)** : `app/(merchant)/team.tsx` **lecture seule** branché sur `GET .../members` (via `MerchantProvider`/`useMerchant` → ajouter `team` live + repli mock). Remplacer le bloc « Team Members » mock de `app/(merchant)/settings.tsx` par un lien vers cet écran.
 
@@ -99,7 +96,7 @@ Auth utilisateur = **Clerk (Bearer)** sauf le GET mobile (ApiKey). `:merchantId`
 
 ## 5. RBAC (déjà codé dans `permissions.ts`)
 
-`can(role, action)` — actions : `team:view, team:invite, team:invite_admin, team:change_role, team:suspend, team:remove, ownership:transfer, payments:view, paylinks:write, apikeys:write, webhooks:write, payouts:request`.
+`can(role, action)` — actions : `team:view, team:invite, team:invite_admin, team:change_role, team:suspend, team:remove, team:audit, ownership:transfer, payments:view, paylinks:write, apikeys:write, webhooks:write, payouts:request`. (`team:audit` ajouté à l'étape C pour `GET .../members/events`, ADMIN min.)
 `canActOn(actor, target)` = rang acteur > rang cible. `canAssignRole(actor, newRole)` = newRole < acteur et ≠ OWNER.
 Matrice : voir `docs` design + le fichier. OWNER=4 > ADMIN=3 > MANAGER=2 > MEMBER=1 > VIEWER=0.
 
@@ -163,8 +160,19 @@ docker compose up -d postgres
 cd packages/database && DATABASE_URL="postgresql://postgres:postgres@localhost:5433/paybrain" npx prisma migrate deploy
 DATABASE_URL="postgresql://postgres:postgres@localhost:5433/paybrain" npx prisma generate
 
-# Backend : typecheck + tests (obligatoire avant commit)
+# Backend : typecheck + tests unitaires (obligatoire avant commit)
 cd apps/api && npx tsc --noEmit && npx jest --runInBand
+
+# Backend : tests e2e (nécessite la base paybrain_test — cf. ci-dessous si absente)
+cd apps/api && npm run test:e2e
+
+# Recréer paybrain_test si absente/désynchronisée (prisma migrate deploy depuis zéro
+# est CASSÉ par un bug préexistant sur la migration 12, hors sujet team — tâche flag
+# séparément). Clone du schéma de la base dev via pg_dump, PAS de replay de migrations :
+docker exec alphapay-postgres-1 psql -U postgres -c "DROP DATABASE IF EXISTS paybrain_test;"
+docker exec alphapay-postgres-1 psql -U postgres -c "CREATE DATABASE paybrain_test;"
+docker exec alphapay-postgres-1 pg_dump -U postgres --schema-only -d paybrain \
+  | docker exec -i alphapay-postgres-1 psql -U postgres -d paybrain_test
 
 # Mobile : typecheck
 cd mobile && npx tsc --noEmit
@@ -176,4 +184,4 @@ git commit -F message.txt
 ---
 
 ## 11. Prochaine action concrète pour l'agent qui reprend
-> **Étape D ci-dessus** : tests d'intégration end-to-end HTTP (supertest, `apps/api/test/`) contre une vraie DB de test — parcours complets (invite → accept → membership ACTIVE ; transfert de propriété ; anti-escalade en conditions réelles ; `merchantId` du body ignoré). Avant toute chose, si l'agent modifie encore `app.module.ts` ou les imports entre modules `team/*`, refaire le check DI complet (`Test.createTestingModule({ imports: [AppModule] }).compile()`) — c'est le seul moyen de détecter une régression comme celle du `UsersModule` non-`@Global()` (commit `cced4cf`), invisible aux tests unitaires qui instancient les classes directement. Vérifier `tsc` + `npx jest --runInBand` (100% verts). Committer. Puis Étape E (frontend web + mobile).
+> **Étape E ci-dessus** : frontend. Web dashboard (liste/inviter/changer rôle/suspendre-retirer/transfert/acceptation, actions masquées par un miroir client de `can()` — jamais autoritatif) puis mobile lecture seule (`app/(merchant)/team.tsx` branché sur `GET /v1/team/members`, clé API déjà en place côté client mobile). Le backend est **entièrement fonctionnel et testé** (étapes A-D) : tous les endpoints du §4 répondent, cf. `apps/api/test/team/*.e2e-spec.ts` pour des exemples de requêtes/réponses attendues par endpoint. Si l'agent touche encore `app.module.ts` ou les imports entre modules `team/*`, les tests e2e (`npm run test:e2e` dans `apps/api`) bootent déjà le vrai `AppModule` à chaque run — plus besoin d'un script DI jetable, ils font office de garde-fou permanent contre une régression comme celle du `UsersModule` non-`@Global()` (commit `cced4cf`). Vérifier `tsc` + `npx jest --runInBand` (100% verts) + `npm run test:e2e` (nécessite `paybrain_test`, cf. §10 pour la recréer). Committer.
