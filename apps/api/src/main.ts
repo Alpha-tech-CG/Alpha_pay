@@ -194,6 +194,7 @@ async function bootstrap() {
     .setVersion("1.0")
     .setOpenAPIVersion("3.1.0")
     .addApiKey({ type: "apiKey", name: "X-API-Key", in: "header" }, "ApiKey")
+    .addBearerAuth({ type: "http", scheme: "bearer" }, "Bearer")
     .addTag("Paiements", "Initier et suivre les paiements mobile money")
     .addTag(
       "Liens de paiement",

@@ -20,6 +20,7 @@ import { ClerkModule } from './modules/clerk/clerk.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
+import { TeamModule } from './modules/team/team.module';
 import { DatabaseModule } from './database.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { DatabaseModule } from './database.module';
     OnboardingModule,
     WalletModule,
     MerchantModule,
+    TeamModule,
   ],
 })
 export class AppModule {}

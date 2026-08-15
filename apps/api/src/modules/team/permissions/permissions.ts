@@ -15,6 +15,7 @@ export type MemberAction =
   | 'team:change_role'
   | 'team:suspend'
   | 'team:remove'
+  | 'team:audit'
   | 'ownership:transfer'
   | 'payments:view'
   | 'paylinks:write'
@@ -43,6 +44,7 @@ const MATRIX: Record<MemberAction, readonly MemberRole[]> = {
   'team:change_role': ['OWNER', 'ADMIN'],
   'team:suspend': ['OWNER', 'ADMIN'],
   'team:remove': ['OWNER', 'ADMIN'],
+  'team:audit': ['OWNER', 'ADMIN'],
   'ownership:transfer': ['OWNER'],
   'payments:view': ['OWNER', 'ADMIN', 'MANAGER', 'MEMBER', 'VIEWER'],
   'paylinks:write': ['OWNER', 'ADMIN', 'MANAGER'],

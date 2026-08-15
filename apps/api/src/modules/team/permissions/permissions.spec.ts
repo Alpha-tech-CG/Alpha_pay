@@ -15,8 +15,8 @@ describe('RBAC équipe marchand', () => {
     });
   });
 
-  it('seuls OWNER/ADMIN gèrent les membres (change_role/suspend/remove)', () => {
-    (['team:change_role', 'team:suspend', 'team:remove'] as const).forEach((a) => {
+  it('seuls OWNER/ADMIN gèrent les membres (change_role/suspend/remove/audit)', () => {
+    (['team:change_role', 'team:suspend', 'team:remove', 'team:audit'] as const).forEach((a) => {
       expect(can('OWNER', a)).toBe(true);
       expect(can('ADMIN', a)).toBe(true);
       expect(can('MANAGER', a)).toBe(false);
