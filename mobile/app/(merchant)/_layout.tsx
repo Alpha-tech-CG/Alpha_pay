@@ -47,6 +47,7 @@ export default function MerchantLayout() {
       {/* Écrans poussés (hors barre) */}
       <Tabs.Screen name="api-keys" options={{ href: null }} />
       <Tabs.Screen name="webhooks" options={{ href: null }} />
+      <Tabs.Screen name="team" options={{ href: null }} />
     </Tabs>
     </MerchantProvider>
   );

@@ -130,6 +130,21 @@ export interface MerchantProfile {
 export const getMerchantProfile = () =>
   api.get<MerchantProfile>('/v1/merchant/profile').then((r) => r.data);
 
+export interface TeamMember {
+  id: string;
+  userId: string;
+  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
+  status: string;
+  email: string | null;
+  fullName: string | null;
+  invitedAt: string | null;
+  joinedAt: string | null;
+  suspendedAt: string | null;
+}
+/** Lecture seule (décision 2A du handoff Team Members) — le mobile n'embarque pas Clerk. */
+export const getTeamMembers = () =>
+  api.get<TeamMember[]>('/v1/team/members').then((r) => r.data);
+
 /** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
 export const registerPushToken = (token: string) =>
   api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);

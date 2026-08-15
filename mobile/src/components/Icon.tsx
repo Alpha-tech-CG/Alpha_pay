@@ -17,7 +17,7 @@ import {
   BadgeCheck, KeyRound, Server, Fingerprint, MonitorSmartphone, Phone, Globe,
   MessageCircle, Link2, User, Eye, EyeOff, Circle, type LucideIcon,
   LayoutDashboard, ShoppingBag, BarChart3, Moon, Languages, Edit3,
-  SlidersHorizontal, Bell as BellIcon,
+  SlidersHorizontal, Bell as BellIcon, Users,
 } from 'lucide-react-native';
 
 const MAP: Record<string, LucideIcon> = {
@@ -25,6 +25,7 @@ const MAP: Record<string, LucideIcon> = {
   'account-balance': Landmark,
   'account-balance-wallet': Wallet,
   'account-circle': CircleUserRound,
+  'account-multiple': Users,
   add: Plus,
   'add-circle': PlusCircle,
   'arrow-back': ArrowLeft,

@@ -4,14 +4,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from '@/auth';
 import {
   getStats, getSettlements, getApiKeys, getWebhookEndpoints, getWebhookDeliveries,
-  getPaylinks, getMerchantProfile,
+  getPaylinks, getMerchantProfile, getTeamMembers,
   type Stats, type Settlement, type ApiKeyItem, type WebhookEndpoint, type WebhookDelivery,
-  type PaylinkItem, type MerchantProfile,
+  type PaylinkItem, type MerchantProfile, type TeamMember,
 } from '@/api';
 import {
   kpis as MOCK_KPIS, realtime as MOCK_RT, merchantTx as MOCK_TX,
   settlement as MOCK_SETTLEMENT, apiKeys as MOCK_KEYS, webhook as MOCK_WEBHOOK,
-  payLinks as MOCK_PAYLINKS, merchant as MOCK_MERCHANT,
+  payLinks as MOCK_PAYLINKS, merchant as MOCK_MERCHANT, team as MOCK_TEAM,
   type MerchantTx, type PayLink,
 } from '@/merchant-data';
 
@@ -21,6 +21,7 @@ type SettlementView = typeof MOCK_SETTLEMENT;
 type ApiKeysView = typeof MOCK_KEYS;
 type WebhookView = typeof MOCK_WEBHOOK;
 type BusinessView = { business: string; email: string };
+type TeamMemberView = { id: string; name: string; role: string; badge: string; initials?: string; avatar?: string };
 
 type MerchantState = {
   mode: 'live' | 'demo';
@@ -32,6 +33,7 @@ type MerchantState = {
   webhook: WebhookView;
   payLinks: PayLink[];
   business: BusinessView;
+  team: TeamMemberView[];
   refresh: () => Promise<void>;
 };
 
@@ -124,6 +126,31 @@ function businessFromProfile(p: MerchantProfile): BusinessView {
   return { business: p.companyName ?? p.name, email: p.email ?? '' };
 }
 
+const ROLE_LABEL: Record<TeamMember['role'], string> = {
+  OWNER: 'Owner', ADMIN: 'Admin', MANAGER: 'Manager', MEMBER: 'Member', VIEWER: 'Viewer',
+};
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase() || '?';
+}
+
+function teamFromLive(members: TeamMember[]): TeamMemberView[] {
+  if (members.length === 0) return MOCK_TEAM;
+  return members.map((m) => {
+    const name = m.fullName || m.email || 'Team member';
+    return {
+      id: m.id,
+      name,
+      role: ROLE_LABEL[m.role] ?? m.role,
+      badge: m.status === 'SUSPENDED' ? 'Suspended' : m.role === 'OWNER' ? 'Owner' : '',
+      initials: initialsOf(name),
+    };
+  });
+}
+
 const Ctx = createContext<MerchantState | null>(null);
 
 export function MerchantProvider({ children }: { children: ReactNode }) {
@@ -137,10 +164,11 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
   const [webhook, setWebhook] = useState<WebhookView>(MOCK_WEBHOOK);
   const [payLinks, setPayLinks] = useState<PayLink[]>(MOCK_PAYLINKS);
   const [business, setBusiness] = useState<BusinessView>({ business: MOCK_MERCHANT.business, email: MOCK_MERCHANT.email });
+  const [team, setTeam] = useState<TeamMemberView[]>(MOCK_TEAM);
 
   const refresh = useCallback(async () => {
-    const [statsR, setlR, keysR, hooksR, linksR, profR] = await Promise.allSettled([
-      getStats(), getSettlements(), getApiKeys(), getWebhookEndpoints(), getPaylinks(), getMerchantProfile(),
+    const [statsR, setlR, keysR, hooksR, linksR, profR, teamR] = await Promise.allSettled([
+      getStats(), getSettlements(), getApiKeys(), getWebhookEndpoints(), getPaylinks(), getMerchantProfile(), getTeamMembers(),
     ]);
 
     if (statsR.status === 'fulfilled') {
@@ -169,6 +197,7 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
     }
     if (linksR.status === 'fulfilled') setPayLinks(payLinksFromList(linksR.value));
     if (profR.status === 'fulfilled') setBusiness(businessFromProfile(profR.value));
+    if (teamR.status === 'fulfilled') setTeam(teamFromLive(teamR.value));
 
     // LIVE dès que le cœur (stats) répond ; sinon on garde DEMO.
     if (statsR.status === 'fulfilled') setMode('live');
@@ -185,8 +214,8 @@ export function MerchantProvider({ children }: { children: ReactNode }) {
   }, [auth.ready, auth.role, auth.apiKey, refresh]);
 
   const value = useMemo<MerchantState>(
-    () => ({ mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, refresh }),
-    [mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, refresh],
+    () => ({ mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, team, refresh }),
+    [mode, kpis, realtime, merchantTx, settlement, apiKeys, webhook, payLinks, business, team, refresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
