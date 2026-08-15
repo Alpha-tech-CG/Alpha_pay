@@ -8,7 +8,7 @@ import { ClerkWebhookService } from './clerk-webhook.service';
  *
  * Configurer dans la console Clerk :
  *   URL      → https://api.paybrain.cg/webhooks/clerk
- *   Événements → user.created
+ *   Événements → user.created, user.updated, user.deleted
  */
 @Controller('webhooks/clerk')
 @UseGuards(ClerkWebhookGuard)
@@ -21,6 +21,10 @@ export class ClerkWebhookController {
     const event = req.clerkEvent as { type: string; data: unknown };
     if (event.type === 'user.created') {
       await this.service.handleUserCreated(event.data as any);
+    } else if (event.type === 'user.updated') {
+      await this.service.handleUserUpdated(event.data as any);
+    } else if (event.type === 'user.deleted') {
+      await this.service.handleUserDeleted(event.data as any);
     }
     // Les autres types d'événements sont ACK 200 sans traitement.
     return { received: true };
