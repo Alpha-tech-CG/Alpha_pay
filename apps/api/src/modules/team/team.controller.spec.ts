@@ -18,10 +18,10 @@ function makeController() {
 const REQ = { appUser: { id: 'u1' }, membership: { merchantId: 'm1', role: 'ADMIN' } };
 
 describe('TeamController (mutations équipe, dashboard web)', () => {
-  it('list() délègue à MembersService.list(merchantId)', async () => {
+  it('list() délègue à MembersService.list(merchantId, viewerRole)', async () => {
     const { controller, members } = makeController();
-    await controller.list('m1');
-    expect(members.list).toHaveBeenCalledWith('m1');
+    await controller.list('m1', REQ as any);
+    expect(members.list).toHaveBeenCalledWith('m1', 'ADMIN');
   });
 
   it('listEvents() délègue à MemberEventsService.list(merchantId)', async () => {

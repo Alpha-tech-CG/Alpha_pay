@@ -17,6 +17,8 @@ export class TeamMembersReadonlyController {
 
   @Get()
   list(@Req() req: any) {
-    return this.members.list(req.merchant.id);
+    // La clé API représente le marchand entier (même confiance que
+    // GET /v1/merchant/profile, déjà en clair) : email non masqué.
+    return this.members.list(req.merchant.id, 'OWNER');
   }
 }

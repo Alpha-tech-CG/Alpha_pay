@@ -91,6 +91,24 @@ describe('Team Members — HTTP e2e', () => {
       expect(res.body).toHaveLength(4);
       expect(res.body.map((m: { role: string }) => m.role).sort()).toEqual(['ADMIN', 'MANAGER', 'MEMBER', 'OWNER']);
     });
+
+    it("masque l'email pour un viewer MEMBER, le montre en clair pour un viewer ADMIN (durcissement étape F)", async () => {
+      const asMember = await request(app.getHttpServer())
+        .get(`/v1/merchants/${merchantId}/members`)
+        .set('Authorization', bearer(member.clerkUserId))
+        .expect(200);
+      const asAdmin = await request(app.getHttpServer())
+        .get(`/v1/merchants/${merchantId}/members`)
+        .set('Authorization', bearer(admin.clerkUserId))
+        .expect(200);
+
+      const ownerAsSeenByMember = asMember.body.find((m: { userId: string }) => m.userId === owner.id);
+      const ownerAsSeenByAdmin = asAdmin.body.find((m: { userId: string }) => m.userId === owner.id);
+
+      expect(ownerAsSeenByMember.email).toMatch(/\*/);
+      expect(ownerAsSeenByMember.email).not.toBe(owner.email);
+      expect(ownerAsSeenByAdmin.email).toBe(owner.email);
+    });
   });
 
   describe('changeRole', () => {

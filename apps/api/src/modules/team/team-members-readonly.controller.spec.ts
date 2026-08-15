@@ -9,6 +9,7 @@ describe('TeamMembersReadonlyController (mobile, ApiKeyGuard)', () => {
 
     await controller.list(req as any);
 
-    expect(members.list).toHaveBeenCalledWith('m1');
+    // Clé API = confiance marchand complète : pas de masquage (viewerRole 'OWNER').
+    expect(members.list).toHaveBeenCalledWith('m1', 'OWNER');
   });
 });

@@ -58,9 +58,19 @@ Fichiers clés déjà en place :
 - **Web dashboard**. **Correction importante** : le « vrai dashboard sous Clerk » n'est PAS `apps/prototype` (ça, c'est un mockup HTML statique sans aucun appel API ni Clerk) — c'est le dossier **`dashboard/`** à la racine du repo (Vite + `@clerk/clerk-react` + React Router, port 5174, proxy `/api` → `apps/api` sur le port 3000). Si un futur agent voit à nouveau mentionner « apps/prototype » pour le dashboard, c'est une erreur à corriger dans ce document.
 - **Mobile (`mobile/`)** : `app/(merchant)/team.tsx` lecture seule branché sur `GET /v1/team/members` via `MerchantProvider`/`useMerchant` (même pattern `Promise.allSettled` + repli mock par section que les autres écrans marchand). Lien depuis `app/(merchant)/settings.tsx` (bloc mock remplacé).
 
-### Étape F — Durcissement + contract  ← COMMENCER ICI
-- Rate-limit invitations, masquage email selon rôle, revue sécurité (charte 5 niveaux), pen-test des endpoints.
-- **Migration ultérieure (contract)** : retirer l'unicité `merchants.clerk_user_id` (le 1:1 Clerk↔marchand) une fois le code basculé sur `app_users`. **NE PAS** le faire avant la bascule complète (expand/contract).
+### Étape F — Durcissement — ✅ FAIT (commit à suivre, cf. §1) ; migration contract reste à faire
+
+**Durcissement livré** :
+- **Rate-limit invitations** : `main.ts`, limiteur dédié `POST /v1/merchants/:merchantId/members/invitations` (10/heure/IP, `skip` laisse passer GET/DELETE sur le même chemin). Vérifié manuellement (build + `node dist/main.js`) : 11ᵉ requête POST → 429, GET non affecté.
+- **Masquage email selon rôle** : `MembersService.list(merchantId, viewerRole)` — seuls les rôles habilités à gérer l'équipe (`can(viewerRole,'team:invite')` → OWNER/ADMIN/MANAGER) voient l'email en clair ; MEMBER/VIEWER voient `maskEmail()`. Propagé aux deux appelants : `team.controller.ts` (rôle réel du membership) et `team-members-readonly.controller.ts` (clé API mobile = confiance marchand complète, comme `GET /v1/merchant/profile` déjà en clair → `'OWNER'`). Testé unitairement + e2e (`team-members.e2e-spec.ts`).
+- **Revue sécurité (charte 5 niveaux, mémoire `security-charter`)** appliquée à tous les endpoints Team :
+  - *Périmètre & Entrée* : hérite du CORS/Helmet/body-guard (≤8 KiB) globaux ; rate-limit dédié ajouté ci-dessus.
+  - *AuthN/AuthZ* : `merchantId` **jamais** lu ailleurs que le path (`RequireMemberGuard`, testé e2e) ; RBAC serveur = seule source de vérité (`can`/`canActOn`/`canAssignRole`), le miroir client (dashboard) n'est qu'un confort UI. Token d'invitation : SHA-256 sur 256 bits d'aléa (`randomBytes(32)`) — volontairement PAS Argon2id (utile contre un secret *devinable*, sans objet ici vu l'entropie ; Argon2id reste réservé aux clés API/mots de passe). 4-eyes (transfert de propriété) délibérément hors périmètre — décision produit existante, à revisiter séparément si besoin.
+  - *Intégrité & Données* : email chiffré AES-256-GCM (`pii-crypto`, inchangé) ; invariants « 1 seul OWNER actif » / « 1 invitation pending » appliqués par index partiels Postgres (race-safe, pas de CAS applicatif nécessaire) ; toute requête `$queryRaw` (garde dernier-owner, lock d'acceptation) est paramétrée (template taggé Prisma) — aucune concaténation SQL.
+  - *Ops & Audit* : `merchant_member_events` journalise déjà chaque mutation sensible (étape B) ; Swagger masqué en prod hérité du flag global ; 100 % tests verts + `tsc` clean maintenus à chaque commit.
+- **Pen-test manuel** : bypass merchantId (body/query ignoré — e2e), anti-escalade réelle (pair/soi-même/dernier owner — e2e), rate-limit (vérifié ci-dessus), messages d'erreur d'invitation génériques (`preview`/`accept` ne distinguent pas « token inconnu » de « déjà utilisé » côté timing/contenu au-delà du statut fonctionnel), aucune injection SQL possible (requêtes paramétrées revues).
+
+**Reste** : **migration contract** — retirer l'unicité `merchants.clerk_user_id` (le 1:1 Clerk↔marchand) une fois le code basculé sur `app_users`. **NE PAS** le faire avant la bascule complète (expand/contract) ; aucune bascule engagée à ce jour, donc rien à faire dans l'immédiat sauf décision produit explicite de lancer cette migration.
 
 ---
 

@@ -133,6 +133,21 @@ async function bootstrap() {
     }),
   );
 
+  // Création d'invitations équipe : limite stricte (anti-spam/anti-énumération
+  // de l'index partiel « 1 invitation pending »), ALP-team étape F. `skip`
+  // laisse passer GET/DELETE sur ce même chemin (list/revoke), non concernés.
+  app.use(
+    "/v1/merchants/:merchantId/members/invitations",
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      limit: 10,
+      standardHeaders: true,
+      legacyHeaders: false,
+      skip: (req) => req.method !== "POST",
+      message: { message: "Trop d'invitations envoyées, réessayez plus tard." },
+    }),
+  );
+
   // /v1/onboarding : formulaire public — limite anti-spam (5 inscriptions / 15 min / IP)
   app.use(
     '/v1/onboarding',

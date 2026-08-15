@@ -1,7 +1,7 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@paybrain/database';
-import { decryptField } from '../../../common/security/pii-crypto';
-import { canActOn, canAssignRole, MemberRole } from '../permissions/permissions';
+import { decryptField, maskEmail } from '../../../common/security/pii-crypto';
+import { can, canActOn, canAssignRole, MemberRole } from '../permissions/permissions';
 import { MemberEventsService } from './member-events.service';
 
 export interface TeamActor {
@@ -34,23 +34,33 @@ export class MembersService {
     private readonly events: MemberEventsService,
   ) {}
 
-  async list(merchantId: string): Promise<MemberSummary[]> {
+  /**
+   * `viewerRole` détermine si l'email est renvoyé en clair ou masqué
+   * (durcissement étape F) : seuls les rôles habilités à gérer l'équipe
+   * (`team:invite` → MANAGER+) voient l'email complet des membres, les
+   * autres (MEMBER/VIEWER) ne voient qu'un email masqué (`je***@ex.com`).
+   */
+  async list(merchantId: string, viewerRole: MemberRole): Promise<MemberSummary[]> {
     const members = await this.prisma.merchantMember.findMany({
       where: { merchantId, status: { not: 'REMOVED' } },
       include: { user: true },
       orderBy: { createdAt: 'asc' },
     });
-    return members.map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      role: m.role as MemberRole,
-      status: m.status,
-      email: m.user.emailEncrypted ? decryptField(m.user.emailEncrypted as unknown as Buffer) : null,
-      fullName: m.user.fullName,
-      invitedAt: m.invitedAt,
-      joinedAt: m.joinedAt,
-      suspendedAt: m.suspendedAt,
-    }));
+    const revealEmail = can(viewerRole, 'team:invite');
+    return members.map((m) => {
+      const email = m.user.emailEncrypted ? decryptField(m.user.emailEncrypted as unknown as Buffer) : null;
+      return {
+        id: m.id,
+        userId: m.userId,
+        role: m.role as MemberRole,
+        status: m.status,
+        email: email && !revealEmail ? maskEmail(email) : email,
+        fullName: m.user.fullName,
+        invitedAt: m.invitedAt,
+        joinedAt: m.joinedAt,
+        suspendedAt: m.suspendedAt,
+      };
+    });
   }
 
   /**

@@ -25,8 +25,8 @@ export class TeamController {
 
   @Get()
   @RequireAction('team:view')
-  list(@Param('merchantId') merchantId: string) {
-    return this.members.list(merchantId);
+  list(@Param('merchantId') merchantId: string, @Req() req: any) {
+    return this.members.list(merchantId, req.membership.role);
   }
 
   @Get('events')

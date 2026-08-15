@@ -26,7 +26,7 @@ function makeService() {
 }
 
 describe('MembersService (mutations transactionnelles + audit)', () => {
-  it('list() décrypte les emails et exclut les membres REMOVED', async () => {
+  it('list() décrypte les emails en clair pour un viewer MANAGER+ et exclut les membres REMOVED', async () => {
     const { service, prisma } = makeService();
     prisma.merchantMember.findMany.mockResolvedValue([
       {
@@ -41,7 +41,7 @@ describe('MembersService (mutations transactionnelles + audit)', () => {
       },
     ]);
 
-    const result = await service.list('m1');
+    const result = await service.list('m1', 'ADMIN');
 
     expect(prisma.merchantMember.findMany).toHaveBeenCalledWith({
       where: { merchantId: 'm1', status: { not: 'REMOVED' } },
@@ -51,6 +51,23 @@ describe('MembersService (mutations transactionnelles + audit)', () => {
     expect(result).toEqual([
       expect.objectContaining({ id: 'mem1', email: 'jean@example.com', fullName: 'Jean', role: 'MANAGER' }),
     ]);
+  });
+
+  it('list() masque les emails pour un viewer MEMBER/VIEWER (durcissement étape F)', async () => {
+    const { service, prisma } = makeService();
+    prisma.merchantMember.findMany.mockResolvedValue([
+      {
+        id: 'mem1', userId: 'u1', role: 'MEMBER', status: 'ACTIVE',
+        invitedAt: null, joinedAt: new Date('2026-08-01'), suspendedAt: null,
+        user: { emailEncrypted: encryptField('jean@example.com'), fullName: 'Jean' },
+      },
+    ]);
+
+    const asMember = await service.list('m1', 'MEMBER');
+    const asViewer = await service.list('m1', 'VIEWER');
+
+    expect(asMember[0].email).toBe('je***@example.com');
+    expect(asViewer[0].email).toBe('je***@example.com');
   });
 
   it('changeRole() met à jour le rôle et journalise ROLE_CHANGED', async () => {
