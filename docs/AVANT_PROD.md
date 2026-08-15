@@ -1,5 +1,5 @@
 # PayBrain — Ce qui reste avant la prod
-*Mise à jour : 29 juin 2026 · Code 100 % prêt, infra validée*
+*Mise à jour : 15 août 2026 · Code ~95 % prêt (voir §0), infra validée*
 
 ---
 
@@ -9,7 +9,28 @@
 - **Requis avant fonds réels** = la prod peut démarrer en sandbox, mais pas avec de l'argent réel
 - **Recommandé** = fortement conseillé avant tout volume significatif
 
-Ordre de priorité : **A → B → C → D**.
+Ordre de priorité : **§0 (code, à faire maintenant, en parallèle) → A → B → C → D → …**
+
+---
+
+## §0 — Code restant (BLOQUANT pour un vrai premier déploiement / avant fonds réels)
+
+*Ne dépend d'aucun partenaire — peut démarrer immédiatement, en parallèle des démarches A-G.
+Contrairement au reste du document, c'est la seule section pilotée par le développement.*
+
+| # | Tâche | Pourquoi | Sévérité |
+|---|-------|----------|----------|
+| 1 | **Corriger la migration 12** (`wallet_kyc_documents`) | `prisma migrate deploy` sur une base Postgres **neuve** échoue en P3018 (`wallet_id TEXT` déclaré en FK vers `wallets.id` qui est en réalité `uuid` — incompatibilité de type). La base dev actuelle a été réconciliée manuellement (`prisma migrate resolve`), mais un vrai environnement de prod part de zéro et cassera au même endroit. | **Bloquant** — aucun déploiement prod possible sans ça |
+| 2 | **Sortir le KYC client wallet du mode démo** (stockage) | Les pièces d'identité (`WalletKycDocument.dataBase64`) sont stockées **en base64 dans Postgres**, choix de démo (pas de S3, pas de chiffrement au repos dédié, pas de lifecycle policy, alourdit la DB). Le KYC **marchand** fait déjà ça proprement (`KycDocumentStorageService`, S3 + presigned URL + `ServerSideEncryption: AES256`, `KYC_DOCUMENTS_BUCKET`) — reproduire le même pattern pour le wallet client. | **Requis avant fonds réels** — PII sensible (pièce d'identité) mal stockée |
+| 3 | **Neutraliser le bypass démo admin** (`admin/src/session.js`) | `VITE_DEMO_ADMIN=1` contourne **entièrement** l'authentification Clerk du back-office admin (accès `admin` sans compte, sans vérification). C'est un simple flag d'env aujourd'hui — rien n'empêche qu'il soit à `1` par erreur dans un build de prod. Ajouter un garde-fou (ex. `throw` au build si `NODE_ENV=production && VITE_DEMO_ADMIN=1`, ou retirer le flag du bundle de prod). | **Bloquant** — accès admin total sans authentification si mal configuré |
+| 4 | **Plafonds KYC** : ajuster les seuils par défaut (`wallet_limits`) selon les exigences de la banque partenaire (endpoint `PUT /internal/wallet-limits/:level` déjà prêt) | Seuils actuels = valeurs de dev, pas validées par un partenaire bancaire | Requis avant fonds réels |
+| 5 | **Exposition FX treasury** : poster au grand livre l'exposition de change des paiements wallet cross-devises pour qu'elle apparaisse dans `fxSpread` (gap noté depuis ALP-170) | Sans ça, le risque de change pris par la plateforme sur les paiements multi-devises n'est pas visible/pilotable | Recommandé avant volume significatif |
+| 6 | **Alertes Grafana** : câbler les seuils sur `paybrain_wallet_pin_failures_total` et `paybrain_wallet_float_drift_cents` | Les métriques existent, mais personne n'est alerté automatiquement en cas d'anomalie (brute-force PIN, écart de float) | Recommandé |
+| 7 | **Rattachement caissiers** : écran/process admin pour lier un wallet caissier à son marchand (`wallets.merchant_id`) | Actuellement pas d'écran — rattachement manuel en DB | Recommandé |
+
+Items 1-3 sont ceux qui protègent contre un incident réel (déploiement cassé, PII mal
+stockée, accès admin sans auth) ; 4-7 sont des ajustements déjà identifiés en juillet 2026,
+toujours ouverts, moins critiques.
 
 ---
 
@@ -142,6 +163,7 @@ Ordre de priorité : **A → B → C → D**.
 
 | Bloc | Délai estimé | Dépend de |
 |------|-------------|-----------|
+| §0 — Code restant | quelques jours | Nous (aucune dépendance externe) |
 | Société + compte bancaire | 2–6 semaines | Notaire, pays |
 | Agrément PTSP | 1–6 mois | Pays, régulateur |
 | Contrats MTN + Airtel | 2–8 semaines après agrément | Commercial opérateur |
@@ -149,7 +171,7 @@ Ordre de priorité : **A → B → C → D**.
 | Agrégateur USSD | 2–4 semaines | Disponibilité shortcode |
 | Infrastructure AWS | 1 jour | Credentials prêts |
 | Pen-test | 2–4 semaines | Cabinet disponible |
-| **Total réaliste** | **3–9 mois** | Selon pays et rapidité opérateurs |
+| **Total réaliste** | **3–9 mois** | Selon pays et rapidité opérateurs (§0 se fait en parallèle, hors chemin critique) |
 
 ---
 
@@ -157,10 +179,12 @@ Ordre de priorité : **A → B → C → D**.
 
 - ✅ Code backend complet (NestJS, Prisma, connecteurs MTN/Airtel/CinetPay)
 - ✅ App mobile (Expo/React Native, biométrie, push notifications)
-- ✅ Dashboard web (React)
+- ✅ Dashboard web (React) + **équipe marchand multi-utilisateurs** (rôles, invitations, audit)
+- ✅ KYC client (pièce d'identité + revue admin) — **fonctionnel mais en mode démo**, cf. §0 (items 2-3)
 - ✅ Observabilité complète (Prometheus, Grafana, Loki, Tempo, Sentry)
 - ✅ Infrastructure Terraform validée (59 ressources, NAT/EIP stable `34.253.60.206`)
-- ✅ Migrations DB versionnées
+- ✅ Migrations DB versionnées (15) — **sauf la 12, cassée sur base neuve**, cf. §0.1
 - ✅ Sécurité : HMAC, timingSafeEqual, rate limiting, Argon2id, AES-256-GCM ledger
 - ✅ Code review gstack passée — 0 issue critique ouverte
 - ✅ Canal USSD prêt côté code (bloqué uniquement sur le shortcode agrégateur)
+- ✅ 354 tests unitaires + 31 tests e2e (première vraie infra e2e du repo) verts, `tsc` propre
