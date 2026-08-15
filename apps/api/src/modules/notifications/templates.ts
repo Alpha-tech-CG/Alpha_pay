@@ -81,6 +81,12 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     subject: "PayBrain – Compte verrouillé",
     body: "PayBrain : votre compte est temporairement verrouillé après plusieurs PIN incorrects. Réessayez dans {{minutes}} min. Si ce n'était pas vous, contactez le support.",
   },
+  /* ── Équipe marchand (Team Members) ── */
+  "team.invitation": {
+    version: "v1",
+    subject: "PayBrain — Invitation à rejoindre {{merchantName}}",
+    body: "Bonjour,\n\n{{merchantName}} vous invite à rejoindre son équipe PayBrain avec le rôle {{role}}.\n\nAcceptez l'invitation (valable 7 jours) :\n  {{link}}\n\nSi vous n'attendiez pas cette invitation, ignorez cet email.\n\nL'équipe PayBrain",
+  },
   "ops.new-signup": {
     version: "v1",
     subject: "[PayBrain] Nouvelle inscription — {{name}}",
