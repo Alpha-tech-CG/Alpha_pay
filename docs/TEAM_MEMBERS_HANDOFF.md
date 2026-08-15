@@ -27,6 +27,7 @@
 |---|---|---|
 | `003a499` | **Schéma Prisma + migrations 13/14**. Modèles `AppUser`, `MerchantMember`, `MerchantInvitation`, `MerchantMemberEvent` + `merchants.owner_user_id` + enums. | `prisma validate` OK, migrations **appliquées** sur DB dev, `tsc` apps/api propre, 267/267 tests verts |
 | `1bb8b58` | **Couche RBAC** `apps/api/src/modules/team/permissions/permissions.ts` (`can` / `canActOn` / `canAssignRole`) + `permissions.spec.ts`. | 8/8 tests verts |
+| `a00a989` | **Étape A — Auth Clerk + sync `app_users`**. `@clerk/backend` installé. `apps/api/src/modules/team/auth/` : `clerk-session.guard.ts` (vérifie le Bearer via `verifyToken`, charge/upsert `app_users`, pose `req.appUser`), `require-member.guard.ts` (membership ACTIVE par `:merchantId` du path uniquement, pose `req.membership`), `require-action.decorator.ts` + `require-action.guard.ts` (`@RequireAction('team:invite')` → `can()`), `team-auth.module.ts` (exporte les 3 guards, pas encore importé dans `AppModule` — aucun controller ne les utilise avant l'étape C). `apps/api/src/modules/users/users.service.ts` (`upsertFromClerk`, `findByClerkUserId`, `markDeletedByClerkUserId` — ne supprime jamais la ligne, détache juste `clerk_user_id`). Webhook Clerk existant étendu : `user.created` (déjà présent) synchronise maintenant aussi `app_users`, + nouveaux handlers `user.updated`/`user.deleted` branchés dans `clerk-webhook.controller.ts`. | `tsc` propre, 300/300 tests verts (25 nouveaux) |
 
 **État DB dev** : les 4 tables existent, l'index unique **partiel** `merchant_members_one_active_owner` (un seul OWNER actif/marchand) et `merchant_invitations_one_pending` (une seule invitation en attente/(marchand,email)) sont créés. Backfill migration 14 : idempotent, n'a rien converti en dev (le seul marchand n'a pas de `clerk_user_id`).
 
@@ -40,13 +41,9 @@ Fichiers clés déjà en place :
 
 ## 2. Ce qui RESTE À FAIRE (ordre recommandé)
 
-### Étape A — Auth Clerk (SDK) + sync `app_users`  ← COMMENCER ICI
-1. `npm i @clerk/backend` dans `apps/api` (ou `@clerk/clerk-sdk-node`). Ajouter `CLERK_SECRET_KEY` (secrets — cf. §7).
-2. Créer **`apps/api/src/modules/team/auth/clerk-session.guard.ts`** : lit `Authorization: Bearer <clerk_session_token>`, vérifie via `@clerk/backend` (`verifyToken` / `authenticateRequest`), récupère le `clerkUserId`, **upsert/charge `app_users`** (par `clerk_user_id`), pose `req.appUser = { id, clerkUserId, email }`. 401 si invalide.
-3. Créer **`apps/api/src/modules/users/users.service.ts`** : `upsertFromClerk({ clerkUserId, email, fullName })` (encrypt email via `../../common/security/pii-crypto` `encryptField` + `emailHash` déterministe comme `merchants`). Brancher aussi sur le **webhook Clerk existant** (`apps/api/src/modules/clerk/clerk-webhook.service.ts` → `handleUserCreated` / `user.updated` / `user.deleted` → `app_users`).
-4. Créer **`require-member.guard.ts`** : à partir de `req.appUser.id` + `:merchantId` du path, charge le `merchant_members` ACTIVE correspondant. **404/403 si pas de membership actif**. Pose `req.membership = { merchantId, role }`. ⚠️ **Ne jamais faire confiance au `merchantId` du body/query** — le membership est la seule source. Décorateur `@RequireAction('team:invite')` qui utilise `can(req.membership.role, action)`.
+### Étape A — Auth Clerk (SDK) + sync `app_users` — ✅ FAIT (`a00a989`, cf. §1)
 
-### Étape B — Services transactionnels (+ audit)
+### Étape B — Services transactionnels (+ audit)  ← COMMENCER ICI
 Dossier `apps/api/src/modules/team/services/` :
 - `members.service.ts` : `list(merchantId)`, `changeRole`, `suspend`, `reactivate`, `remove` (soft : `status='REMOVED'` + `removed_at`). Toutes en **transaction** (`prisma.$transaction`) + écriture d'un **`merchant_member_events`**. Anti-escalade via `canActOn`. **Garde « dernier owner »** : refuser suspend/remove/downgrade s'il ne resterait aucun OWNER actif (compter `FOR UPDATE`).
 - `invitations.service.ts` : `create` (génère `token = randomBytes(32).toString('base64url')`, stocke `token_hash = sha256(token)`, `expires_at = now()+7j`, email chiffré, index partiel empêche le doublon pending), `list`, `revoke`, `preview(token)` (lookup par hash, sans exposer le hash), `accept(token, appUser)` (transaction : valider non expirée/révoquée/acceptée → upsert membership ACTIVE + `joined_at` → `accepted_at` → event). Envoi email via `../notifications` (Postmark) — lien `https://<app>/invite?token=<clair>` (le clair n'est **que** dans l'email).
@@ -183,4 +180,4 @@ git commit -F message.txt
 ---
 
 ## 11. Prochaine action concrète pour l'agent qui reprend
-> **Étape A ci-dessus** : `npm i @clerk/backend` dans `apps/api`, créer `clerk-session.guard.ts` + `users.service.ts` (upsert `app_users` depuis Clerk, brancher le webhook), puis `require-member.guard.ts`. Vérifier `tsc` + tests. Committer. Puis Étape B (services).
+> **Étape B ci-dessus** : dossier `apps/api/src/modules/team/services/` — `members.service.ts`, `invitations.service.ts`, `ownership.service.ts`, `member-events.service.ts`. Toutes les mutations en `prisma.$transaction` + écriture `merchant_member_events`. Garde « dernier owner » (compter les OWNER actifs `FOR UPDATE` avant suspend/remove/downgrade). Les guards de l'étape A (`apps/api/src/modules/team/auth/`) sont prêts à consommer : `ClerkSessionGuard` pose `req.appUser`, `RequireMemberGuard` pose `req.membership`, `RequireActionGuard` + `@RequireAction(...)` appliquent `can()`. Vérifier `tsc` + `npx jest --runInBand` (100% verts). Committer. Puis Étape C (controllers + `TeamModule` important `TeamAuthModule`, à enregistrer dans `app.module.ts`).
