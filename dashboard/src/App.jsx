@@ -7,6 +7,8 @@ import Payments from './pages/Payments'
 import Developers from './pages/Developers'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
+import Team from './pages/Team'
+import InviteAccept from './pages/InviteAccept'
 import Checkout from './Checkout'
 
 function CheckoutRoute() {
@@ -33,6 +35,9 @@ export default function App() {
       {/* Checkout public (lien de paiement) */}
       <Route path="/pay/:id" element={<CheckoutRoute />} />
 
+      {/* Invitation d'équipe : public (preview), l'acceptation exige Clerk (géré dans la page) */}
+      <Route path="/invite" element={<InviteAccept />} />
+
       {/* Onboarding (protégé, hors layout) */}
       <Route path="/onboarding" element={<Protected><Onboarding /></Protected>} />
 
@@ -40,6 +45,7 @@ export default function App() {
       <Route path="/" element={<Protected><AppLayout><DashboardHome /></AppLayout></Protected>} />
       <Route path="/payments" element={<Protected><AppLayout><Payments /></AppLayout></Protected>} />
       <Route path="/developers" element={<Protected><AppLayout><Developers /></AppLayout></Protected>} />
+      <Route path="/team" element={<Protected><AppLayout><Team /></AppLayout></Protected>} />
       <Route path="/profile" element={<Protected><AppLayout><Profile /></AppLayout></Protected>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

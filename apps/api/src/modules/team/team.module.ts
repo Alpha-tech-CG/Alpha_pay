@@ -6,6 +6,7 @@ import { InvitationsController } from './invitations.controller';
 import { InvitationsPublicController } from './invitations-public.controller';
 import { OwnershipController } from './ownership.controller';
 import { TeamMembersReadonlyController } from './team-members-readonly.controller';
+import { MyMerchantsController } from './my-merchants.controller';
 
 @Module({
   imports: [TeamAuthModule, TeamServicesModule],
@@ -15,6 +16,7 @@ import { TeamMembersReadonlyController } from './team-members-readonly.controlle
     InvitationsPublicController,
     OwnershipController,
     TeamMembersReadonlyController,
+    MyMerchantsController,
   ],
 })
 export class TeamModule {}

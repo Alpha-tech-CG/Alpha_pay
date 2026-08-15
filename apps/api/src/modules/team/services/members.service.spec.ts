@@ -167,4 +167,24 @@ describe('MembersService (mutations transactionnelles + audit)', () => {
       service.remove('m1', 'mem1', { userId: 'actor', role: 'MANAGER' }),
     ).rejects.toThrow(ForbiddenException);
   });
+
+  it('listForUser() renvoie les marchands où cet utilisateur a un membership ACTIVE', async () => {
+    const { service, prisma } = makeService();
+    prisma.merchantMember.findMany.mockResolvedValue([
+      { merchantId: 'm1', role: 'OWNER', merchant: { id: 'm1', name: 'Boutique A' } },
+      { merchantId: 'm2', role: 'MANAGER', merchant: { id: 'm2', name: 'Boutique B' } },
+    ]);
+
+    const result = await service.listForUser('u1');
+
+    expect(prisma.merchantMember.findMany).toHaveBeenCalledWith({
+      where: { userId: 'u1', status: 'ACTIVE' },
+      include: { merchant: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(result).toEqual([
+      { merchantId: 'm1', merchantName: 'Boutique A', role: 'OWNER' },
+      { merchantId: 'm2', merchantName: 'Boutique B', role: 'MANAGER' },
+    ]);
+  });
 });

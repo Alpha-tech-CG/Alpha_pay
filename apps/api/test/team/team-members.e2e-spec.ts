@@ -210,4 +210,28 @@ describe('Team Members — HTTP e2e', () => {
       await request(app.getHttpServer()).get('/v1/team/members').expect(401);
     });
   });
+
+  describe('GET /v1/me/merchants (résolution du marchand côté dashboard)', () => {
+    it("liste les marchands où l'utilisateur a un membership ACTIVE, sans :merchantId dans le path", async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/me/merchants')
+        .set('Authorization', bearer(admin.clerkUserId))
+        .expect(200);
+      expect(res.body).toEqual(
+        expect.arrayContaining([expect.objectContaining({ merchantId, role: 'ADMIN' })]),
+      );
+    });
+
+    it('renvoie un tableau vide pour un Clerk user sans aucun membership', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/v1/me/merchants')
+        .set('Authorization', bearer(outsider.clerkUserId))
+        .expect(200);
+      expect(res.body).toEqual([]);
+    });
+
+    it('401 sans Authorization', async () => {
+      await request(app.getHttpServer()).get('/v1/me/merchants').expect(401);
+    });
+  });
 });

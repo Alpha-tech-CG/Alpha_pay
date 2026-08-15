@@ -45,7 +45,9 @@ export function SignInPage() {
   const { t: tr } = useT()
   return (
     <AuthShell title={tr('auth.signin.title')}>
-      <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" forceRedirectUrl="/onboarding" appearance={clerkAppearance} />
+      {/* fallbackRedirectUrl (pas forceRedirectUrl) : respecte ?redirect_url=
+          quand présent (ex. lien d'invitation équipe), sinon /onboarding. */}
+      <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" fallbackRedirectUrl="/onboarding" appearance={clerkAppearance} />
     </AuthShell>
   )
 }
@@ -54,7 +56,7 @@ export function SignUpPage() {
   const { t: tr } = useT()
   return (
     <AuthShell title={tr('auth.signup.title')}>
-      <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" forceRedirectUrl="/onboarding" appearance={clerkAppearance} />
+      <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" fallbackRedirectUrl="/onboarding" appearance={clerkAppearance} />
     </AuthShell>
   )
 }

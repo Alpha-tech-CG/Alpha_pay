@@ -21,6 +21,12 @@ export interface MemberSummary {
   suspendedAt: Date | null;
 }
 
+export interface MyMerchantSummary {
+  merchantId: string;
+  merchantName: string;
+  role: MemberRole;
+}
+
 @Injectable()
 export class MembersService {
   constructor(
@@ -44,6 +50,24 @@ export class MembersService {
       invitedAt: m.invitedAt,
       joinedAt: m.joinedAt,
       suspendedAt: m.suspendedAt,
+    }));
+  }
+
+  /**
+   * Marchands sur lesquels cet utilisateur a un membership ACTIVE — sert au
+   * frontend à résoudre le `:merchantId` à utiliser (aucune notion de
+   * marchand « courant » côté client avant cet appel, cf. étape E).
+   */
+  async listForUser(userId: string): Promise<MyMerchantSummary[]> {
+    const memberships = await this.prisma.merchantMember.findMany({
+      where: { userId, status: 'ACTIVE' },
+      include: { merchant: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return memberships.map((m) => ({
+      merchantId: m.merchant.id,
+      merchantName: m.merchant.name,
+      role: m.role as MemberRole,
     }));
   }
 

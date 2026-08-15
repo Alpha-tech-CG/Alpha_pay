@@ -20,6 +20,7 @@ const ICONS = {
   dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
   payments: 'M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8',
   developers: 'M8 9l-3 3 3 3M16 9l3 3-3 3',
+  team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   profile: 'M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
 }
 function TabIcon({ d }) {
@@ -65,6 +66,7 @@ export default function AppLayout({ children }) {
     { to: '/', icon: 'dashboard', label: tr('nav.dashboard') },
     { to: '/payments', icon: 'payments', label: tr('nav.payments') },
     { to: '/developers', icon: 'developers', label: tr('nav.developers') },
+    { to: '/team', icon: 'team', label: tr('nav.team') },
     { to: '/profile', icon: 'profile', label: tr('nav.profile') },
   ]
   const nav = (
