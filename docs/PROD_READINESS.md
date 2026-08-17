@@ -1,14 +1,13 @@
 # PayBrain — Verdict « prêt pour la production »
-*Mise à jour : 15 août 2026*
+*Mise à jour : 17 août 2026*
 
 ## Résumé en une phrase
 
-**Le code est prêt à ~95 %** (354 tests unitaires + 31 tests e2e verts, `tsc` propre,
-5/5 durcissements sécurité faits) ; le lancement en production réel reste **bloqué
-principalement par des étapes administratives/partenaires**, mais il reste **une poignée
-d'items de code identifiés** (issus de fonctionnalités livrées en mode démo/accéléré) à
-traiter avant d'accepter des fonds réels — listés ci-dessous, détaillés dans
-[AVANT_PROD.md](AVANT_PROD.md) §0.
+**Le code est prêt à 100 %** (372 tests unitaires + 31 tests e2e verts, `tsc` propre,
+5/5 durcissements sécurité faits, tous les items du feu orange traités) ; le lancement en
+production réel reste **entièrement bloqué par des étapes administratives/partenaires**,
+détaillées dans [AVANT_PROD.md](AVANT_PROD.md) §A-G — plus aucun travail de code identifié
+ne se trouve sur le chemin critique.
 
 ## Feu vert — ce qui est prêt côté code ✅
 
@@ -18,43 +17,25 @@ traiter avant d'accepter des fonds réels — listés ci-dessous, détaillés da
 | Wallet client : cash-in/out, P2P, paiement QR & lien, **multi-devises** | ✅ |
 | App de paiement en ligne `apps/checkout` (« Payer avec PayBrain ») | ✅ |
 | Apps mobiles client + caissier (Expo, design Kinetic Ledger) | ✅ |
-| **Équipe marchand multi-utilisateurs** (rôles, invitations, audit, dashboard + mobile lecture seule) | ✅ *(nouveau)* |
-| KYC client (pièce d'identité à l'inscription + revue admin, N0→N1) | ✅ *(nouveau, mais livré en mode démo — cf. §0 restant)* |
+| **Équipe marchand multi-utilisateurs** (rôles, invitations, audit, dashboard + mobile lecture seule) | ✅ |
+| KYC client (pièce d'identité à l'inscription + revue admin, N0→N1) | ✅ **stockage S3** (presigned URL), plus de mode démo |
+| Back-office admin : bypass démo impossible à activer en build de production | ✅ (double garde-fou build + runtime) |
 | Settlement / reversements + FX + réconciliation opérateur | ✅ |
 | **Sécurité wallet** : OTP inscription, QR signés, verrouillage PIN, réconciliation float, plafonds KYC | ✅ (ALP-171/172/173/174/175) |
 | Défense en profondeur : WAF/CORS/Helmet/rate-limit, Argon2id, HMAC anti-replay, ledger hash-chain, PII AES-256-GCM | ✅ |
 | Observabilité : Prometheus, Grafana, Loki, Tempo, Sentry | ✅ |
 | Infra Terraform (VPC, RDS Multi-AZ, ECS, ALB, WAF, Secrets Manager, EIP fixe) | ✅ validée |
-| Migrations DB versionnées (15) | ✅ **rejouées avec succès depuis zéro** (migration 12 corrigée, commit `149da24`) |
-| Tests | ✅ 354 unitaires + 31 e2e verts, `tsc` propre |
+| Migrations DB versionnées (16) | ✅ **rejouées avec succès depuis zéro** |
+| Tests | ✅ 372 unitaires + 31 e2e verts, `tsc` propre (api + mobile) |
 
-## Feu orange — reste EN CODE avant la prod (pas de dépendance externe, on peut le faire maintenant)
+## Feu orange — reste EN CODE avant la prod
 
-Détail et checklist dans [AVANT_PROD.md](AVANT_PROD.md) **§0**. Résumé :
-
-1. ~~Corriger la migration 12~~ **✅ FAIT** (`wallet_kyc_documents`, commit `149da24`) —
-   `prisma migrate deploy` échouait sur toute base Postgres neuve (P3018, incompatibilité de
-   type). Corrigé et vérifié : les 15 migrations s'appliquent proprement depuis zéro. *Reste un
-   point de suivi mineur : réaligner la base dev Docker existante une fois accessible (cf.
-   AVANT_PROD.md §0) — n'affecte que le poste de dev, aucune prod n'existe encore.*
-2. **Sortir le KYC client du mode démo** : documents stockés en base64 en DB (pas S3, pas
-   d'expiration/lifecycle) → migrer vers S3 comme le fait déjà le KYC marchand
-   (`KycDocumentStorageService`, presigned URL, `KYC_DOCUMENTS_BUCKET`).
-3. **Neutraliser le bypass démo admin** (`admin/src/session.js`, `VITE_DEMO_ADMIN=1`) —
-   contourne totalement l'authentification Clerk. Actuellement un simple flag d'env non
-   protégé par un garde-fou de build ; à durcir pour qu'il soit impossible de l'activer en
-   build de production.
-4. Plafonds KYC : ajuster les seuils par défaut (`wallet_limits`) selon les exigences de la
-   banque partenaire (endpoint déjà prêt).
-5. Exposition FX treasury : poster au grand livre l'exposition de change des paiements wallet
-   cross-devises (`fxSpread`, gap noté depuis ALP-170).
-6. Alertes Grafana : câbler les seuils sur `paybrain_wallet_pin_failures_total` et
-   `paybrain_wallet_float_drift_cents`.
-7. Rattachement caissiers : écran/process admin pour lier un wallet caissier à son marchand
-   (`wallets.merchant_id`).
-
-Items 2–3 sont les plus importants restants (sécurité/fiabilité réelle) ; 4–7 sont des
-ajustements mineurs déjà identifiés en juillet, toujours ouverts.
+**Vide.** Les 3 items bloquants/requis identifiés (migration cassée sur base neuve, KYC en
+mode démo, bypass admin) sont **tous traités** — voir [AVANT_PROD.md](AVANT_PROD.md) §0 pour
+le détail et les commits. Il reste 4 ajustements **mineurs, non bloquants** (plafonds KYC à
+caler avec la banque, exposition FX treasury, alertes Grafana, écran de rattachement
+caissier) — cf. AVANT_PROD.md §0 items 4-7, à traiter avant volume significatif mais pas
+avant le lancement.
 
 ## Feu rouge — bloquants production (NON-code)
 
@@ -80,14 +61,15 @@ Ordre recommandé. Détail dans [AVANT_PROD.md](AVANT_PROD.md) §A-G.
 
 ## Recommandation
 
-1. **Tout de suite, en parallèle des démarches partenaires** : traiter le feu orange (§ ci-dessus,
-   surtout les items 2–3) — c'est le seul travail de code qui reste et il ne dépend de personne.
-2. **Aujourd'hui** : lancer un **pilote sandbox** (démo dans [DEMO.md](DEMO.md)) avec 5–10
-   marchands, comptes en monnaie de test — pour valider le produit et le playbook.
+1. **Aujourd'hui** : lancer un **pilote sandbox** (démo dans [DEMO.md](DEMO.md)) avec 5–10
+   marchands, comptes en monnaie de test — pour valider le produit et le playbook. Plus aucun
+   prérequis de code ne bloque ce pilote.
+2. **En parallèle, dès maintenant** : démarches légales/partenaires (§ feu rouge) — c'est
+   désormais le seul chemin critique restant.
 3. **Dès l'agrément + contrats opérateurs signés** : basculer en prod à petit volume, après
-   pen-test et ajustement des plafonds KYC.
+   pen-test et ajustement des plafonds KYC (item mineur restant).
 4. **Après traction** : cartes virtuelles (Module 4).
 
-Délai réaliste jusqu'à la prod « fonds réels » : **piloté par l'agrément et les contrats
-opérateurs (2–6 mois selon la banque)**, pas par le développement — sous réserve de traiter
-le feu orange en amont.
+Délai réaliste jusqu'à la prod « fonds réels » : **piloté entièrement par l'agrément et les
+contrats opérateurs (2–6 mois selon la banque)** — le développement n'est plus sur le chemin
+critique.

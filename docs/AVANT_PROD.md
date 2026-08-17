@@ -20,26 +20,33 @@ Contrairement au reste du document, c'est la seule section pilotée par le déve
 
 | # | Tâche | Pourquoi | Sévérité |
 |---|-------|----------|----------|
-| ~~1~~ | ~~Corriger la migration 12 (`wallet_kyc_documents`)~~ **✅ FAIT** (commit `149da24`, 15 août 2026) | `wallet_id` était `TEXT` au lieu de `UUID` (seule FK vers `wallets.id` avec ce défaut — `wallet_transactions` utilisait déjà `UUID` correctement). Corrigé directement dans le fichier de migration (jamais exécutée en prod, safe à éditer). **Vérifié** : les 15 migrations rejouées avec succès depuis zéro sur un Postgres propre. | — |
-| 2 | **Sortir le KYC client wallet du mode démo** (stockage) | Les pièces d'identité (`WalletKycDocument.dataBase64`) sont stockées **en base64 dans Postgres**, choix de démo (pas de S3, pas de chiffrement au repos dédié, pas de lifecycle policy, alourdit la DB). Le KYC **marchand** fait déjà ça proprement (`KycDocumentStorageService`, S3 + presigned URL + `ServerSideEncryption: AES256`, `KYC_DOCUMENTS_BUCKET`) — reproduire le même pattern pour le wallet client. | **Requis avant fonds réels** — PII sensible (pièce d'identité) mal stockée |
-| 3 | **Neutraliser le bypass démo admin** (`admin/src/session.js`) | `VITE_DEMO_ADMIN=1` contourne **entièrement** l'authentification Clerk du back-office admin (accès `admin` sans compte, sans vérification). C'est un simple flag d'env aujourd'hui — rien n'empêche qu'il soit à `1` par erreur dans un build de prod. Ajouter un garde-fou (ex. `throw` au build si `NODE_ENV=production && VITE_DEMO_ADMIN=1`, ou retirer le flag du bundle de prod). | **Bloquant** — accès admin total sans authentification si mal configuré |
+| ~~1~~ | ~~Corriger la migration 12 (`wallet_kyc_documents`)~~ **✅ FAIT** (commit `149da24`, 15 août 2026) | `wallet_id` était `TEXT` au lieu de `UUID` (seule FK vers `wallets.id` avec ce défaut — `wallet_transactions` utilisait déjà `UUID` correctement). Corrigé directement dans le fichier de migration (jamais exécutée en prod, safe à éditer). **Vérifié** : les migrations rejouées avec succès depuis zéro sur un Postgres propre. | — |
+| ~~2~~ | ~~Sortir le KYC client wallet du mode démo~~ **✅ FAIT** (commit `e911453`, 17 août 2026) | Les pièces d'identité étaient stockées **en base64 dans Postgres**. Migration 15 : `dataBase64` → `storageKey` (clé S3), table purgée (démo uniquement). `KycDocumentStorageService` étendu (déjà utilisé par le KYC marchand) : upload direct S3 via URL présignée, jamais l'image via notre API ; admin voit une URL de lecture présignée 5 min, jamais de PII en clair dans une réponse JSON. Mobile + admin basculés. **Vérifié** : 16 migrations rejouées depuis zéro, 74 nouveaux tests unitaires, 31/31 e2e (sur Postgres natif temporaire, Docker indisponible). | — |
+| ~~3~~ | ~~Neutraliser le bypass démo admin~~ **✅ FAIT** (commit `e911453`, 17 août 2026) | `VITE_DEMO_ADMIN=1` contournait entièrement Clerk. Double garde-fou : `vite.config.js` fait échouer `vite build --mode production` si le flag est actif (**vérifié en conditions réelles** : `admin/.env` a `VITE_DEMO_ADMIN=1` en dev — le build échoue bien, réussit une fois désactivé) + garde-fou runtime redondant dans `session.js` (throw si `import.meta.env.PROD` et le flag actif, au cas où un autre pipeline de build contournerait vite.config.js). | — |
 | 4 | **Plafonds KYC** : ajuster les seuils par défaut (`wallet_limits`) selon les exigences de la banque partenaire (endpoint `PUT /internal/wallet-limits/:level` déjà prêt) | Seuils actuels = valeurs de dev, pas validées par un partenaire bancaire | Requis avant fonds réels |
 | 5 | **Exposition FX treasury** : poster au grand livre l'exposition de change des paiements wallet cross-devises pour qu'elle apparaisse dans `fxSpread` (gap noté depuis ALP-170) | Sans ça, le risque de change pris par la plateforme sur les paiements multi-devises n'est pas visible/pilotable | Recommandé avant volume significatif |
 | 6 | **Alertes Grafana** : câbler les seuils sur `paybrain_wallet_pin_failures_total` et `paybrain_wallet_float_drift_cents` | Les métriques existent, mais personne n'est alerté automatiquement en cas d'anomalie (brute-force PIN, écart de float) | Recommandé |
 | 7 | **Rattachement caissiers** : écran/process admin pour lier un wallet caissier à son marchand (`wallets.merchant_id`) | Actuellement pas d'écran — rattachement manuel en DB | Recommandé |
 
-⚠️ **Reste malgré le fix #1** : la base dev Docker (`paybrain`, port 5433) a cette migration
-marquée « appliquée » via `prisma migrate resolve --applied` (sans avoir vraiment exécuté
-l'ancien SQL cassé) — sa table `wallet_kyc_documents.wallet_id` est peut-être encore en `TEXT`
-physiquement. À la prochaine session avec Docker disponible : vérifier le type de colonne, et
-si besoin `ALTER TABLE wallet_kyc_documents ALTER COLUMN wallet_id TYPE uuid USING wallet_id::uuid;`
-puis re-synchroniser le checksum avec `npx prisma migrate resolve --applied 12_wallet_kyc_documents`
-(le fichier a changé, l'ancien checksum enregistré ne correspond plus). N'affecte QUE la base
-locale de dev — aucune base de prod n'existe, donc aucun autre environnement n'est concerné.
+⚠️ **Reste malgré les fix #1 et #2** : Docker Desktop est resté indisponible dans cet
+environnement tout du long (impossible de le redémarrer) — les fix ont été vérifiés sur un
+**Postgres natif Windows temporaire** (`C:\Program Files\PostgreSQL\17\bin\psql.exe`, port 5432),
+jamais directement sur la base dev Docker (`paybrain`, port 5433). À la prochaine session avec
+Docker disponible, sur cette base dev spécifiquement :
+- Migration 12 : `wallet_kyc_documents.wallet_id` est peut-être encore en `TEXT` physiquement
+  (marquée « appliquée » via `prisma migrate resolve --applied` sans avoir vraiment exécuté
+  l'ancien SQL cassé). Si besoin : `ALTER TABLE wallet_kyc_documents ALTER COLUMN wallet_id TYPE uuid USING wallet_id::uuid;`.
+- Migration 15 : le plus simple est de vérifier `\d wallet_kyc_documents` (colonne `storage_key`
+  présente ?) et si la migration n'a pas tourné, appliquer son SQL manuellement.
+- Dans tous les cas, re-synchroniser les checksums avec
+  `npx prisma migrate resolve --applied 12_wallet_kyc_documents` et
+  `npx prisma migrate resolve --applied 15_wallet_kyc_documents_s3` une fois à jour.
 
-Items 2-3 sont ceux qui protègent contre un incident réel à l'usage (PII mal stockée, accès
-admin sans auth) ; 4-7 sont des ajustements déjà identifiés en juillet 2026, toujours ouverts,
-moins critiques.
+N'affecte QUE la base locale de dev — aucune base de prod n'existe, donc aucun autre
+environnement n'est concerné.
+
+Items 4-7 sont des ajustements déjà identifiés en juillet 2026, toujours ouverts, moins
+critiques que les items 1-3 (tous faits).
 
 ---
 
@@ -189,11 +196,11 @@ moins critiques.
 - ✅ Code backend complet (NestJS, Prisma, connecteurs MTN/Airtel/CinetPay)
 - ✅ App mobile (Expo/React Native, biométrie, push notifications)
 - ✅ Dashboard web (React) + **équipe marchand multi-utilisateurs** (rôles, invitations, audit)
-- ✅ KYC client (pièce d'identité + revue admin) — **fonctionnel mais en mode démo**, cf. §0 (items 2-3)
+- ✅ KYC client (pièce d'identité + revue admin) — **stockage S3**, plus de mode démo (§0 items 2-3 faits)
 - ✅ Observabilité complète (Prometheus, Grafana, Loki, Tempo, Sentry)
 - ✅ Infrastructure Terraform validée (59 ressources, NAT/EIP stable `34.253.60.206`)
-- ✅ Migrations DB versionnées (15) — **sauf la 12, cassée sur base neuve**, cf. §0.1
+- ✅ Migrations DB versionnées (16) — **rejouées avec succès depuis zéro** (§0 items 1-2 faits)
 - ✅ Sécurité : HMAC, timingSafeEqual, rate limiting, Argon2id, AES-256-GCM ledger
 - ✅ Code review gstack passée — 0 issue critique ouverte
 - ✅ Canal USSD prêt côté code (bloqué uniquement sur le shortcode agrégateur)
-- ✅ 354 tests unitaires + 31 tests e2e (première vraie infra e2e du repo) verts, `tsc` propre
+- ✅ 372 tests unitaires + 31 tests e2e verts, `tsc` propre (api + mobile)
