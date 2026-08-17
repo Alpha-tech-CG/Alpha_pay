@@ -25,15 +25,18 @@ traiter avant d'accepter des fonds réels — listés ci-dessous, détaillés da
 | Défense en profondeur : WAF/CORS/Helmet/rate-limit, Argon2id, HMAC anti-replay, ledger hash-chain, PII AES-256-GCM | ✅ |
 | Observabilité : Prometheus, Grafana, Loki, Tempo, Sentry | ✅ |
 | Infra Terraform (VPC, RDS Multi-AZ, ECS, ALB, WAF, Secrets Manager, EIP fixe) | ✅ validée |
-| Migrations DB versionnées (15), tests 354 unitaires + 31 e2e verts | ✅ (mais migration 12 cassée sur base neuve — cf. §0) |
+| Migrations DB versionnées (15) | ✅ **rejouées avec succès depuis zéro** (migration 12 corrigée, commit `149da24`) |
+| Tests | ✅ 354 unitaires + 31 e2e verts, `tsc` propre |
 
 ## Feu orange — reste EN CODE avant la prod (pas de dépendance externe, on peut le faire maintenant)
 
 Détail et checklist dans [AVANT_PROD.md](AVANT_PROD.md) **§0**. Résumé :
 
-1. **Corriger la migration 12** (`wallet_kyc_documents`) — `prisma migrate deploy` sur une base
-   Postgres neuve échoue (P3018, incompatibilité de type). **Bloquant pour tout premier
-   déploiement prod** (une base de prod part toujours de zéro).
+1. ~~Corriger la migration 12~~ **✅ FAIT** (`wallet_kyc_documents`, commit `149da24`) —
+   `prisma migrate deploy` échouait sur toute base Postgres neuve (P3018, incompatibilité de
+   type). Corrigé et vérifié : les 15 migrations s'appliquent proprement depuis zéro. *Reste un
+   point de suivi mineur : réaligner la base dev Docker existante une fois accessible (cf.
+   AVANT_PROD.md §0) — n'affecte que le poste de dev, aucune prod n'existe encore.*
 2. **Sortir le KYC client du mode démo** : documents stockés en base64 en DB (pas S3, pas
    d'expiration/lifecycle) → migrer vers S3 comme le fait déjà le KYC marchand
    (`KycDocumentStorageService`, presigned URL, `KYC_DOCUMENTS_BUCKET`).
@@ -50,8 +53,8 @@ Détail et checklist dans [AVANT_PROD.md](AVANT_PROD.md) **§0**. Résumé :
 7. Rattachement caissiers : écran/process admin pour lier un wallet caissier à son marchand
    (`wallets.merchant_id`).
 
-Items 1–3 sont les plus importants (sécurité/fiabilité réelle) ; 4–7 sont des ajustements
-mineurs déjà identifiés en juillet, toujours ouverts.
+Items 2–3 sont les plus importants restants (sécurité/fiabilité réelle) ; 4–7 sont des
+ajustements mineurs déjà identifiés en juillet, toujours ouverts.
 
 ## Feu rouge — bloquants production (NON-code)
 
@@ -78,7 +81,7 @@ Ordre recommandé. Détail dans [AVANT_PROD.md](AVANT_PROD.md) §A-G.
 ## Recommandation
 
 1. **Tout de suite, en parallèle des démarches partenaires** : traiter le feu orange (§ ci-dessus,
-   surtout les items 1–3) — c'est le seul travail de code qui reste et il ne dépend de personne.
+   surtout les items 2–3) — c'est le seul travail de code qui reste et il ne dépend de personne.
 2. **Aujourd'hui** : lancer un **pilote sandbox** (démo dans [DEMO.md](DEMO.md)) avec 5–10
    marchands, comptes en monnaie de test — pour valider le produit et le playbook.
 3. **Dès l'agrément + contrats opérateurs signés** : basculer en prod à petit volume, après
