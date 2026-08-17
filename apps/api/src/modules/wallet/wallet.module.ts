@@ -21,6 +21,7 @@ import { WalletLimitsController } from './wallet-limits.controller';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { CurrencyModule } from '../currency/currency.module';
+import { KycModule } from '../kyc/kyc.module';
 
 const FALLBACK_SECRET = 'dev-secret-change-in-prod';
 
@@ -30,6 +31,7 @@ const FALLBACK_SECRET = 'dev-secret-change-in-prod';
     WebhooksOutModule,
     MetricsModule,
     CurrencyModule,
+    KycModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

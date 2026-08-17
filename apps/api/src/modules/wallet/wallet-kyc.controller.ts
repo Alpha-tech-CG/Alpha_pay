@@ -9,28 +9,40 @@ import {
 } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { WalletJwtGuard, WalletJwtPayload } from './wallet-jwt.guard';
-import { UploadKycDocDto } from './dto/wallet-kyc.dto';
+import { CreateKycUploadUrlDto, ConfirmKycDocDto } from './dto/wallet-kyc.dto';
+import { KycDocumentStorageService } from '../kyc/kyc-document-storage.service';
 
 interface AuthRequest {
   wallet: WalletJwtPayload;
 }
 
 // Endpoints client (JWT wallet) : soumission des pièces d'identité pour passer
-// au niveau KYC N1. Le corps (image base64) est admis jusqu'à 6 Mo pour ce seul
-// chemin — cf. main.ts (parser JSON dédié) et body-guard (largeJsonPaths).
+// au niveau KYC N1. L'image transite en upload direct vers S3 (jamais par notre
+// API) : le client demande une URL présignée, uploade dessus, puis confirme.
 @Controller('v1/wallet/kyc')
 @UseGuards(WalletJwtGuard)
 export class WalletKycController {
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly storage: KycDocumentStorageService,
+  ) {}
+
+  @Post('documents/upload-url')
+  createUploadUrl(@Request() req: AuthRequest, @Body() dto: CreateKycUploadUrlDto) {
+    return this.storage.createWalletUploadUrl(req.wallet.sub, dto.type, dto.mimeType);
+  }
 
   @Post('documents')
-  async upload(@Request() req: AuthRequest, @Body() dto: UploadKycDocDto) {
+  async upload(@Request() req: AuthRequest, @Body() dto: ConfirmKycDocDto) {
+    // Vérifie que l'objet a bien été uploadé (chiffré, taille raisonnable,
+    // clé cohérente avec ce wallet/type) avant d'enregistrer la référence.
+    await this.storage.verifyWalletUploadedDocument(dto.storageKey, req.wallet.sub, dto.type);
     await this.prisma.walletKycDocument.create({
       data: {
         walletId: req.wallet.sub,
         type: dto.type,
         mimeType: dto.mimeType,
-        dataBase64: dto.dataBase64,
+        storageKey: dto.storageKey,
       },
     });
     return { ok: true };

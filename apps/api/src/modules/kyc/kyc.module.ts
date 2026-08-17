@@ -11,5 +11,6 @@ import { KycCron } from './kyc.cron';
 @Module({
   controllers: [KycController, KycAdminController, KycWebhookController],
   providers: [KycService, KycProviderService, KycDocumentStorageService, SmileWebhookGuard, KycCron],
+  exports: [KycDocumentStorageService],
 })
 export class KycModule {}

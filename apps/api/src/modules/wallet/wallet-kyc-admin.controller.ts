@@ -14,6 +14,7 @@ import {
 import { PrismaClient, WalletKycDocStatus } from '@paybrain/database';
 import { InternalGuard } from '../../common/guards/internal.guard';
 import { RejectKycDocDto, ReviewKycDocDto } from './dto/wallet-kyc.dto';
+import { KycDocumentStorageService } from '../kyc/kyc-document-storage.service';
 
 // Back-office ops : revue des pièces d'identité clients reçues (queue KYC wallet).
 // Approuver une pièce fait passer le wallet au niveau N1 (plafonds e-money élevés).
@@ -28,7 +29,10 @@ export class WalletKycAdminController {
     select: { id: true, phone: true, fullName: true, kycLevel: true, status: true },
   };
 
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly storage: KycDocumentStorageService,
+  ) {}
 
   // Liste des pièces (sans l'image, trop lourde). Filtre statut, défaut PENDING.
   @Get('documents')
@@ -58,7 +62,8 @@ export class WalletKycAdminController {
     });
   }
 
-  // Détail d'une pièce, image incluse (data URI côté admin : data:mime;base64,...).
+  // Détail d'une pièce : l'image n'est jamais renvoyée en clair, seulement une
+  // URL S3 présignée à courte durée (5 min) que le front affiche directement.
   @Get('documents/:id')
   async get(@Param('id') id: string) {
     const doc = await this.prisma.walletKycDocument.findUnique({
@@ -67,7 +72,7 @@ export class WalletKycAdminController {
         id: true,
         type: true,
         mimeType: true,
-        dataBase64: true,
+        storageKey: true,
         status: true,
         reviewedBy: true,
         reviewReason: true,
@@ -77,7 +82,8 @@ export class WalletKycAdminController {
       },
     });
     if (!doc) throw new NotFoundException('Document introuvable');
-    return doc;
+    const { storageKey, ...rest } = doc;
+    return { ...rest, downloadUrl: await this.storage.createDownloadUrl(storageKey) };
   }
 
   @Post('documents/:id/approve')

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
 
 const baseURL =
   (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl ??
@@ -214,22 +215,47 @@ export const resendOtpClient = (phone: string) =>
   api.post<{ ok: boolean }>('/v1/wallet/auth/resend-otp', { phone }).then((r) => r.data);
 
 export type KycDocType = 'ID_FRONT' | 'ID_BACK' | 'SELFIE';
+export type KycMimeType = 'image/jpeg' | 'image/png';
+
+export interface KycUploadUrl {
+  key: string;
+  uploadUrl: string;
+  expiresInSeconds: number;
+  requiredHeaders: Record<string, string>;
+}
 
 /**
- * Envoie une pièce d'identité (image base64) pour vérification KYC (N0 → N1).
- * Le token est passé explicitement : appelé pendant l'inscription, avant que le
- * JWT client global ne soit posé par signInClient.
+ * Étape 1/3 d'un envoi de pièce d'identité (KYC N0 → N1) : demande une URL S3
+ * présignée. Le token est passé explicitement : appelé pendant l'inscription,
+ * avant que le JWT client global ne soit posé par signInClient.
  */
-export const uploadKycDocument = (
+export const createKycUploadUrl = (token: string, doc: { type: KycDocType; mimeType: KycMimeType }) =>
+  api
+    .post<KycUploadUrl>('/v1/wallet/kyc/documents/upload-url', doc, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((r) => r.data);
+
+/** Étape 2/3 : upload direct du fichier vers S3 (ne transite jamais par notre API). */
+export const uploadToPresignedUrl = async (
+  uploadUrl: string,
+  fileUri: string,
+  headers: Record<string, string>,
+): Promise<void> => {
+  const result = await FileSystem.uploadAsync(uploadUrl, fileUri, { httpMethod: 'PUT', headers });
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Échec de l'upload du document (${result.status})`);
+  }
+};
+
+/** Étape 3/3 : confirme l'upload — le backend vérifie l'objet S3 avant d'enregistrer. */
+export const confirmKycDocument = (
   token: string,
-  doc: { type: KycDocType; mimeType: 'image/jpeg' | 'image/png'; dataBase64: string },
+  doc: { type: KycDocType; mimeType: KycMimeType; storageKey: string },
 ) =>
   api
     .post<{ ok: boolean }>('/v1/wallet/kyc/documents', doc, {
       headers: { Authorization: `Bearer ${token}` },
-      // Image encodée : on relève le plafond de taille pour cette requête.
-      maxBodyLength: 6 * 1024 * 1024,
-      maxContentLength: 6 * 1024 * 1024,
     })
     .then((r) => r.data);
 

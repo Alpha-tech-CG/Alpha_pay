@@ -99,7 +99,7 @@ export default function ClientKyc() {
           </div>
 
           <img
-            src={`data:${detail.mimeType};base64,${detail.dataBase64}`}
+            src={detail.downloadUrl}
             alt={DOC_LABEL[detail.type] || detail.type}
             style={{ maxWidth: '100%', maxHeight: 420, borderRadius: 10, border: '1px solid #232a40', marginBottom: 14, display: 'block' }}
           />

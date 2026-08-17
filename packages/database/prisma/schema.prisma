@@ -261,7 +261,7 @@ model WalletKycDocument {
   wallet       Wallet             @relation(fields: [walletId], references: [id])
   type         WalletKycDocType
   mimeType     String             @map("mime_type")
-  dataBase64   String             @map("data_base64")     // image encodée (démo)
+  storageKey   String             @map("storage_key")     // clé S3 (KYC_DOCUMENTS_BUCKET)
   status       WalletKycDocStatus @default(PENDING)
   reviewedBy   String?            @map("reviewed_by")     // officer (e-mail)
   reviewReason String?            @map("review_reason")

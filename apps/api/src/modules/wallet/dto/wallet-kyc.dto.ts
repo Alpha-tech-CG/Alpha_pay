@@ -3,19 +3,28 @@ import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validato
 const DOC_TYPES = ['ID_FRONT', 'ID_BACK', 'SELFIE'] as const;
 const MIME_TYPES = ['image/jpeg', 'image/png'] as const;
 
-// Upload d'une pièce d'identité par le client (KYC N0 → N1).
-export class UploadKycDocDto {
+// Étape 1 : demande d'URL S3 présignée pour uploader la pièce directement
+// (jamais via notre API — évite de faire transiter l'image par le backend).
+export class CreateKycUploadUrlDto {
+  @IsIn(DOC_TYPES)
+  type!: (typeof DOC_TYPES)[number];
+
+  @IsIn(MIME_TYPES)
+  mimeType!: (typeof MIME_TYPES)[number];
+}
+
+// Étape 2 : confirmation après upload direct sur S3 (KYC N0 → N1).
+export class ConfirmKycDocDto {
   @IsIn(DOC_TYPES)
   type!: (typeof DOC_TYPES)[number];
 
   @IsIn(MIME_TYPES)
   mimeType!: (typeof MIME_TYPES)[number];
 
-  // Image encodée base64 (sans préfixe data:). Bornée à ~6 Mo (démo).
   @IsString()
   @MinLength(1)
-  @MaxLength(6_000_000)
-  dataBase64!: string;
+  @MaxLength(500)
+  storageKey!: string;
 }
 
 // Revue d'une pièce depuis le back-office (approbation : motif facultatif).

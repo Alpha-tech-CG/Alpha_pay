@@ -10,7 +10,7 @@ import { Icon } from '@/components/Icon';
 import { useAuth, type UserRole } from '@/auth';
 import {
   verifyKey, loginClient, registerClient, verifyOtpClient, resendOtpClient,
-  uploadKycDocument, type KycDocType, api,
+  createKycUploadUrl, uploadToPresignedUrl, confirmKycDocument, type KycDocType, api,
 } from '@/api';
 import { useTheme, type Palette } from '@/theme';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
@@ -104,7 +104,7 @@ export default function Auth() {
   // uploader les pièces avant la connexion finale.
   const [regToken, setRegToken]       = useState<string | null>(null);
   const [regRole, setRegRole]         = useState<UserRole>('CLIENT');
-  type CapturedDoc = { mimeType: 'image/jpeg' | 'image/png'; dataBase64: string; uri: string };
+  type CapturedDoc = { mimeType: 'image/jpeg' | 'image/png'; uri: string };
   const [docFront, setDocFront]       = useState<CapturedDoc | null>(null);
   const [docSelfie, setDocSelfie]     = useState<CapturedDoc | null>(null);
 
@@ -221,10 +221,10 @@ export default function Auth() {
     }
   };
 
-  // Capture une image encodée base64 pour l'upload KYC. Tente la caméra ;
-  // si elle est indisponible/refusée, repli automatique sur la galerie.
+  // Capture une image pour l'upload KYC (upload direct S3 depuis son URI locale,
+  // pas de base64). Tente la caméra ; si indisponible/refusée, repli galerie.
   const captureDoc = async (source: 'camera' | 'library'): Promise<CapturedDoc | null> => {
-    const opts: ImagePicker.ImagePickerOptions = { base64: true, quality: 0.5 };
+    const opts: ImagePicker.ImagePickerOptions = { quality: 0.5 };
     let useLibrary = source === 'library';
 
     if (!useLibrary) {
@@ -249,21 +249,28 @@ export default function Auth() {
       res = await ImagePicker.launchImageLibraryAsync(opts);
     }
     const asset = res.canceled ? undefined : res.assets?.[0];
-    if (!asset?.base64) return null;
+    if (!asset?.uri) return null;
     const mimeType = asset.mimeType === 'image/png' ? 'image/png' : 'image/jpeg';
-    return { mimeType, dataBase64: asset.base64, uri: asset.uri };
+    return { mimeType, uri: asset.uri };
   };
 
   const pickFront = async () => { const d = await captureDoc('camera'); if (d) { setRegError(null); setDocFront(d); } };
   const pickSelfie = async () => { const d = await captureDoc('camera'); if (d) { setRegError(null); setDocSelfie(d); } };
+
+  // Upload direct S3 (URL présignée) d'une pièce capturée, puis confirmation.
+  const submitKycDoc = async (token: string, type: KycDocType, doc: CapturedDoc) => {
+    const { key, uploadUrl, requiredHeaders } = await createKycUploadUrl(token, { type, mimeType: doc.mimeType });
+    await uploadToPresignedUrl(uploadUrl, doc.uri, requiredHeaders);
+    await confirmKycDocument(token, { type, mimeType: doc.mimeType, storageKey: key });
+  };
 
   // Upload des pièces capturées puis connexion finale.
   const finishSignup = async (skip: boolean) => {
     setRegBusy(true); setRegError(null);
     try {
       if (!skip && regToken) {
-        if (docFront) await uploadKycDocument(regToken, { type: 'ID_FRONT' as KycDocType, mimeType: docFront.mimeType, dataBase64: docFront.dataBase64 });
-        if (docSelfie) await uploadKycDocument(regToken, { type: 'SELFIE' as KycDocType, mimeType: docSelfie.mimeType, dataBase64: docSelfie.dataBase64 });
+        if (docFront) await submitKycDoc(regToken, 'ID_FRONT', docFront);
+        if (docSelfie) await submitKycDoc(regToken, 'SELFIE', docSelfie);
       }
       await signInClient(regPhone.trim(), regToken!, regRole);
     } catch {
