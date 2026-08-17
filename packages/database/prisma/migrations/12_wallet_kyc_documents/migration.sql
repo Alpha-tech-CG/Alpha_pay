@@ -6,7 +6,7 @@ CREATE TYPE "WalletKycDocStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 
 CREATE TABLE "wallet_kyc_documents" (
   "id"            TEXT PRIMARY KEY,
-  "wallet_id"     TEXT NOT NULL REFERENCES "wallets"("id"),
+  "wallet_id"     UUID NOT NULL REFERENCES "wallets"("id"),
   "type"          "WalletKycDocType" NOT NULL,
   "mime_type"     TEXT NOT NULL,
   "data_base64"   TEXT NOT NULL,
