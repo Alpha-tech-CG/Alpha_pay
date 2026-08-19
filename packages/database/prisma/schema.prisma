@@ -614,6 +614,9 @@ model SettlementBatch {
   audits                   SettlementAudit[]
 
   @@index([merchantId, status])
+  // Index unique PARTIEL (merchant_id, period_start, period_end) WHERE status <> 'FAILED'
+  // — défense en profondeur anti double-reversement. Non exprimable en Prisma
+  // (index partiel) : défini en SQL brut dans la migration 16_settlement_period_unique.
   @@map("settlement_batches")
 }
 

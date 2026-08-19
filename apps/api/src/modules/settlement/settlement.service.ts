@@ -184,31 +184,46 @@ export class SettlementService {
       : "INITIATED";
     const batchNumber = `STL-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${randomBytes(3).toString("hex")}`;
 
-    const batch = await this.prisma.settlementBatch.create({
-      data: {
-        batchNumber,
-        merchantId,
-        periodStart,
-        periodEnd,
-        currency,
-        grossCents,
-        commissionCents,
-        holdsCents,
-        netCents,
-        settlementCurrency,
-        settledNetCents,
-        fxRate,
-        status,
-        requiresDoubleValidation,
-        audits: {
-          create: {
-            action: "CREATED",
-            actor: "system",
-            details: `net ${netCents} centimes`,
+    // Défense en profondeur (migration 16) : un index unique partiel garantit au
+    // plus UN batch non-FAILED par (marchand, période). Si deux instances
+    // franchissaient le verrou applicatif, la 2e création lève P2002 — on la
+    // traite comme un no-op idempotent plutôt qu'un double reversement.
+    let batch;
+    try {
+      batch = await this.prisma.settlementBatch.create({
+        data: {
+          batchNumber,
+          merchantId,
+          periodStart,
+          periodEnd,
+          currency,
+          grossCents,
+          commissionCents,
+          holdsCents,
+          netCents,
+          settlementCurrency,
+          settledNetCents,
+          fxRate,
+          status,
+          requiresDoubleValidation,
+          audits: {
+            create: {
+              action: "CREATED",
+              actor: "system",
+              details: `net ${netCents} centimes`,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (err: any) {
+      if (err?.code === "P2002") {
+        this.logger.warn(
+          `Settlement ${merchantId} ${periodStart.toISOString()}..${periodEnd.toISOString()} : batch déjà existant pour la période — création ignorée.`,
+        );
+        return { created: false, reason: "batch déjà existant pour cette période" };
+      }
+      throw err;
+    }
 
     const receiptPdfKey = await this.receipts.archive({
       batchNumber,
