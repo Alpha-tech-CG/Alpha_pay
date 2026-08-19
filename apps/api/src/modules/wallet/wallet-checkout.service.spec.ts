@@ -54,7 +54,10 @@ function makeService(opts: {
   const qrSigning = {} as QrSigningService;
   const floatRecon = { assertFloatHealthy: jest.fn() } as unknown as WalletFloatReconciliationService;
   const webhookDelivery = { dispatch: jest.fn().mockResolvedValue(0) } as unknown as WebhookDeliveryService;
-  const currency = { convert: opts.convert ?? jest.fn() } as unknown as CurrencyService;
+  const currency = {
+    convert: opts.convert ?? jest.fn(),
+    recordWalletFxExposure: jest.fn().mockResolvedValue('ledger-tx'),
+  } as unknown as CurrencyService;
   const limits = {
     assertWithinDebitLimits: jest.fn().mockResolvedValue(undefined),
     assertWithinBalanceCap: jest.fn().mockResolvedValue(undefined),
@@ -99,11 +102,21 @@ describe('WalletService.payPaylink — multi-devises (ALP-170)', () => {
       from: 'USD', to: 'XAF', rate: 610, amount: 10, convertedAmount: 6100, formatted: '6 100 FCFA',
     });
     // Après débit de 610000, il reste 390000 → balanceBefore = 1000000 (10000 XAF).
-    const { service, created, webhookDelivery } = makeService({ link, balanceAfterDebit: 390000n, convert });
+    const { service, created, webhookDelivery, currency } = makeService({ link, balanceAfterDebit: 390000n, convert });
 
     const res: any = await service.payPaylink('pl2', { phone: '242066000001', pin: '1234' } as any);
 
     expect(convert).toHaveBeenCalledWith(10, 'USD', 'XAF');
+    // Exposition FX enregistrée au grand livre (AVANT_PROD §0.5) : débité XAF, marchand crédité USD.
+    expect((currency as any).recordWalletFxExposure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        walletDebitCents: 610000n,
+        walletCurrency: 'XAF',
+        merchantAmountCents: 1000n,
+        merchantCurrency: 'USD',
+        rate: 610,
+      }),
+    );
     // Wallet débité en XAF (converti)
     expect(created.walletTx.amountCents).toBe(610000n);
     expect(created.walletTx.metadata).toEqual({

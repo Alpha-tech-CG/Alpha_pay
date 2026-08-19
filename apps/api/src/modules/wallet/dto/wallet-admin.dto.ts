@@ -23,3 +23,19 @@ export class WalletActionDto {
   @MinLength(1)
   reason!: string;
 }
+
+// Rattachement d'un wallet à un marchand comme caissier (MERCHANT_CASHIER) —
+// remplace le rattachement manuel en base (AVANT_PROD §0.7).
+export class AttachCashierDto {
+  @IsString()
+  @MinLength(1)
+  merchantId!: string;
+
+  @IsString()
+  @MinLength(1)
+  officer!: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}

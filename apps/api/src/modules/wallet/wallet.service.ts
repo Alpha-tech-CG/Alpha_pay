@@ -472,6 +472,21 @@ export class WalletService {
       method: 'WALLET',
     }).catch((err) => this.logger.error(`Dispatch webhook checkout échoué: ${err?.message}`));
 
+    // Exposition de change (ALP-170 / AVANT_PROD §0.5) : le payeur est débité en
+    // XAF mais le marchand est crédité dans la devise du lien — la plateforme
+    // porte le risque FX. On l'enregistre au grand livre (best-effort, hors du
+    // chemin critique) pour qu'il apparaisse dans currency.fxSpread().
+    if (charge.fx) {
+      this.currency.recordWalletFxExposure({
+        walletDebitCents,
+        walletCurrency: wallet.currency,
+        merchantAmountCents,
+        merchantCurrency: link.currency,
+        rate: charge.fx.rate,
+        reference: `paylink-${link.id}`,
+      }).catch((err) => this.logger.error(`Exposition FX wallet non enregistrée (paylink-${link.id}): ${err?.message}`));
+    }
+
     return {
       ok: true,
       txId: tx.id,

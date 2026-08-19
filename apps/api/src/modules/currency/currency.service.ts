@@ -107,6 +107,36 @@ export class CurrencyService {
   }
 
   /**
+   * Enregistre l'exposition de change d'un paiement wallet cross-devises
+   * (ALP-170 / AVANT_PROD §0.5) : le payeur est débité en devise wallet, le
+   * marchand crédité dans la devise du lien — la plateforme porte le risque FX.
+   * On pose la conversion en deux jambes via les comptes `fx-exchange-*` pour
+   * qu'elle apparaisse dans `fxSpread()`. Comptes de contrepartie dédiés
+   * (`wallet-fx-*`) pour ne pas mélanger avec le settlement marchand.
+   * Renvoie l'id de transaction ledger, ou null si l'écriture échoue (best-effort
+   * — appelé hors du chemin critique de paiement).
+   */
+  async recordWalletFxExposure(params: {
+    walletDebitCents: bigint;
+    walletCurrency: string;
+    merchantAmountCents: bigint;
+    merchantCurrency: string;
+    rate: number;
+    reference: string;
+  }): Promise<string | null> {
+    if (params.walletCurrency === params.merchantCurrency) return null;
+    return this.ledger.postConversion({
+      fromAccount: `wallet-fx-payer-${params.walletCurrency}`,
+      toAccount: `wallet-fx-merchant-${params.merchantCurrency}`,
+      amountFromCents: params.walletDebitCents,
+      currencyFrom: params.walletCurrency,
+      amountToCents: params.merchantAmountCents,
+      currencyTo: params.merchantCurrency,
+      description: `Wallet FX ${params.walletCurrency}->${params.merchantCurrency} @${params.rate} (${params.reference})`,
+    });
+  }
+
+  /**
    * Écart de change (ALP-151) : valorise le solde net des comptes d'échange
    * `fx-exchange-<DEV>` dans une devise de référence. Un net non nul = le gain/
    * perte de change accumulé (marge appliquée + résidus d'arrondi). Reporting.

@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, PrismaClient, WalletStatus } from '@paybrain/database';
 import { InternalGuard } from '../../common/guards/internal.guard';
-import { ActivateWalletDto, WalletActionDto } from './dto/wallet-admin.dto';
+import { ActivateWalletDto, AttachCashierDto, WalletActionDto } from './dto/wallet-admin.dto';
 
 // Back-office ops : revue et validation manuelle des wallets clients
 // (closed-loop e-money). Protégé par le jeton interne, jamais exposé publiquement.
@@ -146,6 +146,58 @@ export class WalletAdminController {
       dto.reason,
       'UNBLOCK',
     );
+  }
+
+  // Rattache un wallet à un marchand comme caissier (MERCHANT_CASHIER) —
+  // remplace le rattachement manuel en DB (AVANT_PROD §0.7).
+  @Post(':id/attach-cashier')
+  async attachCashier(@Param('id') id: string, @Body() dto: AttachCashierDto) {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { id },
+      select: { id: true, phone: true, status: true },
+    });
+    if (!wallet) throw new NotFoundException('Wallet introuvable');
+    if (wallet.status === 'CLOSED') throw new BadRequestException('Wallet clôturé');
+
+    const merchant = await this.prisma.merchant.findUnique({
+      where: { id: dto.merchantId },
+      select: { id: true },
+    });
+    if (!merchant) throw new NotFoundException('Marchand introuvable');
+
+    const updated = await this.prisma.wallet.update({
+      where: { id },
+      data: { merchantId: merchant.id, role: 'MERCHANT_CASHIER' },
+      select: { ...WalletAdminController.LIST_SELECT, role: true, merchantId: true },
+    });
+    this.logger.log(
+      `Wallet ${id} (${wallet.phone}) rattaché au marchand ${merchant.id} comme MERCHANT_CASHIER par ${dto.officer}` +
+        (dto.reason ? ` · motif: ${dto.reason}` : ''),
+    );
+    return updated;
+  }
+
+  // Détache un caissier de son marchand : redevient un wallet client standard.
+  @Post(':id/detach-cashier')
+  async detachCashier(@Param('id') id: string, @Body() dto: WalletActionDto) {
+    const wallet = await this.prisma.wallet.findUnique({
+      where: { id },
+      select: { id: true, phone: true, role: true, merchantId: true },
+    });
+    if (!wallet) throw new NotFoundException('Wallet introuvable');
+    if (wallet.role !== 'MERCHANT_CASHIER' && !wallet.merchantId) {
+      throw new BadRequestException('Wallet non rattaché à un marchand');
+    }
+
+    const updated = await this.prisma.wallet.update({
+      where: { id },
+      data: { merchantId: null, role: 'CLIENT' },
+      select: { ...WalletAdminController.LIST_SELECT, role: true, merchantId: true },
+    });
+    this.logger.log(
+      `Wallet ${id} (${wallet.phone}) détaché du marchand ${wallet.merchantId ?? '?'} par ${dto.officer} · motif: ${dto.reason}`,
+    );
+    return updated;
   }
 
   // Transition de statut atomique avec garde métier + journal d'audit.
