@@ -28,6 +28,7 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
 import { loadSecretsFromAws } from "./secrets/secrets-loader";
 import { bodyGuard } from "./common/security/body-guard";
+import { createRateLimitStore } from "./common/security/redis-rate-limit.store";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { buildCorsOptions } from "./common/security/cors";
 
@@ -90,6 +91,7 @@ async function bootstrap() {
       limit: 300,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("global"),
       message: { message: "Trop de requêtes, réessayez plus tard." },
     }),
   );
@@ -103,6 +105,7 @@ async function bootstrap() {
       limit: 20,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("payments"),
       message: {
         message: "Trop de paiements initiés, réessayez dans une minute.",
       },
@@ -118,6 +121,7 @@ async function bootstrap() {
       limit: 60,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("webhooks"),
     }),
   );
 
@@ -132,6 +136,7 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       skip: (req) => req.method !== "POST",
+      store: createRateLimitStore("invitations"),
       message: { message: "Trop d'invitations envoyées, réessayez plus tard." },
     }),
   );
@@ -144,6 +149,7 @@ async function bootstrap() {
       limit: 5,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore('onboarding'),
       message: { message: 'Trop de tentatives d\'inscription, réessayez plus tard.' },
     }),
   );
@@ -156,6 +162,7 @@ async function bootstrap() {
       limit: 10,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("wallet-auth"),
       message: { message: "Trop de tentatives, réessayez dans 15 minutes." },
     }),
   );
@@ -168,6 +175,7 @@ async function bootstrap() {
       limit: 20,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("checkout"),
       message: { message: "Trop de tentatives de paiement, réessayez dans 15 minutes." },
     }),
   );
@@ -180,6 +188,7 @@ async function bootstrap() {
       limit: 120,
       standardHeaders: true,
       legacyHeaders: false,
+      store: createRateLimitStore("wallet-callbacks"),
     }),
   );
 

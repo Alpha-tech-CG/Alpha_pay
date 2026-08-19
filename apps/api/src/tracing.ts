@@ -10,6 +10,15 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
+// Threadpool libuv : argon2 (m=64Mo, p=4 par hash), génération PDF et I/O fichier
+// s'exécutent sur ce pool (défaut = 4). Sous un pic d'auth wallet, 4 threads
+// deviennent un goulot → latence. On relève le défaut (surchargable via l'env).
+// Posé ici car tracing.ts est le tout premier module chargé, avant toute
+// opération threadpool (libuv lit la valeur à la 1re utilisation du pool).
+if (!process.env.UV_THREADPOOL_SIZE) {
+  process.env.UV_THREADPOOL_SIZE = '16';
+}
+
 const otlpEndpoint =
   process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318';
 

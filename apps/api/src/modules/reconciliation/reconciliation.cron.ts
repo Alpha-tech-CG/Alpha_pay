@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { ReconciliationService } from "./reconciliation.service";
 import { parseStatementCsv } from "./statement-parser";
+import { CronLockService } from "../../common/scheduling/cron-lock.service";
 import { readFile, readdir, rename } from "fs/promises";
 import { join } from "path";
 
@@ -17,10 +18,19 @@ import { join } from "path";
 export class ReconciliationCron {
   private readonly logger = new Logger(ReconciliationCron.name);
 
-  constructor(private readonly reconciliation: ReconciliationService) {}
+  constructor(
+    private readonly reconciliation: ReconciliationService,
+    private readonly cronLock: CronLockService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
   async runDaily() {
+    // Exclusion multi-instance : deux pods liraient le même fichier avant le
+    // rename `processed_*` → double réconciliation / double-écriture d'écarts.
+    await this.cronLock.runExclusive("reconciliation-daily", () => this.runDailyLocked());
+  }
+
+  private async runDailyLocked() {
     const inbox = process.env.RECONCILIATION_INBOX;
     if (!inbox) {
       this.logger.log(

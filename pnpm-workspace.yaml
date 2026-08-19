@@ -1,0 +1,27 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Quarantaine supply-chain : refuse d'installer une version publiée depuis moins
+# de 3 jours (4320 min). Fenêtre pendant laquelle les paquets compromis sont
+# généralement détectés et dépubliés. N'affecte que la RÉSOLUTION de nouvelles
+# versions ; les versions déjà verrouillées (pnpm-lock.yaml) ne sont pas bloquées.
+minimumReleaseAge: 4320
+
+# Sécurité supply-chain : contrôle explicite des scripts d'install
+# (postinstall/build). Tout paquet non listé à `true` est bloqué par défaut.
+#   true  → argon2 (natif, hachage PIN/mdp), prisma/@prisma/* (client + moteurs),
+#           sharp (images Next.js, binaires fiables)
+#   false → @scarf/scarf (tracking), core-js (message de financement),
+#           msgpackr-extract & protobufjs (accélérateurs natifs optionnels,
+#           repli JS automatique) — aucun impact fonctionnel.
+allowBuilds:
+  argon2: true
+  prisma: true
+  '@prisma/client': true
+  '@prisma/engines': true
+  sharp: true
+  '@scarf/scarf': false
+  core-js: false
+  msgpackr-extract: false
+  protobufjs: false

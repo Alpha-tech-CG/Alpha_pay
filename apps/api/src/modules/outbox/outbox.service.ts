@@ -27,7 +27,16 @@ export class OutboxService {
   }
 
   private async retryPaymentFailedEvent(event: { id: string; transactionId: string; attempts: number; maxAttempts: number; payload: any }) {
-    await this.prisma.outboxEvent.update({ where: { id: event.id }, data: { status: 'PROCESSING' } });
+    // Claim atomique multi-instance : chaque pod exécute ce cron, donc plusieurs
+    // instances lisent le MÊME lot PENDING. Le passage PENDING→PROCESSING est
+    // conditionné sur status='PENDING' → une seule instance obtient count=1 et
+    // appelle l'opérateur. Sans ce garde, N pods déclenchent N `requestToPay`
+    // pour le même événement (multi-débit du payeur).
+    const claim = await this.prisma.outboxEvent.updateMany({
+      where: { id: event.id, status: 'PENDING' },
+      data: { status: 'PROCESSING' },
+    });
+    if (claim.count === 0) return; // déjà pris (ou terminé) par une autre instance
 
     const { dto, operator } = event.payload as { dto: any; operator: 'MTN' | 'AIRTEL' };
     const connector = operator === 'MTN' ? this.mtn : this.airtel;

@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaClient } from "@paybrain/database";
 import { SettlementService } from "./settlement.service";
+import { CronLockService } from "../../common/scheduling/cron-lock.service";
 
 /**
  * Reversement automatique quotidien (ALP-141). Pour chaque marchand dont la
@@ -15,10 +16,18 @@ export class SettlementCron {
   constructor(
     @Inject("PRISMA") private readonly prisma: PrismaClient,
     private readonly settlement: SettlementService,
+    private readonly cronLock: CronLockService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async runDaily() {
+    // Exclusion multi-instance : sans ce garde, chaque pod lance le reversement
+    // en parallèle → batchNumber aléatoire, aucune contrainte unique sur la
+    // période → DOUBLE REVERSEMENT au marchand.
+    await this.cronLock.runExclusive("settlement-daily", () => this.runDailyLocked());
+  }
+
+  private async runDailyLocked() {
     const configs = await this.prisma.merchantSettlementConfig.findMany({
       where: { enabled: true },
     });

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { AccountType, Prisma, PrismaClient } from '@paybrain/database';
+import { AccountType, JournalEntry, Prisma, PrismaClient } from '@paybrain/database';
 import { EmptyEntryError, InvalidAmountError, UnbalancedEntryError } from './ledger.errors';
 
 export interface JournalLine {
@@ -215,17 +215,66 @@ export class LedgerService {
   async takeSnapshot(accountIdOrName: string): Promise<void> {
     const accountId = await this.resolveExistingAccountId(accountIdOrName);
     if (!accountId) return;
+    await this.#snapshotIfNew(accountId);
+  }
 
+  /**
+   * Fige un snapshot pour `accountId` seulement s'il y a des écritures postérieures
+   * au dernier snapshot. Évite les doublons quand le cron repasse souvent.
+   * @returns true si un nouveau snapshot a été créé.
+   */
+  async #snapshotIfNew(accountId: string): Promise<boolean> {
     const last = await this.prisma.journalEntry.findFirst({
       where: { accountId },
       orderBy: { sequence: 'desc' },
+      select: { sequence: true },
     });
-    if (!last) return;
+    if (!last) return false;
+
+    const latestSnapshot = await this.prisma.ledgerBalanceSnapshot.findFirst({
+      where: { accountId },
+      orderBy: { asOfSequence: 'desc' },
+      select: { asOfSequence: true },
+    });
+    if (latestSnapshot && latestSnapshot.asOfSequence >= last.sequence) return false;
 
     const balance = await this.getAccountBalance(accountId);
     await this.prisma.ledgerBalanceSnapshot.create({
       data: { accountId, balance, asOfSequence: last.sequence },
     });
+    return true;
+  }
+
+  /**
+   * Fige un snapshot de solde pour tous les comptes ayant de nouvelles écritures.
+   * Appelé par le cron ledger : sans snapshots réguliers, getAccountBalance
+   * réagrège tout l'historique du compte à chaque lecture (dégradation linéaire).
+   * Parcours paginé par curseur pour ne jamais charger tous les comptes en mémoire.
+   * @returns nombre de comptes effectivement snapshotés (nouveau point).
+   */
+  async snapshotAllAccounts(): Promise<number> {
+    const BATCH = 500;
+    let taken = 0;
+    let cursorId: string | null = null;
+
+    for (;;) {
+      const accounts: { id: string }[] = await this.prisma.ledgerAccount.findMany({
+        take: BATCH,
+        ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
+        orderBy: { id: 'asc' },
+        select: { id: true },
+      });
+      if (accounts.length === 0) break;
+
+      for (const account of accounts) {
+        if (await this.#snapshotIfNew(account.id)) taken++;
+      }
+
+      cursorId = accounts[accounts.length - 1].id;
+      if (accounts.length < BATCH) break;
+    }
+
+    return taken;
   }
 
   /**
@@ -234,41 +283,59 @@ export class LedgerService {
    * insertion hors séquence, etc).
    */
   async verifyChain(): Promise<ChainVerificationResult> {
-    const entries = await this.prisma.journalEntry.findMany({ orderBy: { sequence: 'asc' } });
-
+    // Parcours paginé par curseur (sequence) : le journal grandit sans borne, le
+    // charger d'un bloc en mémoire finirait en OOM. On conserve prevHash d'un lot
+    // au suivant pour vérifier le chaînage sans discontinuité.
+    const BATCH = 1000;
     let prevHash = GENESIS_HASH;
-    for (const entry of entries) {
-      if (entry.prevHash !== prevHash) {
-        return {
-          valid: false,
-          entriesChecked: entries.length,
-          brokenAtSequence: entry.sequence.toString(),
-          reason: 'prevHash ne correspond pas au hash de la ligne précédente',
-        };
+    let entriesChecked = 0;
+    let cursorSeq: bigint | null = null;
+
+    for (;;) {
+      const entries: JournalEntry[] = await this.prisma.journalEntry.findMany({
+        where: cursorSeq !== null ? { sequence: { gt: cursorSeq } } : undefined,
+        orderBy: { sequence: 'asc' },
+        take: BATCH,
+      });
+      if (entries.length === 0) break;
+
+      for (const entry of entries) {
+        entriesChecked++;
+        if (entry.prevHash !== prevHash) {
+          return {
+            valid: false,
+            entriesChecked,
+            brokenAtSequence: entry.sequence.toString(),
+            reason: 'prevHash ne correspond pas au hash de la ligne précédente',
+          };
+        }
+
+        const content = [
+          entry.transactionId,
+          entry.accountId,
+          entry.direction,
+          BigInt(entry.amount).toString(),
+          entry.currency,
+          entry.description ?? '',
+        ].join('|');
+        const expectedHash = createHash('sha256').update(prevHash + content).digest('hex');
+
+        if (expectedHash !== entry.hash) {
+          return {
+            valid: false,
+            entriesChecked,
+            brokenAtSequence: entry.sequence.toString(),
+            reason: 'hash recalculé ne correspond pas au hash stocké',
+          };
+        }
+
+        prevHash = entry.hash;
       }
 
-      const content = [
-        entry.transactionId,
-        entry.accountId,
-        entry.direction,
-        BigInt(entry.amount).toString(),
-        entry.currency,
-        entry.description ?? '',
-      ].join('|');
-      const expectedHash = createHash('sha256').update(prevHash + content).digest('hex');
-
-      if (expectedHash !== entry.hash) {
-        return {
-          valid: false,
-          entriesChecked: entries.length,
-          brokenAtSequence: entry.sequence.toString(),
-          reason: 'hash recalculé ne correspond pas au hash stocké',
-        };
-      }
-
-      prevHash = entry.hash;
+      cursorSeq = entries[entries.length - 1].sequence;
+      if (entries.length < BATCH) break;
     }
 
-    return { valid: true, entriesChecked: entries.length, brokenAtSequence: null };
+    return { valid: true, entriesChecked, brokenAtSequence: null };
   }
 }

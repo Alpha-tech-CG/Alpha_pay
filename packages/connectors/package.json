@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@paybrain/shared": "*",
+    "@paybrain/shared": "workspace:*",
     "axios": "^1.9.0",
     "uuid": "^11.1.0"
   },
