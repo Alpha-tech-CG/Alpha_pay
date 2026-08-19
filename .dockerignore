@@ -15,3 +15,18 @@ terraform/*.tfvars
 coverage
 paybrain
 securite
+# Hors périmètre du build API (dirs non-workspace + artefacts lourds).
+# turbo prune n'a besoin que de apps/* et packages/* + config racine.
+mobile
+admin
+dashboard
+src
+tmp
+docs
+infra
+.agents
+.tools
+*.zip
+*.log
+app.json
+eas.json

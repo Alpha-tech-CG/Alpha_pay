@@ -16,37 +16,47 @@ FROM base AS pruner
 COPY . .
 RUN npx --yes turbo@2.5.4 prune @paybrain/api --docker
 
-# 2. Install des dépendances du sous-arbre élagué (lockfile pruné → pas de deps frontend).
-# On copie explicitement .npmrc (node-linker=hoisted) et pnpm-workspace.yaml
-# (allowBuilds : scripts d'install autorisés) pour garantir le même comportement
-# sécurisé qu'en local, même si turbo prune ne les propage pas.
-FROM base AS deps
-COPY --from=pruner /app/out/json/ ./
-COPY --from=pruner /app/.npmrc ./.npmrc
-COPY --from=pruner /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-RUN pnpm install --frozen-lockfile
-
-# 3. Build des 4 packages + génération du client Prisma.
+# 2+3. Install + build dans le MÊME contexte (out/full).
+# On installe directement contre les manifestes complets : sinon, installer
+# contre les manifestes prunés (out/json) puis poser out/full par-dessus crée une
+# « dérive » que pnpm tente de réconcilier par un install non-frozen (qui casse).
+# node_modules aligné → `pnpm exec`/`pnpm --filter` résolvent les binaires
+# correctement sans re-vérification. On copie pnpm-workspace.yaml (nodeLinker +
+# allowBuilds) : pnpm 11 y lit tous ses réglages (le .npmrc est ignoré).
 FROM base AS builder
-COPY --from=pruner /app/.npmrc ./.npmrc
 COPY --from=pruner /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=deps /app/node_modules ./node_modules
+# out/json = manifestes + pnpm-lock.yaml prunés → install (couche cache stable).
+COPY --from=pruner /app/out/json/ ./
+RUN pnpm install --frozen-lockfile
+# out/full = sources complètes (MÊMES manifestes) posées par-dessus, dans le même
+# stage : node_modules n'est pas recopié entre stages, donc pnpm ne détecte pas
+# de dérive et ne relance pas d'install au moment des `pnpm exec`/`--filter`.
 COPY --from=pruner /app/out/full/ ./
 # tsconfig.base.json (racine) est hérité par les tsconfig des packages mais n'est
 # pas inclus par `turbo prune` — on le copie depuis le contexte de build.
 COPY tsconfig.base.json ./tsconfig.base.json
-RUN pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
+# prisma est une dép de @paybrain/database (pas de la racine) : on génère le
+# client dans le contexte du paquet, où le binaire et le schéma sont résolus.
+RUN pnpm --filter @paybrain/database db:generate
 RUN pnpm --filter @paybrain/shared build \
   && pnpm --filter @paybrain/database build \
   && pnpm --filter @paybrain/connectors build \
   && pnpm --filter @paybrain/api build
 
-# 4. Dépendances de production uniquement : on élague les devDeps (typescript,
-# jest, @nestjs/cli…) de l'arbre déjà installé. argon2 (déjà compilé) et le
-# client Prisma généré sont conservés ; le CLI prisma reste (passé en dependency)
-# pour `migrate deploy` dans la tâche de migration.
-FROM builder AS prod-deps
-RUN pnpm prune --prod
+# 4. Déploiement autonome de l'API (hors workspace, /prod). `pnpm deploy` produit
+# un node_modules PROD APLATI (nodeLinker=hoisted) avec les paquets workspace
+# @paybrain/* INLINÉS (vrais dossiers + leur dist) et @prisma/client déjà généré
+# (copié depuis le store). Ça remplace `pnpm prune --prod`, qui détruisait les
+# liens workspace, et l'assemblage manuel fragile de l'image.
+# --legacy : déploie depuis le node_modules déjà installé (les paquets workspace
+# sont bâtis, dist présent). Évite `injectWorkspacePackages` qui, en global,
+# copierait les paquets internes au lieu de les symlinker (régression en dev local).
+RUN pnpm --filter=@paybrain/api deploy --prod --legacy /prod
+# `deploy` ne transporte PAS le client Prisma généré (.prisma/client) — seulement
+# le stub. On le régénère DANS le déploiement, où @prisma/client et le schéma
+# (inliné avec @paybrain/database) sont résolus, sinon `new PrismaClient()` jette
+# « did not initialize » au démarrage.
+RUN cd /prod && node_modules/.bin/prisma generate --schema=node_modules/@paybrain/database/prisma/schema.prisma
 
 # 5. Image de production
 FROM node:22-alpine AS runner
@@ -63,19 +73,15 @@ RUN chmod 644 /etc/ssl/rds-ca-bundle.pem
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
 
+# node_modules autonome issu de `pnpm deploy` (prod, @paybrain/* inlinés, client
+# Prisma généré) + bundle de l'API. Plus de symlinks workspace à recoller.
+COPY --from=builder --chown=nestjs:nodejs /prod/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/apps/api/dist ./dist
-# node_modules ÉLAGUÉ (prod-deps, sans devDeps ni frontend) — image bien plus légère.
-COPY --from=prod-deps --chown=nestjs:nodejs /app/node_modules ./node_modules
-# Les paquets workspace sont des liens dans node_modules/@paybrain. Copier leurs
-# artefacts garde ces liens valides dans l'image finale.
-COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=builder --chown=nestjs:nodejs /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder --chown=nestjs:nodejs /app/packages/database/package.json ./packages/database/package.json
-COPY --from=builder --chown=nestjs:nodejs /app/packages/database/dist ./packages/database/dist
+COPY --from=builder --chown=nestjs:nodejs /prod/package.json ./package.json
+# Schéma + SQL conservés au même chemin pour la tâche de migration
+# (`prisma migrate deploy --schema=packages/database/prisma/schema.prisma`).
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/sql ./packages/database/sql
-COPY --from=builder --chown=nestjs:nodejs /app/packages/connectors/package.json ./packages/connectors/package.json
-COPY --from=builder --chown=nestjs:nodejs /app/packages/connectors/dist ./packages/connectors/dist
 
 USER nestjs
 EXPOSE 3000

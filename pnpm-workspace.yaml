@@ -2,17 +2,30 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# --- Réglages pnpm ---
+# IMPORTANT : pnpm 11 lit ces réglages ICI (clés camelCase), PAS dans .npmrc
+# (qui est ignoré pour ces clés). C'est pourquoi il n'y a plus de .npmrc.
+
+# Arborescence plate façon npm : évite les cassures liées aux symlinks pnpm
+# (modules natifs argon2, assemblage de l'image Docker, deps « fantômes »).
+nodeLinker: hoisted
+
+# Compatibilité : tolérant sur les peer deps comme npm ; lier les paquets internes
+# du monorepo depuis le workspace, pas le registry.
+strictPeerDependencies: false
+autoInstallPeers: true
+linkWorkspacePackages: true
+
 # Quarantaine supply-chain : refuse d'installer une version publiée depuis moins
-# de 3 jours (4320 min). Fenêtre pendant laquelle les paquets compromis sont
-# généralement détectés et dépubliés. N'affecte que la RÉSOLUTION de nouvelles
-# versions ; les versions déjà verrouillées (pnpm-lock.yaml) ne sont pas bloquées.
+# de 3 jours (4320 min). N'affecte que la RÉSOLUTION de nouvelles versions ; les
+# versions déjà verrouillées (pnpm-lock.yaml) ne sont pas bloquées.
 minimumReleaseAge: 4320
 
-# Sécurité supply-chain : contrôle explicite des scripts d'install
-# (postinstall/build). Tout paquet non listé à `true` est bloqué par défaut.
+# Sécurité : contrôle explicite des scripts d'install (postinstall/build). Tout
+# paquet non listé à `true` est bloqué par défaut.
 #   true  → argon2 (natif, hachage PIN/mdp), prisma/@prisma/* (client + moteurs),
 #           sharp (images Next.js, binaires fiables)
-#   false → @scarf/scarf (tracking), core-js (message de financement),
+#   false → @scarf/scarf (tracking), core-js (financement),
 #           msgpackr-extract & protobufjs (accélérateurs natifs optionnels,
 #           repli JS automatique) — aucun impact fonctionnel.
 allowBuilds:
