@@ -21,6 +21,9 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { TeamModule } from './modules/team/team.module';
+import { PartnersModule } from './modules/partners/partners.module';
+import { RoutingModule } from './modules/routing/routing.module';
+import { FeesModule } from './modules/fees/fees.module';
 import { DatabaseModule } from './database.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
 
@@ -50,6 +53,9 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     WalletModule,
     MerchantModule,
     TeamModule,
+    PartnersModule,
+    RoutingModule,
+    FeesModule,
   ],
 })
 export class AppModule {}
