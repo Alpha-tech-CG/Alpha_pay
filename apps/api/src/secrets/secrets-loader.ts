@@ -32,4 +32,18 @@ export async function loadSecretsFromAws(env: NodeJS.ProcessEnv = process.env): 
   for (const [key, value] of Object.entries(secrets)) {
     env[key] = value;
   }
+
+  // REDIS_URL est stocké dans un secret DÉDIÉ (chaîne `rediss://…` avec AUTH),
+  // distinct du blob app_env, dont l'ARN arrive via REDIS_URL_SECRET_ARN
+  // (cf. terraform/elasticache.tf + ecs.tf). Sans cette injection, le rate-limit
+  // partagé et le fanout WebSocket retombent silencieusement en mode
+  // instance-unique en production. On ne l'écrase pas s'il est déjà présent.
+  const redisArn = env.REDIS_URL_SECRET_ARN;
+  if (redisArn && !env.REDIS_URL) {
+    const redisResponse = await client.send(new GetSecretValueCommand({ SecretId: redisArn }));
+    if (!redisResponse.SecretString) {
+      throw new Error(`Le secret Redis "${redisArn}" ne contient pas de SecretString`);
+    }
+    env.REDIS_URL = redisResponse.SecretString;
+  }
 }

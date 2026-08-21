@@ -88,6 +88,8 @@ export class WalletAdminController {
         balanceCents: true,
         currency: true,
         kycLevel: true,
+        role: true,
+        merchantId: true,
         createdAt: true,
         updatedAt: true,
       },

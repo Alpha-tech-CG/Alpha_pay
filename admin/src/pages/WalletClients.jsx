@@ -67,6 +67,38 @@ export default function WalletClients() {
     }
   };
 
+  // Rattachement d'un wallet comme caissier d'un marchand (remplace le
+  // rattachement manuel en DB — AVANT_PROD §0.7).
+  const attachCashier = async (id) => {
+    const merchantId = window.prompt('ID du marchand pour lequel ce wallet encaissera :');
+    if (!merchantId || !merchantId.trim()) return;
+    setBusy(true);
+    try {
+      await api.post(`/internal/wallets/${id}/attach-cashier`, { merchantId: merchantId.trim(), officer });
+      setDetail(null);
+      load(status, phone);
+    } catch (e) {
+      window.alert(e?.response?.data?.message || 'Rattachement refusé');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const detachCashier = async (id) => {
+    const reason = window.prompt('Motif du détachement (obligatoire) :');
+    if (!reason) return;
+    setBusy(true);
+    try {
+      await api.post(`/internal/wallets/${id}/detach-cashier`, { officer, reason });
+      setDetail(null);
+      load(status, phone);
+    } catch (e) {
+      window.alert(e?.response?.data?.message || 'Détachement refusé');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div>
       <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Wallets clients</h1>
@@ -112,8 +144,14 @@ export default function WalletClients() {
           <div style={{ fontSize: 13, marginBottom: 6 }}>
             Statut : <Badge value={detail.status} /> · Solde : <strong>{xaf(detail.balanceCents)} XAF</strong> · KYC : {detail.kycLevel}
           </div>
-          <div style={{ fontSize: 12, color: '#7b86a3', marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: '#7b86a3', marginBottom: 6 }}>
             {detail.fullName || 'Nom non renseigné'} · Créé le {dt(detail.createdAt)}
+          </div>
+          <div style={{ fontSize: 12, color: '#7b86a3', marginBottom: 14 }}>
+            Rôle : <strong style={{ color: '#e6ebf5' }}>{detail.role || 'CLIENT'}</strong>
+            {detail.role === 'MERCHANT_CASHIER' && detail.merchantId ? (
+              <> · caissier du marchand <span style={{ fontFamily: 'monospace' }}>{detail.merchantId}</span></>
+            ) : null}
           </div>
 
           <div style={{ fontSize: 12, color: '#7b86a3', marginBottom: 6, letterSpacing: 1 }}>10 DERNIÈRES TRANSACTIONS</div>
@@ -141,6 +179,12 @@ export default function WalletClients() {
             )}
             {mayAct && detail.status === 'SUSPENDED' && (
               <Button style={{ background: '#d97706', color: '#fff' }} onClick={() => act(detail.id, 'unblock', 'déblocage')} disabled={busy}>Débloquer</Button>
+            )}
+            {mayAct && detail.role !== 'MERCHANT_CASHIER' && detail.status !== 'CLOSED' && (
+              <Button variant="ghost" onClick={() => attachCashier(detail.id)} disabled={busy}>Rattacher comme caissier</Button>
+            )}
+            {mayAct && detail.role === 'MERCHANT_CASHIER' && (
+              <Button variant="ghost" onClick={() => detachCashier(detail.id)} disabled={busy}>Détacher du marchand</Button>
             )}
             {!mayAct && <span style={{ color: '#7b86a3', fontSize: 12, alignSelf: 'center' }}>Lecture seule (rôle sans permission d’action).</span>}
             <Button variant="ghost" onClick={() => setDetail(null)}>Fermer</Button>
