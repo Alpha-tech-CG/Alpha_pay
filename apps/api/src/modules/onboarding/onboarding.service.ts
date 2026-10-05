@@ -7,7 +7,8 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { createS3Client } from '../../common/storage/s3-client';
 import { randomUUID } from 'crypto';
 import { decryptField, deterministicHash, encryptField, normalizeEmail } from '@paybrain/shared';
 import { generateApiKey, hashApiKeySecret } from '../../common/security/api-key';
@@ -30,7 +31,7 @@ export interface UploadedIdDocument {
 @Injectable()
 export class OnboardingService {
   private readonly logger = new Logger(OnboardingService.name);
-  private readonly s3 = new S3Client({ region: process.env.AWS_REGION ?? 'af-south-1' });
+  private readonly s3 = createS3Client('af-south-1');
 
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,

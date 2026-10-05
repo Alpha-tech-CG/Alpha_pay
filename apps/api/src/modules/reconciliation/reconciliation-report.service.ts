@@ -1,4 +1,5 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { createS3Client } from "../../common/storage/s3-client";
 import { Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
 
@@ -154,9 +155,7 @@ export function renderReconciliationPdf(
 
 @Injectable()
 export class ReconciliationReportService {
-  private readonly s3 = new S3Client({
-    region: process.env.AWS_REGION ?? "eu-west-1",
-  });
+  private readonly s3 = createS3Client("eu-west-1");
 
   async archive(runId: string, report: ReconciliationReport) {
     const bucket = process.env.RECONCILIATION_REPORTS_BUCKET;

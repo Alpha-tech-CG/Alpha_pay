@@ -1,6 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { KycDocumentType, WalletKycDocType } from '@paybrain/database';
-import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createS3Client } from '../../common/storage/s3-client';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
@@ -14,7 +15,7 @@ const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 
 @Injectable()
 export class KycDocumentStorageService {
-  private readonly s3 = new S3Client({ region: process.env.AWS_REGION ?? 'af-south-1' });
+  private readonly s3 = createS3Client('af-south-1');
 
   private getBucket(): string {
     const bucket = process.env.KYC_DOCUMENTS_BUCKET;

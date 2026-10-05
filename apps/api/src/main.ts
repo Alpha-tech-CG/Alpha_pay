@@ -26,7 +26,7 @@ import { AppModule } from "./app.module";
 import { WsAdapter } from "@nestjs/platform-ws";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
-import { loadSecretsFromAws } from "./secrets/secrets-loader";
+import { loadSecrets } from "./secrets/secrets-loader";
 import { bodyGuard } from "./common/security/body-guard";
 import { createRateLimitStore } from "./common/security/redis-rate-limit.store";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
@@ -35,7 +35,7 @@ import { buildCorsOptions } from "./common/security/cors";
 const MAX_BODY_BYTES = 8 * 1024;
 
 async function bootstrap() {
-  await loadSecretsFromAws();
+  await loadSecrets();
 
   // rawBody:true conserve le corps brut de la requête (req.rawBody) — indispensable
   // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).

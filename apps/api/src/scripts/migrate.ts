@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { prisma } from "@paybrain/database";
-import { loadSecretsFromAws } from "../secrets/secrets-loader";
+import { loadSecrets } from "../secrets/secrets-loader";
 
 function runStep(label: string, command: string, args: string[]): void {
   console.log(`[migration] ${label}`);
@@ -17,7 +17,7 @@ function runStep(label: string, command: string, args: string[]): void {
 }
 
 async function migrate(): Promise<void> {
-  await loadSecretsFromAws();
+  await loadSecrets();
 
   // Verrou consultatif : une seule migration PayBrain à la fois (plusieurs tâches
   // ECS peuvent démarrer en parallèle).
