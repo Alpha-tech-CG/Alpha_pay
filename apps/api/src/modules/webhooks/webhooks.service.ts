@@ -111,7 +111,7 @@ export class WebhooksService {
       throw err;
     }
 
-    this.gateway.broadcast('transaction_update', {
+    this.gateway.broadcastToMerchant(transaction.merchantId, 'transaction_update', {
       externalId: transaction.externalId,
       status: verifiedStatus,
       reason: payload.reason,

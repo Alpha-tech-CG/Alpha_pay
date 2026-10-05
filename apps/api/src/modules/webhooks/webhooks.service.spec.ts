@@ -10,7 +10,7 @@ import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors'
 
 describe('WebhooksService', () => {
   let prisma: any;
-  let gateway: { broadcast: jest.Mock };
+  let gateway: { broadcastToMerchant: jest.Mock };
   let mtnGetStatus: jest.Mock;
   let airtelGetStatus: jest.Mock;
   let service: WebhooksService;
@@ -33,7 +33,7 @@ describe('WebhooksService', () => {
         return cb(tx);
       }),
     };
-    gateway = { broadcast: jest.fn() };
+    gateway = { broadcastToMerchant: jest.fn() };
     mtnGetStatus = jest.fn();
     airtelGetStatus = jest.fn();
     (createMtnConnector as jest.Mock).mockReturnValue({ getStatus: mtnGetStatus });
@@ -62,6 +62,7 @@ describe('WebhooksService', () => {
       id: 'tx-1',
       mtnReferenceId: 'ref-1',
       externalId: 'ext-1',
+      merchantId: 'm-1',
       status: 'PENDING',
     });
     mtnGetStatus.mockResolvedValue('FAILED');
@@ -74,7 +75,7 @@ describe('WebhooksService', () => {
     expect(mtnGetStatus).toHaveBeenCalledWith('ref-1');
     // La transition passe désormais par la machine d'état (SERIALIZABLE + FOR UPDATE).
     expect(prisma.$transaction).toHaveBeenCalled();
-    expect(gateway.broadcast).toHaveBeenCalledWith('transaction_update', {
+    expect(gateway.broadcastToMerchant).toHaveBeenCalledWith('m-1', 'transaction_update', {
       externalId: 'ext-1',
       status: 'FAILED',
       reason: undefined,
@@ -113,7 +114,7 @@ describe('WebhooksService', () => {
     } as any);
 
     expect(prisma.transaction.update).not.toHaveBeenCalled();
-    expect(gateway.broadcast).not.toHaveBeenCalled();
+    expect(gateway.broadcastToMerchant).not.toHaveBeenCalled();
   });
 
   it('déduplique un event déjà reçu (P2002) sans retraiter (ALP-157)', async () => {

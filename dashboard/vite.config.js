@@ -29,6 +29,13 @@ export default defineConfig(({ mode }) => {
           ws: true,
           changeOrigin: true,
           rewrite: path => path.replace(/^\/ws/, ''),
+          // Le WebSocket est authentifié par la même clé API marchand, injectée
+          // côté serveur sur la requête d'upgrade (jamais exposée au navigateur).
+          configure: (proxy) => {
+            proxy.on('proxyReqWs', (proxyReq) => {
+              if (merchantKey) proxyReq.setHeader('X-API-Key', merchantKey)
+            })
+          },
         },
       },
     },
