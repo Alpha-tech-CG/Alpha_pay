@@ -1,0 +1,24 @@
+# Reverse proxy TLS de l'API AlphaPay (certificats Let's Encrypt automatiques).
+#
+# Caddy est l'UNIQUE proxy devant l'API : il écrase tout X-Forwarded-For fourni
+# par le client, ce qui garde fiable `trust proxy = 1` côté API (allowlists IP
+# des webhooks opérateurs, rate-limit par IP). Si un CDN/WAF est ajouté devant,
+# déclarer ses plages dans `trusted_proxies` ET revoir `trust proxy` dans main.ts.
+{
+	email {$ACME_EMAIL}
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# /metrics n'est scrapé qu'en interne (réseau Docker), jamais depuis Internet.
+	@metrics path /metrics /metrics/*
+	respond @metrics 404
+
+	# Plafond aligné sur le plus gros corps accepté par l'API (pièce d'identité 6 MiB).
+	request_body {
+		max_size 7MB
+	}
+
+	reverse_proxy api:3000
+}

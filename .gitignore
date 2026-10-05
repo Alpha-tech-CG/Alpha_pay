@@ -57,3 +57,7 @@ securite/scan-results/
 
 ## Projets natifs Android générés (Capacitor / Expo prebuild) — régénérables, jamais dans le repo
 apps/prototype/android/
+
+## Déploiement VPS — secrets et config locale, JAMAIS committer
+infra/vps/secrets/
+infra/vps/vps.env

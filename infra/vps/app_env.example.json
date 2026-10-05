@@ -1,0 +1,53 @@
+{
+  "DATABASE_URL": "postgresql://alphapay:<POSTGRES_PASSWORD>@postgres:5432/alphapay?connection_limit=20&pool_timeout=10",
+  "REDIS_URL": "redis://:<REDIS_PASSWORD>@redis:6379",
+
+  "JWT_SECRET": "<openssl rand -hex 32>",
+  "API_KEY_PEPPER": "<openssl rand -hex 32>",
+  "INTERNAL_API_TOKEN": "<openssl rand -hex 32>",
+  "PII_ENCRYPTION_KEY": "<openssl rand -base64 32>",
+  "METRICS_TOKEN": "<openssl rand -hex 32>",
+  "SETTLEMENT_VALIDATORS": "<id1:secret1,id2:secret2>",
+
+  "ALLOWED_ORIGINS": "https://dashboard.alphapay.cg,https://alphapay.cg",
+  "PAYBRAIN_WEBHOOK_URL": "https://api.alphapay.cg/webhooks",
+  "DASHBOARD_URL": "https://dashboard.alphapay.cg",
+  "CHECKOUT_URL": "https://pay.alphapay.cg",
+  "APP_INVITE_BASE_URL": "https://dashboard.alphapay.cg/invite",
+  "OPS_EMAIL": "ops@example.com",
+
+  "S3_ENDPOINT": "https://s3.<region>.io.cloud.ovh.net",
+  "S3_REGION": "<region>",
+  "AWS_ACCESS_KEY_ID": "<cle d'acces OVH Object Storage>",
+  "AWS_SECRET_ACCESS_KEY": "<cle secrete OVH Object Storage>",
+  "KYC_DOCUMENTS_BUCKET": "alphapay-prod-kyc-documents",
+  "RECONCILIATION_REPORTS_BUCKET": "alphapay-prod-reconciliation-reports",
+  "SETTLEMENT_DOCUMENTS_BUCKET": "alphapay-prod-reconciliation-reports",
+
+  "CLERK_SECRET_KEY": "<sk_live_...>",
+  "CLERK_WEBHOOK_SECRET": "<whsec_...>",
+
+  "MTN_ENVIRONMENT": "sandbox",
+  "MTN_BASE_URL": "<url MTN>",
+  "MTN_CURRENCY": "XAF",
+  "MTN_SUBSCRIPTION_KEY": "<...>",
+  "MTN_API_USER_ID": "<...>",
+  "MTN_API_KEY": "<...>",
+  "MTN_WEBHOOK_SECRET": "<openssl rand -hex 32>",
+  "MTN_WEBHOOK_IP_ALLOWLIST": "<CIDR MTN>",
+
+  "AIRTEL_ENVIRONMENT": "sandbox",
+  "AIRTEL_BASE_URL": "<url Airtel>",
+  "AIRTEL_CURRENCY": "XAF",
+  "AIRTEL_CLIENT_ID": "<...>",
+  "AIRTEL_CLIENT_SECRET": "<...>",
+  "AIRTEL_WEBHOOK_SECRET": "<openssl rand -hex 32>",
+  "AIRTEL_WEBHOOK_IP_ALLOWLIST": "<CIDR Airtel>",
+
+  "POSTMARK_TOKEN": "<...>",
+  "POSTMARK_FROM": "<expediteur verifie>",
+  "AT_USERNAME": "<...>",
+  "AT_API_KEY": "<...>",
+  "NOTIFICATION_WEBHOOK_SECRET": "<openssl rand -hex 32>",
+  "SENTRY_DSN": "<...>"
+}

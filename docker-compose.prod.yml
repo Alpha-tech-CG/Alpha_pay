@@ -1,0 +1,143 @@
+# AlphaPay — stack de production sur un VPS unique (OVH).
+# Guide pas-à-pas : docs/DEPLOYMENT_VPS.md
+#
+#   docker compose -f docker-compose.prod.yml --env-file infra/vps/vps.env up -d --build
+#
+# Seul Caddy publie des ports (80/443). Postgres et Redis vivent sur un réseau
+# interne sans accès Internet ; l'API est le seul service présent sur les deux.
+# Les secrets sont des fichiers montés sous /run/secrets (jamais de variables
+# d'environnement, jamais de .env) — cf. infra/vps/secrets/.
+name: alphapay
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-api: &api
+  image: alphapay-api:${API_IMAGE_TAG:-local}
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  environment:
+    SECRETS_FILE: /run/secrets/app_env
+    PORT: "3000"
+  secrets:
+    - app_env
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging: *logging
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN requis (ex. api.alphapay.cg)}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL requis (certificats Let's Encrypt)}
+    volumes:
+      - ./infra/vps/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+    logging: *logging
+
+  api:
+    <<: *api
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - edge
+      - data
+
+  # Applique les migrations Prisma puis s'arrête. L'API ne démarre que si elle a réussi.
+  migrate:
+    <<: *api
+    command: ["node", "dist/scripts/migrate"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: alphapay
+      POSTGRES_DB: alphapay
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alphapay -d alphapay"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - data
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    user: redis
+    command:
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$(cat /run/secrets/redis_password)" --appendonly yes
+    secrets:
+      - redis_password
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$(cat /run/secrets/redis_password)\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - data
+    logging: *logging
+
+secrets:
+  app_env:
+    file: ./infra/vps/secrets/app_env.json
+  postgres_password:
+    file: ./infra/vps/secrets/postgres_password
+  redis_password:
+    file: ./infra/vps/secrets/redis_password
+
+networks:
+  edge:
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
