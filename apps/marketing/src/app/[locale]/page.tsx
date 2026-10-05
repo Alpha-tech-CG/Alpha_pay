@@ -73,7 +73,7 @@ export default function Home({ params }: { params: Promise<{ locale: string }> }
               <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
               <span className="h-3 w-3 rounded-full bg-[#28c840]" />
               <span className="mx-auto rounded-md bg-white px-6 py-1 text-xs font-medium" style={{ color: 'var(--pb-muted)' }}>
-                dashboard.paybrain.cg
+                dashboard.alphapay.cg
               </span>
             </div>
             {/* Dashboard content mockup */}
@@ -198,7 +198,7 @@ export default function Home({ params }: { params: Promise<{ locale: string }> }
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--pb-muted)' }}>{t('merchantDesc')}</p>
                 <ul className="flex flex-col gap-2">
-                  {[t('merchantF1'), t('merchantF2'), t('merchantF3'), t('merchantF4')].map((f) => (
+                  {[t('merchantF1'), t('merchantF2'), t('merchantF3'), t('merchantF4'), t('merchantF5')].map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--pb-ink-var)' }}>
                       <span className="mt-0.5 font-bold" style={{ color: 'var(--pb-secondary)' }}>✓</span> {f}
                     </li>
@@ -323,7 +323,7 @@ export default function Home({ params }: { params: Promise<{ locale: string }> }
                   <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                 </div>
                 <pre className="overflow-x-auto text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,.85)' }}>{`// Initier un paiement
-const payment = await paybrain.payments.create({
+const payment = await alphapay.payments.create({
   amount: 5000,
   currency: "XAF",
   operator: "MTN",
@@ -334,7 +334,7 @@ const payment = await paybrain.payments.create({
 
 // Résultat instantané
 // { id: "pay_abc123", status: "PENDING",
-//   redirectUrl: "https://pay.paybrain.cg/..." }`}</pre>
+//   redirectUrl: "https://pay.alphapay.cg/..." }`}</pre>
               </div>
             </Reveal>
           </div>

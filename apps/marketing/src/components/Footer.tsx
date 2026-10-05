@@ -10,7 +10,7 @@ export default function Footer() {
     <footer className="border-t border-[var(--pb-border)] bg-[var(--pb-soft)]">
       <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-3">
         <div>
-          <div className="text-lg font-black">Pay<span style={{ color: 'var(--pb-primary)' }}>Brain</span></div>
+          <div className="text-lg font-black">Alpha<span style={{ color: 'var(--pb-primary)' }}>Pay</span></div>
           <p className="mt-2 text-sm text-[var(--pb-muted)]">Groupe Alpha · Congo</p>
         </div>
         <div>
@@ -31,7 +31,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-[var(--pb-border)] px-5 py-4 text-center text-xs text-[var(--pb-muted)]">
-        © {year} PayBrain — {t('rights')}
+        © {year} AlphaPay — {t('rights')}
       </div>
     </footer>
   );

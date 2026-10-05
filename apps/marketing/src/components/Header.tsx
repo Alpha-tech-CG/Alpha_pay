@@ -23,7 +23,7 @@ export default function Header() {
     <header className="sticky top-0 z-30 border-b border-[var(--pb-border)] bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
         <Link href="/" className="text-xl font-black tracking-tight">
-          Pay<span style={{ color: 'var(--pb-primary)' }}>Brain</span>
+          Alpha<span style={{ color: 'var(--pb-primary)' }}>Pay</span>
         </Link>
         <nav className="ml-4 hidden gap-6 md:flex">
           {links.map((l) => (

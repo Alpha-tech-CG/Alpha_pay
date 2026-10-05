@@ -20,7 +20,7 @@ export default function DeveloperPage({ params }: { params: Promise<{ locale: st
           </span>
           <h1 className="mx-auto mt-5 text-4xl font-black leading-tight tracking-tight sm:text-5xl"
               style={{ color: 'var(--pb-ink)' }}>
-            Intégrez PayBrain dans votre application
+            Intégrez AlphaPay dans votre application
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed" style={{ color: 'var(--pb-muted)' }}>
             Accédez aux clés API REST, webhooks et documentation technique. Votre dossier est examiné sous 48h.
@@ -109,7 +109,7 @@ export default function DeveloperPage({ params }: { params: Promise<{ locale: st
                 </p>
                 <div className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold"
                      style={{ background: 'var(--pb-soft-high)', color: 'var(--pb-primary)' }}>
-                  📱 Téléchargez PayBrain
+                  📱 Téléchargez AlphaPay
                 </div>
               </div>
             </div>

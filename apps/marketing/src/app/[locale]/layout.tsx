@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const title = t('metaTitle');
   const description = t('metaDescription');
   return {
-    metadataBase: new URL('https://paybrain.cg'),
+    metadataBase: new URL('https://alphapay.cg'),
     title,
     description,
-    openGraph: { title, description, type: 'website', locale, siteName: 'PayBrain' },
+    openGraph: { title, description, type: 'website', locale, siteName: 'AlphaPay' },
     twitter: { card: 'summary_large_image', title, description },
     alternates: { languages: { fr: '/fr', en: '/en' } },
   };

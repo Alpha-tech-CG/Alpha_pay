@@ -8,7 +8,7 @@
     "cta": "Demander un accès"
   },
   "home": {
-    "metaTitle": "PayBrain — Encaissez en mobile money, simplement",
+    "metaTitle": "AlphaPay — Encaissez en mobile money, simplement",
     "metaDescription": "Plateforme d'agrégation de paiement mobile money pour l'Afrique centrale. Une seule intégration, plusieurs opérateurs.",
     "heroBadge": "Infrastructure de paiement",
     "heroTitle": "Encaissez en mobile money, sans friction",
@@ -31,7 +31,7 @@
     "featuresSectionTitle": "Tout ce dont vous avez besoin pour encaisser",
     "accountsSectionLabel": "Comptes",
     "accountsSectionTitle": "Un compte pour chaque usage",
-    "accountsSectionSubtitle": "Que vous soyez vendeur ou acheteur, PayBrain s'adapte à votre rôle. Vous pouvez cumuler les deux.",
+    "accountsSectionSubtitle": "Que vous soyez vendeur ou acheteur, AlphaPay s'adapte à votre rôle. Vous pouvez cumuler les deux.",
     "merchantTitle": "Compte commerçant",
     "merchantBadge": "Pour les vendeurs",
     "merchantDesc": "Acceptez les paiements de vos clients en Mobile Money, générez des QR codes et liens de paiement, suivez vos reversements.",
@@ -39,10 +39,11 @@
     "merchantF2": "Génération de QR codes et liens de paiement",
     "merchantF3": "Reversements automatiques chaque vendredi",
     "merchantF4": "Clés API pour intégration développeur",
+    "merchantF5": "Invitez votre équipe avec des rôles et des accès dédiés",
     "merchantCta": "Ouvrir un compte commerçant",
     "clientTitle": "Compte normal",
     "clientBadge": "Pour les acheteurs",
-    "clientDesc": "Payez vos achats facilement via QR code, lien ou USSD, depuis votre Mobile Money, sans créer de compte bancaire.",
+    "clientDesc": "Payez vos achats facilement via QR code ou lien de paiement, depuis votre Mobile Money, sans créer de compte bancaire.",
     "clientF1": "Paiement par QR code ou lien",
     "clientF2": "Connexion rapide par OTP SMS",
     "clientF3": "Historique de vos paiements",
@@ -58,16 +59,16 @@
     "step3Text": "Vos transactions arrivent en temps réel sur le dashboard. Les reversements tombent chaque vendredi.",
     "devSectionLabel": "Développeurs",
     "devSectionTitle": "Une API pensée pour les développeurs",
-    "devSectionText": "REST, JSON, webhooks signés, SDK JavaScript à venir. Intégrez PayBrain en quelques minutes et concentrez-vous sur votre produit.",
+    "devSectionText": "REST, JSON, webhooks signés, SDK JavaScript à venir. Intégrez AlphaPay en quelques minutes et concentrez-vous sur votre produit.",
     "devCtaPrimary": "Lire la documentation",
     "devCtaSecondary": "Demander un accès",
     "trustTitle": "Opérateurs supportés",
-    "trustText": "PayBrain agrège MTN Mobile Money et Airtel Money en République du Congo. D'autres opérateurs arriveront prochainement."
+    "trustText": "AlphaPay agrège MTN Mobile Money et Airtel Money en République du Congo. D'autres opérateurs arriveront prochainement."
   },
   "solution": {
-    "metaTitle": "Solution — PayBrain",
+    "metaTitle": "Solution — AlphaPay",
     "title": "Une infrastructure de paiement complète",
-    "subtitle": "De l'initiation du paiement au reversement, PayBrain gère le cycle de vie complet.",
+    "subtitle": "De l'initiation du paiement au reversement, AlphaPay gère le cycle de vie complet.",
     "block1Title": "Acceptation",
     "block1Text": "Initiez des paiements et générez des liens de paiement hébergés en quelques lignes.",
     "block2Title": "Notifications",
@@ -76,7 +77,7 @@
     "block3Text": "Dashboard marchand : transactions, clés API, webhooks, profil."
   },
   "pricing": {
-    "metaTitle": "Tarifs — PayBrain",
+    "metaTitle": "Tarifs — AlphaPay",
     "title": "Une tarification simple",
     "subtitle": "Pas de frais cachés. Vous payez à l'usage.",
     "planStarterName": "Starter",
@@ -95,7 +96,7 @@
     "cta": "Demander un accès"
   },
   "docs": {
-    "metaTitle": "Documentation — PayBrain",
+    "metaTitle": "Documentation — AlphaPay",
     "title": "Documentation développeur",
     "subtitle": "Tout pour intégrer l'API en quelques minutes.",
     "openapi": "Référence OpenAPI interactive",
@@ -103,7 +104,7 @@
     "cta": "Ouvrir la documentation"
   },
   "contact": {
-    "metaTitle": "Contact — PayBrain",
+    "metaTitle": "Contact — AlphaPay",
     "title": "Parlons de votre projet",
     "subtitle": "Une question, une demande d'accès ? Écrivez-nous.",
     "name": "Nom",

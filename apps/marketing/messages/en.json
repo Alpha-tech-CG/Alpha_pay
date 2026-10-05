@@ -8,7 +8,7 @@
     "cta": "Request access"
   },
   "home": {
-    "metaTitle": "PayBrain — Accept mobile money, simply",
+    "metaTitle": "AlphaPay — Accept mobile money, simply",
     "metaDescription": "Mobile money payment aggregation platform for Central Africa. One integration, multiple operators.",
     "heroBadge": "Payment infrastructure",
     "heroTitle": "Accept mobile money, frictionlessly",
@@ -31,7 +31,7 @@
     "featuresSectionTitle": "Everything you need to collect payments",
     "accountsSectionLabel": "Accounts",
     "accountsSectionTitle": "An account for every use case",
-    "accountsSectionSubtitle": "Whether you're a seller or a buyer, PayBrain adapts to your role. You can be both.",
+    "accountsSectionSubtitle": "Whether you're a seller or a buyer, AlphaPay adapts to your role. You can be both.",
     "merchantTitle": "Merchant account",
     "merchantBadge": "For sellers",
     "merchantDesc": "Accept Mobile Money payments from your customers, generate QR codes and payment links, track your settlements.",
@@ -39,10 +39,11 @@
     "merchantF2": "QR code and payment link generation",
     "merchantF3": "Automatic settlements every Friday",
     "merchantF4": "API keys for developer integration",
+    "merchantF5": "Invite your team with dedicated roles and access",
     "merchantCta": "Open a merchant account",
     "clientTitle": "Personal account",
     "clientBadge": "For buyers",
-    "clientDesc": "Pay for purchases easily via QR code, link or USSD from your Mobile Money, no bank account needed.",
+    "clientDesc": "Pay for purchases easily via QR code or payment link from your Mobile Money, no bank account needed.",
     "clientF1": "Pay by QR code or link",
     "clientF2": "Fast sign-in with SMS OTP",
     "clientF3": "Your payment history",
@@ -58,16 +59,16 @@
     "step3Text": "Transactions arrive in real time on the dashboard. Settlements land every Friday.",
     "devSectionLabel": "Developers",
     "devSectionTitle": "An API built for developers",
-    "devSectionText": "REST, JSON, signed webhooks, JavaScript SDK coming soon. Integrate PayBrain in minutes and focus on your product.",
+    "devSectionText": "REST, JSON, signed webhooks, JavaScript SDK coming soon. Integrate AlphaPay in minutes and focus on your product.",
     "devCtaPrimary": "Read the docs",
     "devCtaSecondary": "Request access",
     "trustTitle": "Supported operators",
-    "trustText": "PayBrain aggregates MTN Mobile Money and Airtel Money in the Republic of Congo. More operators coming soon."
+    "trustText": "AlphaPay aggregates MTN Mobile Money and Airtel Money in the Republic of Congo. More operators coming soon."
   },
   "solution": {
-    "metaTitle": "Solution — PayBrain",
+    "metaTitle": "Solution — AlphaPay",
     "title": "A complete payment infrastructure",
-    "subtitle": "From payment initiation to settlement, PayBrain handles the full lifecycle.",
+    "subtitle": "From payment initiation to settlement, AlphaPay handles the full lifecycle.",
     "block1Title": "Acceptance",
     "block1Text": "Initiate payments and generate hosted payment links in a few lines.",
     "block2Title": "Notifications",
@@ -76,7 +77,7 @@
     "block3Text": "Merchant dashboard: transactions, API keys, webhooks, profile."
   },
   "pricing": {
-    "metaTitle": "Pricing — PayBrain",
+    "metaTitle": "Pricing — AlphaPay",
     "title": "Simple pricing",
     "subtitle": "No hidden fees. Pay as you go.",
     "planStarterName": "Starter",
@@ -95,7 +96,7 @@
     "cta": "Request access"
   },
   "docs": {
-    "metaTitle": "Documentation — PayBrain",
+    "metaTitle": "Documentation — AlphaPay",
     "title": "Developer documentation",
     "subtitle": "Everything to integrate the API in minutes.",
     "openapi": "Interactive OpenAPI reference",
@@ -103,7 +104,7 @@
     "cta": "Open the documentation"
   },
   "contact": {
-    "metaTitle": "Contact — PayBrain",
+    "metaTitle": "Contact — AlphaPay",
     "title": "Let's talk about your project",
     "subtitle": "A question, an access request? Write to us.",
     "name": "Name",

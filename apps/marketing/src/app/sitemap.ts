@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
 
-const BASE = 'https://paybrain.cg';
+const BASE = 'https://alphapay.cg';
 const PATHS = ['', '/solution', '/pricing', '/documentation', '/contact', '/mentions-legales', '/cgu', '/confidentialite'];
 
 export default function sitemap(): MetadataRoute.Sitemap {

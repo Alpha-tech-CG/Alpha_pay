@@ -3,12 +3,12 @@ import LegalPage from '@/components/LegalPage';
 
 const CONTENT: Record<string, { h: string; p: string }[]> = {
   fr: [
-    { h: 'Éditeur', p: 'Le présent site est édité par Groupe Alpha, société en cours d’immatriculation au Congo. Contact : contact@paybrain.cg.' },
+    { h: 'Éditeur', p: 'Le présent site est édité par Groupe Alpha, société en cours d’immatriculation au Congo. Contact : contact@alphapay.cg.' },
     { h: 'Hébergement', p: 'Le site est hébergé sur une plateforme de déploiement statique (Cloudflare Pages / Vercel).' },
     { h: 'Propriété intellectuelle', p: 'L’ensemble des contenus (textes, marques, logos) est la propriété de Groupe Alpha, sauf mention contraire.' },
   ],
   en: [
-    { h: 'Publisher', p: 'This website is published by Groupe Alpha, a company being incorporated in Congo. Contact: contact@paybrain.cg.' },
+    { h: 'Publisher', p: 'This website is published by Groupe Alpha, a company being incorporated in Congo. Contact: contact@alphapay.cg.' },
     { h: 'Hosting', p: 'The site is hosted on a static deployment platform (Cloudflare Pages / Vercel).' },
     { h: 'Intellectual property', p: 'All content (text, trademarks, logos) is the property of Groupe Alpha unless otherwise stated.' },
   ],

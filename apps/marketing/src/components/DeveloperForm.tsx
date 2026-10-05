@@ -141,7 +141,7 @@ export default function DeveloperForm() {
       {state === 'err' && (
         <p className="rounded-xl p-3 text-sm font-medium"
            style={{ background: 'var(--pb-soft)', color: 'var(--pb-primary)' }}>
-          Une erreur est survenue, réessayez ou contactez support@paybrain.cg
+          Une erreur est survenue, réessayez ou contactez support@alphapay.cg
         </p>
       )}
 
