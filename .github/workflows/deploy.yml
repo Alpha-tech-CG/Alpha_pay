@@ -1,9 +1,10 @@
 name: Deploy to AWS ECS
 
+# Déclenchement MANUEL uniquement : l'hébergement est passé sur VPS (voir
+# docs/DEPLOYMENT_VPS.md). Ce workflow reste comme chemin de retour vers AWS et
+# ne doit plus partir automatiquement après un CI vert.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  workflow_dispatch:
 
 concurrency:
   group: production-deploy
@@ -24,14 +25,14 @@ permissions:
 jobs:
   deploy:
     name: Deploy production
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -47,7 +48,7 @@ jobs:
         id: build-api
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY_API:$IMAGE_TAG"
           docker build --pull -t "$IMAGE" -f apps/api/Dockerfile .

@@ -16,7 +16,7 @@
       "inputs": ["$TURBO_DEFAULT$", ".env.test*"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^build"]
     },
     "db:migrate": {
       "cache": false
