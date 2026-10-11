@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { setStatusBarStyle } from 'expo-status-bar';
 import {
   View, Text, TextInput, Pressable, ActivityIndicator, Image,
   ScrollView, StyleSheet, KeyboardAvoidingView, Platform, Linking,
@@ -12,8 +13,10 @@ import {
   verifyKey, loginClient, registerClient, verifyOtpClient, resendOtpClient,
   createKycUploadUrl, uploadToPresignedUrl, confirmKycDocument, type KycDocType, api,
 } from '@/api';
-import { useTheme, type Palette } from '@/theme';
-import { AnimatedBackground } from '@/components/AnimatedBackground';
+import { type Palette } from '@/theme';
+import { UC_PALETTE, ucFont } from '@/uc';
+import { Wordmark } from '@/components/UcKit';
+import { BankSplash, BankWelcome } from '@/components/BankWelcome';
 
 const DEV_SIGNUP_URL = 'https://paybrain.cg/fr/developer';
 
@@ -27,26 +30,22 @@ type Flow =
   | 'pending';
 
 function Logo() {
-  const { C } = useTheme();
+  const C = UC_PALETTE;
   const s = useMemo(() => makeStyles(C), [C]);
   return (
-    <View style={{ alignItems: 'center', marginBottom: 36 }}>
-      <View style={s.logoBox}>
-        <Text style={s.logoLetter}>AP</Text>
-      </View>
-      <Text style={s.logoText}>AlphaPay</Text>
+    <View style={{ alignItems: 'flex-start', marginBottom: 32 }}>
+      <Wordmark size={26} color="#E2001A" />
       <Text style={s.logoSub}>Paiements Mobile Money</Text>
     </View>
   );
 }
 
 function BackBtn({ onPress }: { onPress: () => void }) {
-  const { C } = useTheme();
+  const C = UC_PALETTE;
   const s = useMemo(() => makeStyles(C), [C]);
   return (
     <Pressable onPress={onPress} style={s.backBtn}>
-      <Icon name="arrow-back" size={20} color={C.primary} />
-      <Text style={s.backBtnText}>Retour</Text>
+      <Icon name="chevron-left" size={28} color={C.text} />
     </Pressable>
   );
 }
@@ -54,7 +53,7 @@ function BackBtn({ onPress }: { onPress: () => void }) {
 function Field({
   label, optional, ...props
 }: React.ComponentProps<typeof TextInput> & { label: string; optional?: boolean }) {
-  const { C } = useTheme();
+  const C = UC_PALETTE;
   const s = useMemo(() => makeStyles(C), [C]);
   return (
     <>
@@ -68,7 +67,7 @@ function Field({
 }
 
 function ErrorRow({ msg }: { msg: string }) {
-  const { C } = useTheme();
+  const C = UC_PALETTE;
   const s = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={s.errorRow}>
@@ -79,7 +78,7 @@ function ErrorRow({ msg }: { msg: string }) {
 }
 
 export default function Auth() {
-  const { C } = useTheme();
+  const C = UC_PALETTE;
   const s = useMemo(() => makeStyles(C), [C]);
   const { ready, apiKey, role, signInMerchant, signInClient } = useAuth();
   const [flow, setFlow] = useState<Flow>('welcome');
@@ -121,14 +120,13 @@ export default function Auth() {
   const [signupBusy, setSignupBusy]   = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
 
-  // Loading splash
-  if (!ready) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: C.bg }}>
-        <ActivityIndicator color={C.primary} />
-      </View>
-    );
-  }
+  // Intro animée du logo : jouée une fois, le temps aussi de charger la session.
+  const [splashDone, setSplashDone] = useState(false);
+  // Icônes claires sur la photo d'accueil, sombres sur les écrans blancs.
+  useEffect(() => {
+    if (splashDone) setStatusBarStyle(flow === 'welcome' ? 'light' : 'dark');
+  }, [flow, splashDone]);
+  if (!ready || !splashDone) return <BankSplash onDone={() => setSplashDone(true)} />;
 
   // Role-based redirect after login
   if (apiKey && role) {
@@ -310,52 +308,13 @@ export default function Auth() {
   ══════════════════════════════════════════ */
   if (flow === 'welcome') {
     return (
-      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-        <AnimatedBackground />
-        <ScrollView contentContainerStyle={s.centered} showsVerticalScrollIndicator={false}>
-          <Logo />
-
-          <Pressable onPress={() => setFlow('choose-login')} style={s.btnPrimary}>
-            <Icon name="login" size={18} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={s.btnPrimaryText}>Se connecter</Text>
-          </Pressable>
-
-          <Pressable onPress={goToSignupClient} style={[s.btnOutline, { marginTop: 12 }]}>
-            <Icon name="account-balance-wallet" size={18} color={C.primary} style={{ marginRight: 8 }} />
-            <Text style={s.btnOutlineText}>Créer un compte personnel</Text>
-          </Pressable>
-
-          <Pressable onPress={() => setFlow('signup')} style={[s.btnOutline, { marginTop: 10 }]}>
-            <Icon name="store" size={18} color={C.secondary} style={{ marginRight: 8 }} />
-            <Text style={[s.btnOutlineText, { color: C.secondary }]}>Compte marchand</Text>
-          </Pressable>
-
-          <View style={s.divider}>
-            <View style={s.dividerLine} />
-            <Text style={s.dividerText}>Vous êtes développeur ?</Text>
-            <View style={s.dividerLine} />
-          </View>
-
-          <Pressable onPress={() => Linking.openURL(DEV_SIGNUP_URL)} style={s.devBanner}>
-            <View style={s.devBannerLeft}>
-              <View style={s.devIconBox}>
-                <Icon name="code" size={20} color={C.primary} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.devBannerTitle}>Compte développeur</Text>
-                <Text style={s.devBannerSub}>Clés API + webhooks · Inscription sur le site</Text>
-              </View>
-            </View>
-            <Icon name="open-in-new" size={18} color={C.primary} />
-          </Pressable>
-
-          <Pressable onPress={() => setFlow('pending')} style={{ marginTop: 20 }}>
-            <Text style={{ color: C.muted, fontSize: 13, textAlign: 'center' }}>
-              J'attends la validation de mon compte →
-            </Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
+      <BankWelcome
+        onLogin={() => setFlow('choose-login')}
+        onSignup={goToSignupClient}
+        onMerchant={() => setFlow('signup')}
+        onDeveloper={() => Linking.openURL(DEV_SIGNUP_URL)}
+        onPending={() => setFlow('pending')}
+      />
     );
   }
 
@@ -814,64 +773,64 @@ export default function Auth() {
 
 const makeStyles = (C: Palette) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  centered: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  scroll: { padding: 24, paddingBottom: 48 },
+  centered: { flexGrow: 1, justifyContent: 'flex-start', padding: 16, paddingTop: 12 },
+  scroll: { padding: 16, paddingBottom: 48 },
 
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 24 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 20, alignSelf: 'flex-start' },
   backBtnText: { fontSize: 14, fontWeight: '600', color: C.primary },
 
   logoBox: { width: 64, height: 64, borderRadius: 18, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   logoLetter: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: -1 },
   logoText: { fontSize: 28, fontWeight: '900', color: C.text, letterSpacing: -0.5 },
-  logoSub: { fontSize: 14, color: C.muted, marginTop: 4 },
+  logoSub: { fontFamily: ucFont.regular, fontSize: 15, color: C.muted, marginTop: 6 },
 
-  pageTitle: { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5, marginBottom: 6 },
-  pageSubtitle: { fontSize: 14, color: C.muted, marginBottom: 24, lineHeight: 20 },
+  pageTitle: { fontFamily: ucFont.condensed, fontSize: 30, fontWeight: '700', color: C.text, marginBottom: 6 },
+  pageSubtitle: { fontFamily: ucFont.regular, fontSize: 16, color: C.textVariant, marginBottom: 24, lineHeight: 22 },
 
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 7, marginTop: 4 },
-  input: { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, height: 50, fontSize: 15, color: C.text, marginBottom: 14 },
+  fieldLabel: { fontFamily: ucFont.condensed, fontSize: 13, fontWeight: '700', color: C.textVariant, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2, marginTop: 6 },
+  input: { backgroundColor: 'transparent', borderBottomWidth: 1, borderColor: C.border, paddingHorizontal: 0, height: 48, fontFamily: ucFont.condensed, fontSize: 19, color: C.text, marginBottom: 16 },
 
-  btnPrimary: { backgroundColor: C.primary, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
-  btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  btnOutline: { height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: C.primary, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  btnOutlineText: { color: C.primary, fontSize: 15, fontWeight: '700' },
-  btnDisabled: { backgroundColor: C.surfaceContainerHigh, shadowOpacity: 0 },
+  btnPrimary: { backgroundColor: C.primary, height: 54, borderRadius: 6, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
+  btnPrimaryText: { color: '#fff', fontFamily: ucFont.condensed, fontSize: 18, fontWeight: '500' },
+  btnOutline: { height: 54, borderRadius: 6, borderWidth: 1.5, borderColor: C.text, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
+  btnOutlineText: { color: C.text, fontFamily: ucFont.condensed, fontSize: 18, fontWeight: '500' },
+  btnDisabled: { backgroundColor: '#C7DFE5' },
 
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: C.border },
-  dividerText: { fontSize: 12, fontWeight: '600', color: C.muted },
+  dividerText: { fontFamily: ucFont.condensed, fontSize: 14, fontWeight: '700', color: C.muted },
 
-  devBanner: { backgroundColor: C.surfaceContainerLow, borderRadius: 14, borderWidth: 1.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  devBanner: { backgroundColor: C.surfaceContainerLow, borderRadius: 8, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   devBannerLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   devIconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center' },
-  devBannerTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  devBannerSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  devBannerTitle: { fontFamily: ucFont.condensed, fontSize: 17, fontWeight: '700', color: C.text },
+  devBannerSub: { fontFamily: ucFont.regular, fontSize: 14, color: C.muted, marginTop: 1 },
 
-  roleCard: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  roleIconBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  roleCardTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
-  roleCardSub: { fontSize: 12, color: C.muted },
+  roleCard: { backgroundColor: C.surface, borderBottomWidth: 1, borderColor: C.border, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  roleIconBox: { width: 46, height: 46, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  roleCardTitle: { fontFamily: ucFont.condensed, fontSize: 19, fontWeight: '700', color: C.text, marginBottom: 2 },
+  roleCardSub: { fontFamily: ucFont.regular, fontSize: 14, color: C.muted },
 
   errorRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  errorText: { color: C.error, fontSize: 13, flex: 1 },
-  secureNote: { fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 12 },
+  errorText: { color: C.error, fontFamily: ucFont.regular, fontSize: 15, flex: 1 },
+  secureNote: { fontFamily: ucFont.regular, fontSize: 13, color: C.muted, textAlign: 'center', marginTop: 12 },
 
-  infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.surfaceContainerLow, borderRadius: 12, padding: 14 },
-  infoText: { fontSize: 13, color: C.primary, flex: 1, lineHeight: 18 },
+  infoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: C.surfaceContainerLow, borderRadius: 8, padding: 14 },
+  infoText: { fontFamily: ucFont.regular, fontSize: 14, color: C.textVariant, flex: 1, lineHeight: 19 },
 
   pendingIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.pendingBg, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 20 },
-  pendingTitle: { fontSize: 22, fontWeight: '800', color: C.text, textAlign: 'center', marginBottom: 12 },
-  pendingText: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+  pendingTitle: { fontFamily: ucFont.condensed, fontSize: 26, fontWeight: '700', color: C.text, textAlign: 'center', marginBottom: 12 },
+  pendingText: { fontFamily: ucFont.regular, fontSize: 16, color: C.textVariant, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
 
   stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.primary },
   stepLine: { flex: 1, height: 2, backgroundColor: C.primary, marginHorizontal: 6 },
-  stepLabel: { fontSize: 11, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 20 },
+  stepLabel: { fontFamily: ucFont.condensed, fontSize: 13, fontWeight: '700', color: C.primary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 20 },
 
-  docTile: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.surface, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, padding: 14 },
+  docTile: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.surfaceContainerLow, borderRadius: 8, borderWidth: 1.5, borderColor: 'transparent', padding: 14 },
   docTileDone: { borderColor: C.secondary },
-  docIconBox: { width: 52, height: 52, borderRadius: 12, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center' },
+  docIconBox: { width: 52, height: 52, borderRadius: 6, backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center' },
   docThumb: { width: 52, height: 52, borderRadius: 12, backgroundColor: C.surfaceContainerHigh },
-  docTileLabel: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
-  docTileHint: { fontSize: 12, color: C.muted },
+  docTileLabel: { fontFamily: ucFont.condensed, fontSize: 18, fontWeight: '700', color: C.text, marginBottom: 2 },
+  docTileHint: { fontFamily: ucFont.regular, fontSize: 14, color: C.muted },
 });

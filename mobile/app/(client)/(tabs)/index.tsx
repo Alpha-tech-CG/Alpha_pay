@@ -1,145 +1,118 @@
-import { useMemo } from 'react';
-import { View, Text, Pressable, Image, ScrollView, StyleSheet } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
-import { AP, soft, radius, shadow, formatXAF } from '@/design';
-import { useWallet, type Transaction } from '@/wallet-store';
+import { Amount, AvatarBadge, BigTitle, Divider, TxLine, useAmountsHidden, useStatusBar } from '@/components/UcKit';
+import { UC, ucFont } from '@/uc';
+import { useWallet } from '@/wallet-store';
 
-const STACK = [
-  'https://randomuser.me/api/portraits/men/32.jpg',
-  'https://randomuser.me/api/portraits/women/44.jpg',
-  'https://randomuser.me/api/portraits/men/12.jpg',
-];
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 18) return 'Good Afternoon';
-  return 'Good Evening';
+function today(): string {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-const TINT: Record<Transaction['tint'], { fg: string; bg: string }> = {
-  primary: { fg: AP.primary, bg: soft.primary10 },
-  secondary: { fg: AP.secondary, bg: soft.secondary10 },
-  mtn: { fg: AP.mtn, bg: soft.mtn10 },
-  success: { fg: AP.chart3, bg: soft.chart3_10 },
-  failed: { fg: AP.chart4, bg: soft.chart4_10 },
-  chart5: { fg: AP.chart5, bg: soft.chart5_10 },
-};
-
-function QuickAction({ icon, label, color, onPress }: { icon: string; label: string; color: string; onPress: () => void }) {
-  return (
-    <View style={s.quickCol}>
-      <Pressable style={({ pressed }) => [s.quickBtn, pressed && s.pressed]} onPress={onPress}>
-        <Icon name={icon} size={24} color={color} />
-      </Pressable>
-      <Text style={s.quickLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function TxRow({ tx }: { tx: Transaction }) {
-  const t = TINT[tx.tint];
-  const positive = tx.direction === 'in';
-  const failed = tx.status === 'failed';
-  return (
-    <View style={[s.txRow, failed && { opacity: 0.7 }]}>
-      <View style={s.txLeft}>
-        <View style={[s.txIcon, { backgroundColor: t.bg }]}>
-          <Icon name={tx.icon} size={22} color={t.fg} />
-        </View>
-        <View style={{ gap: 2, flexShrink: 1 }}>
-          <Text style={s.txTitle}>{tx.title}</Text>
-          <Text style={s.txSub}>{tx.subtitle}</Text>
-        </View>
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 4 }}>
-        <Text style={s.txAmount}>{positive ? '+' : '-'}{formatXAF(Math.abs(tx.amountCents))}</Text>
-        <View style={[s.txBadge, { backgroundColor: failed ? soft.chart4_10 : soft.chart3_10 }]}>
-          <Text style={[s.txBadgeText, { color: failed ? AP.chart4 : AP.chart3 }]}>{failed ? 'Failed' : 'Success'}</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
+type Tile = { key: string; title: string; bg: string; fg: string; icon: string; cents?: number; onPress?: () => void };
 
 export default function Home() {
   const router = useRouter();
-  const { user, balanceCents, currency, transactions } = useWallet();
-  const recent = useMemo(() => transactions.slice(0, 3), [transactions]);
+  useStatusBar('dark');
+  const { width } = useWindowDimensions();
+  const { user, balanceCents, currency, transactions, card } = useWallet();
+  const [hidden, toggleHidden] = useAmountsHidden();
+  const [page, setPage] = useState(0);
+  const recent = useMemo(() => transactions.slice(0, 5), [transactions]);
+  const spent = useMemo(
+    () => transactions.filter((t) => t.direction === 'out' && t.status !== 'failed').reduce((a, t) => a + Math.abs(t.amountCents), 0),
+    [transactions],
+  );
+
+  const tileW = width - 32;
+  const tiles: Tile[] = [
+    { key: 'worth', title: 'Voici la valeur de\nvotre patrimoine', bg: UC.slate, fg: UC.ink, icon: 'account-balance', cents: balanceCents },
+    { key: 'spent', title: 'Combien avez-vous\ndépensé ce mois-ci ?', bg: UC.taupe, fg: UC.white, icon: 'shopping-bag', cents: -spent, onPress: () => router.push('/(client)/(tabs)/history') },
+    { key: 'send', title: 'Envoyez de l\'argent\nen un instant', bg: UC.sage, fg: UC.white, icon: 'send', onPress: () => router.push('/(client)/send') },
+    { key: 'topup', title: 'Rechargez avec\nMTN ou Airtel', bg: UC.sand, fg: UC.ink, icon: 'smartphone', onPress: () => router.push('/(client)/top-up') },
+  ];
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setPage(Math.round(e.nativeEvent.contentOffset.x / (tileW + 10)));
+  };
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {/* En-tête */}
         <View style={s.header}>
-          <View style={s.headerLeft}>
-            <View>
-              <Image source={{ uri: user.avatar }} style={s.avatar} />
-              <View style={s.onlineDot} />
-            </View>
-            <View>
-              <Text style={s.greeting}>{greeting()}</Text>
-              <Text style={s.name}>{user.name}</Text>
-            </View>
+          <BigTitle>Accueil</BigTitle>
+          <View style={s.headerRight}>
+            <Pressable onPress={toggleHidden} style={s.eyeBtn} hitSlop={8}>
+              <Icon name={hidden ? 'eye-off' : 'eye'} size={15} color={UC.white} />
+            </Pressable>
+            <Icon name="settings" size={24} color={UC.ink} onPress={() => router.push('/(client)/(tabs)/settings')} />
+            <AvatarBadge uri={user.avatar} count={recent.length} onPress={() => router.push('/(client)/profile')} />
           </View>
-          <Pressable style={s.bell}>
-            <Icon name="bell" size={22} color={AP.secondary} />
-            <View style={s.bellDot} />
-          </Pressable>
         </View>
 
-        {/* Balance card (navy) */}
-        <View style={s.balanceCard}>
-          <View style={s.glowTop} />
-          <View style={s.balanceHead}>
-            <View style={s.walletChip}>
-              <Text style={s.walletChipText}>{currency === 'XAF' ? 'CONGO WALLET' : currency}</Text>
-              <Icon name="chevron-down" size={12} color="rgba(255,255,255,0.9)" />
-            </View>
-          </View>
-          <View style={{ gap: 4 }}>
-            <Text style={s.balanceLabel}>Total Balance</Text>
-            <View style={s.balanceRow}>
-              <Text style={s.balanceAmount}>{formatXAF(balanceCents)}</Text>
-              <Text style={s.balanceCurrency}>{currency}</Text>
-            </View>
-          </View>
-          <View style={s.balanceFoot}>
-            <View style={s.avatarStack}>
-              {STACK.map((uri, i) => (
-                <Image key={uri} source={{ uri }} style={[s.stackAvatar, { marginLeft: i === 0 ? 0 : -12 }]} />
-              ))}
-              <View style={[s.stackAvatar, s.stackMore, { marginLeft: -12 }]}>
-                <Text style={s.stackMoreText}>+12</Text>
+        {/* Carrousel */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={tileW + 10}
+          decelerationRate="fast"
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+          onMomentumScrollEnd={onScroll}
+        >
+          {tiles.map((t) => (
+            <Pressable key={t.key} onPress={t.onPress} style={[s.tile, { width: tileW, backgroundColor: t.bg }]}>
+              <View style={s.tileArt}>
+                <View style={[s.tileArtDisk, { backgroundColor: t.fg === UC.white ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.35)' }]} />
+                <Icon name={t.icon} size={72} color={t.fg === UC.white ? 'rgba(255,255,255,0.85)' : UC.white} />
+              </View>
+              <Text style={[s.tileTitle, { color: t.fg }]}>{t.title}</Text>
+              {t.cents !== undefined && <Amount cents={Math.abs(t.cents)} currency={currency} size={28} color={t.fg} style={{ marginTop: 10 }} />}
+            </Pressable>
+          ))}
+        </ScrollView>
+        <View style={s.dots}>
+          {tiles.map((t, i) => <View key={t.key} style={i === page ? s.dotActive : s.dot} />)}
+        </View>
+
+        <View style={s.body}>
+          {/* Compte / carte */}
+          <Pressable style={s.account} onPress={() => router.push('/(client)/(tabs)/card')}>
+            <Icon name="credit-card" size={24} color={UC.red} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={s.accountTop}>
+                <Text style={s.accountName} numberOfLines={2}>Carte AlphaPay{'\n'}Prépayée</Text>
+                <Amount cents={balanceCents} currency={currency} size={22} />
+              </View>
+              <Text style={s.accountBold}>Carte **** {card.number.slice(-4)} - AlphaPay</Text>
+              <View style={s.accountTop}>
+                <Text style={s.accountSub}>Solde disponible au {today()}</Text>
+                <Icon name="more-vertical" size={20} color={UC.ink} />
               </View>
             </View>
-            <Pressable style={({ pressed }) => [s.topupBtn, pressed && s.pressed]} onPress={() => router.push('/(client)/top-up')}>
-              <Icon name="add-circle" size={18} color={AP.secondary} />
-              <Text style={s.topupText}>Top-up</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Quick actions */}
-        <View style={s.quickGrid}>
-          <QuickAction icon="send" label="Send" color={AP.primary} onPress={() => router.push('/(client)/send')} />
-          <QuickAction icon="qr-code" label="Receive" color={AP.secondary} onPress={() => router.push('/(client)/receive')} />
-          <QuickAction icon="store" label="Pay" color={AP.chart5} onPress={() => router.push('/(client)/scan')} />
-          <QuickAction icon="receipt-long" label="Bills" color={AP.chart3} onPress={() => router.push('/(client)/top-up')} />
-        </View>
-
-        {/* Recent activities */}
-        <View style={s.sectionHead}>
-          <Text style={s.sectionTitle}>Recent Activities</Text>
-          <Pressable style={s.viewAll} onPress={() => router.push('/(client)/(tabs)/history')}>
-            <Text style={s.viewAllText}>VIEW ALL</Text>
-            <Icon name="chevron-right" size={14} color={AP.primary} />
           </Pressable>
-        </View>
-        <View style={{ gap: 12 }}>
-          {recent.map((tx) => <TxRow key={tx.id} tx={tx} />)}
+          <Divider />
+
+          {/* Raccourci factures */}
+          <Pressable style={s.promo} onPress={() => router.push('/(client)/top-up')}>
+            <View style={s.promoIcon}><Icon name="receipt-long" size={14} color={UC.white} /></View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text style={s.promoTitle}>Factures & recharges</Text>
+              <Text style={s.promoSub}>Payez-les d'ici !</Text>
+            </View>
+            <Icon name="chevron-right" size={22} color={UC.teal} />
+          </Pressable>
+          <Divider />
+
+          {/* Mouvements */}
+          <Pressable style={s.sectionHead} onPress={() => router.push('/(client)/(tabs)/history')}>
+            <Text style={s.sectionTitle}>Mouvements récents</Text>
+            <Icon name="chevron-right" size={22} color={UC.teal} />
+          </Pressable>
+          {recent.map((tx, i) => <TxLine key={tx.id} tx={tx} last={i === recent.length - 1} />)}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -147,52 +120,33 @@ export default function Home() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AP.bg },
-  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 128 },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.97 }] },
+  root: { flex: 1, backgroundColor: UC.bg },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  eyeBtn: { width: 26, height: 26, borderRadius: 13, backgroundColor: UC.ink, alignItems: 'center', justifyContent: 'center' },
 
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 48, height: 48, borderRadius: radius.xxl, borderWidth: 2, borderColor: '#fff', ...shadow(4) },
-  onlineDot: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: AP.chart3, borderWidth: 2, borderColor: AP.bg },
-  greeting: { fontSize: 10, color: AP.mutedForeground, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
-  name: { fontSize: 18, fontWeight: '700', color: AP.secondary },
-  bell: { width: 48, height: 48, borderRadius: radius.xxl, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
-  bellDot: { position: 'absolute', top: 13, right: 13, width: 10, height: 10, borderRadius: 5, backgroundColor: AP.chart4, borderWidth: 2, borderColor: '#fff' },
+  tile: { height: 200, borderRadius: 10, padding: 16, overflow: 'hidden' },
+  tileArt: { position: 'absolute', right: -6, bottom: -6, width: 130, height: 150, alignItems: 'center', justifyContent: 'center' },
+  tileArtDisk: { position: 'absolute', width: 130, height: 130, borderRadius: 65 },
+  tileTitle: { fontFamily: ucFont.condensed, fontSize: 21, fontWeight: '700', lineHeight: 27 },
 
-  balanceCard: { backgroundColor: AP.secondary, borderRadius: 40, padding: 32, gap: 24, overflow: 'hidden', ...shadow(20, AP.secondary, 0.2) },
-  glowTop: { position: 'absolute', top: -64, right: -64, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(0,180,216,0.18)' },
-  balanceHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  walletChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  walletChipText: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, color: 'rgba(255,255,255,0.7)' },
-  balanceLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.6)' },
-  balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  balanceAmount: { fontSize: 40, fontWeight: '800', letterSpacing: -1.5, color: '#fff', fontVariant: ['tabular-nums'] },
-  balanceCurrency: { fontSize: 20, fontWeight: '500', color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-  balanceFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
-  avatarStack: { flexDirection: 'row', alignItems: 'center' },
-  stackAvatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: AP.secondary },
-  stackMore: { backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  stackMoreText: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  topupBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: AP.primary, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.full },
-  topupText: { fontSize: 12, fontWeight: '700', color: AP.secondary },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: UC.inkSoft },
+  dotActive: { width: 26, height: 8, borderRadius: 4, backgroundColor: UC.teal },
 
-  quickGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 24 },
-  quickCol: { alignItems: 'center', gap: 8, flex: 1 },
-  quickBtn: { width: 56, height: 56, borderRadius: radius.xl, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
-  quickLabel: { fontSize: 11, fontWeight: '700', color: AP.secondary },
+  body: { paddingHorizontal: 16 },
+  account: { flexDirection: 'row', gap: 14, paddingVertical: 16 },
+  accountTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  accountName: { flex: 1, fontFamily: ucFont.regular, fontSize: 17, color: UC.ink },
+  accountBold: { fontFamily: ucFont.condensed, fontSize: 14, fontWeight: '700', color: UC.ink },
+  accountSub: { fontFamily: ucFont.regular, fontSize: 14, color: UC.muted },
 
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, marginTop: 4 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: AP.secondary },
-  viewAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  viewAllText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: AP.primary },
+  promo: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18 },
+  promoIcon: { width: 24, height: 24, borderRadius: 5, backgroundColor: '#6F7A64', alignItems: 'center', justifyContent: 'center' },
+  promoTitle: { fontFamily: ucFont.regular, fontSize: 14, color: UC.ink },
+  promoSub: { fontFamily: ucFont.regular, fontSize: 17, color: UC.ink },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xxxl, padding: 16, ...shadow(2) },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
-  txIcon: { width: 48, height: 48, borderRadius: radius.xl, alignItems: 'center', justifyContent: 'center' },
-  txTitle: { fontSize: 14, fontWeight: '700', color: AP.secondary },
-  txSub: { fontSize: 11, color: AP.mutedForeground },
-  txAmount: { fontSize: 14, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
-  txBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.full },
-  txBadgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 18, paddingBottom: 2 },
+  sectionTitle: { fontFamily: ucFont.condensed, fontSize: 22, fontWeight: '700', color: UC.ink },
+
 });

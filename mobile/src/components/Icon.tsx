@@ -18,6 +18,8 @@ import {
   MessageCircle, Link2, User, Eye, EyeOff, Circle, type LucideIcon,
   LayoutDashboard, ShoppingBag, BarChart3, Moon, Languages, Edit3,
   SlidersHorizontal, Bell as BellIcon, Users,
+  CircleQuestionMark, X, PhoneCall, CalendarDays, TriangleAlert, EllipsisVertical,
+  Shapes, CircleEllipsis, ChevronLeft, Camera, Repeat, Archive, Car, PiggyBank,
 } from 'lucide-react-native';
 
 const MAP: Record<string, LucideIcon> = {
@@ -122,6 +124,22 @@ const MAP: Record<string, LucideIcon> = {
   'log-out': LogOut,
   'edit-3': Edit3,
   'sliders-horizontal': SlidersHorizontal,
+
+  // Design « banque » (écrans client).
+  'help-circle': CircleQuestionMark,
+  x: X,
+  'phone-call': PhoneCall,
+  calendar: CalendarDays,
+  'alert-triangle': TriangleAlert,
+  'more-vertical': EllipsisVertical,
+  shapes: Shapes,
+  'more-circle': CircleEllipsis,
+  'chevron-left': ChevronLeft,
+  camera: Camera,
+  repeat: Repeat,
+  archive: Archive,
+  car: Car,
+  'piggy-bank': PiggyBank,
 };
 
 export type IconName = string;

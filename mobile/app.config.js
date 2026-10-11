@@ -19,7 +19,7 @@ module.exports = () => ({
   // @expo/vector-icons ne se rendaient pas (police non appliquée aux <Text> d'icônes).
   // L'ancienne archi charge les polices assets/fonts de façon fiable.
   newArchEnabled: false,
-  splash: { backgroundColor: '#0035c5' },
+  splash: { backgroundColor: '#E2001A' },
   ios: { supportsTablet: true, bundleIdentifier: 'cg.paybrain.app' },
   android: {
     package: 'cg.paybrain.app',

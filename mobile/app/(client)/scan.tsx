@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
-import { useTheme, type Palette } from '@/theme';
+import { Amount, BigTitle, HelpDot, PrimaryButton, useStatusBar } from '@/components/UcKit';
+import { UC, ucFont } from '@/uc';
 import { genIdemKey, walletPay } from '@/api';
 
 // CameraView from expo-camera — imported lazily so build doesn't fail if not installed
@@ -34,10 +36,6 @@ type ModalState =
   | { phase: 'success'; amountCents: number }
   | { phase: 'error'; message: string };
 
-function formatXAF(cents: number) {
-  return `${(cents / 100).toLocaleString('fr-CG')} XAF`;
-}
-
 function parseQr(data: string): QrPreview | null {
   try {
     const obj = JSON.parse(data) as Record<string, unknown>;
@@ -57,20 +55,24 @@ function parseQr(data: string): QrPreview | null {
 }
 
 export default function ScanScreen() {
-  const { C } = useTheme();
-  const s = useMemo(() => makeStyles(C), [C]);
+  const router = useRouter();
+  useStatusBar(CameraView ? 'light' : 'dark');
   const [modal, setModal] = useState<ModalState>({ phase: 'idle' });
 
   const dismiss = () => setModal({ phase: 'idle' });
 
   if (!CameraView) {
     return (
-      <SafeAreaView style={s.root} edges={['top']}>
+      <SafeAreaView style={[s.root, { backgroundColor: UC.bg }]} edges={['top']}>
+        <View style={s.headerLight}>
+          <Icon name="chevron-left" size={28} color={UC.ink} onPress={() => router.back()} />
+          <HelpDot />
+        </View>
         <View style={s.center}>
-          <Icon name="qr-code-scanner" size={56} color={C.muted} />
+          <Icon name="qr-code-scanner" size={56} color={UC.muted} />
           <Text style={s.unavailableTitle}>Scanner non disponible</Text>
           <Text style={s.unavailableText}>
-            Installez expo-camera pour activer cette fonctionnalité.
+            La caméra n'est pas encore activée dans cette version de l'application.
           </Text>
         </View>
       </SafeAreaView>
@@ -108,8 +110,12 @@ export default function ScanScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
-        <Text style={s.title}>Scanner QR</Text>
-        <Text style={s.subtitle}>Pointez sur le QR code du marchand</Text>
+        <View style={s.headerTop}>
+          <Icon name="chevron-left" size={28} color={UC.white} onPress={() => router.back()} />
+          <HelpDot inverted />
+        </View>
+        <BigTitle color={UC.white} style={{ marginTop: 10 }}>Payer par QR code</BigTitle>
+        <Text style={s.subtitle}>Pointez la caméra sur le QR code du marchand</Text>
       </View>
 
       <View style={s.scanArea}>
@@ -128,7 +134,7 @@ export default function ScanScreen() {
             <View style={[s.corner, s.cornerBR]} />
             {!scanning && modal.phase === 'paying' && (
               <View style={s.busyOverlay}>
-                <ActivityIndicator color="#fff" size="large" />
+                <ActivityIndicator color={UC.white} size="large" />
               </View>
             )}
           </View>
@@ -152,24 +158,18 @@ export default function ScanScreen() {
             {/* Preview — confirmer le paiement */}
             {modal.phase === 'preview' && (
               <>
-                <View style={s.modalIcon}>
-                  <Icon name="qr-code" size={32} color={C.primary} />
-                </View>
                 <Text style={s.modalTitle}>Confirmer le paiement</Text>
                 {modal.qr.description ? (
                   <Text style={s.modalDesc}>{modal.qr.description}</Text>
                 ) : null}
                 <View style={s.amountRow}>
-                  <Text style={s.amountLabel}>Montant</Text>
-                  <Text style={s.amountValue}>{formatXAF(modal.qr.amountCents)}</Text>
+                  <Text style={s.amountLabel}>MONTANT</Text>
+                  <Amount cents={modal.qr.amountCents} size={30} forceShow />
                 </View>
                 <View style={s.modalActions}>
-                  <Pressable onPress={dismiss} style={[s.modalBtn, s.modalBtnCancel]}>
-                    <Text style={s.modalBtnCancelText}>Annuler</Text>
-                  </Pressable>
-                  <Pressable onPress={confirmPay} style={[s.modalBtn, s.modalBtnConfirm]}>
-                    <Icon name="lock" size={16} color="#fff" />
-                    <Text style={s.modalBtnConfirmText}>Payer</Text>
+                  <PrimaryButton label="Payer" icon="lock" onPress={confirmPay} />
+                  <Pressable onPress={dismiss} style={s.cancel}>
+                    <Text style={s.cancelText}>Annuler</Text>
                   </Pressable>
                 </View>
               </>
@@ -178,28 +178,24 @@ export default function ScanScreen() {
             {/* Success */}
             {modal.phase === 'success' && (
               <>
-                <View style={[s.modalIcon, { backgroundColor: C.successBg }]}>
-                  <Icon name="check-circle" size={36} color={C.secondary} />
-                </View>
+                <Icon name="check-circle" size={48} color={UC.green} />
                 <Text style={s.modalTitle}>Paiement réussi</Text>
-                <Text style={s.modalDesc}>{formatXAF(modal.amountCents)} débités</Text>
-                <Pressable onPress={dismiss} style={[s.modalBtn, s.modalBtnConfirm, { alignSelf: 'stretch', marginTop: 8 }]}>
-                  <Text style={s.modalBtnConfirmText}>Fermer</Text>
-                </Pressable>
+                <Amount cents={-modal.amountCents} size={26} color={UC.ink} forceShow />
+                <View style={s.modalActions}>
+                  <PrimaryButton label="Fermer" onPress={dismiss} />
+                </View>
               </>
             )}
 
             {/* Error */}
             {modal.phase === 'error' && (
               <>
-                <View style={[s.modalIcon, { backgroundColor: C.errorContainer }]}>
-                  <Icon name="error-outline" size={36} color={C.error} />
-                </View>
+                <Icon name="alert-triangle" size={44} color={UC.red} />
                 <Text style={s.modalTitle}>Paiement échoué</Text>
-                <Text style={[s.modalDesc, { color: C.error }]}>{modal.message}</Text>
-                <Pressable onPress={dismiss} style={[s.modalBtn, s.modalBtnCancel, { alignSelf: 'stretch', marginTop: 8 }]}>
-                  <Text style={s.modalBtnCancelText}>Réessayer</Text>
-                </Pressable>
+                <Text style={[s.modalDesc, { color: UC.red }]}>{modal.message}</Text>
+                <View style={s.modalActions}>
+                  <PrimaryButton label="Réessayer" variant="dark" onPress={dismiss} />
+                </View>
               </>
             )}
 
@@ -214,54 +210,40 @@ const FINDER = 240;
 const CORNER = 24;
 const THICKNESS = 3;
 
-const makeStyles = (C: Palette) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: C.bg },
-  unavailableTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 16, textAlign: 'center' },
-  unavailableText: { fontSize: 14, color: C.muted, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: UC.dark },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  unavailableTitle: { fontFamily: ucFont.condensed, fontSize: 22, fontWeight: '700', color: UC.ink, marginTop: 16, textAlign: 'center' },
+  unavailableText: { fontFamily: ucFont.regular, fontSize: 15, color: UC.muted, textAlign: 'center', marginTop: 8, lineHeight: 21 },
+  headerLight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 12 },
 
-  header: { padding: 20, paddingBottom: 12, backgroundColor: '#000' },
-  title: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+  header: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 18, backgroundColor: UC.dark },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  subtitle: { fontFamily: ucFont.regular, fontSize: 15, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
 
   scanArea: { flex: 1, position: 'relative' },
   overlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   finder: { width: FINDER, height: FINDER, position: 'relative' },
 
-  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: '#57fae9', borderWidth: THICKNESS },
-  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 4 },
-  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 4 },
-  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 4 },
-  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 4 },
+  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: UC.white, borderWidth: THICKNESS },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 6 },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 6 },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 6 },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
 
-  busyOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 4 },
+  busyOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 6 },
 
-  footer: { padding: 20, backgroundColor: '#000', alignItems: 'center' },
-  footerText: { fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+  footer: { padding: 20, backgroundColor: UC.dark, alignItems: 'center' },
+  footerText: { fontFamily: ucFont.regular, fontSize: 14, color: 'rgba(255,255,255,0.6)' },
 
-  // Modal
+  // Feuille modale
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 28, paddingBottom: 40, alignItems: 'center', gap: 8,
-  },
-  modalIcon: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: C.primarySoft, alignItems: 'center', justifyContent: 'center', marginBottom: 4,
-  },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: C.text, textAlign: 'center' },
-  modalDesc: { fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20 },
-  amountRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: C.bg, borderRadius: 14, padding: 16,
-    alignSelf: 'stretch', marginTop: 8,
-  },
-  amountLabel: { fontSize: 13, color: C.muted, fontWeight: '600' },
-  amountValue: { fontSize: 22, fontWeight: '900', color: C.primary },
-  modalActions: { flexDirection: 'row', gap: 12, alignSelf: 'stretch', marginTop: 8 },
-  modalBtn: { flex: 1, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  modalBtnCancel: { backgroundColor: C.surfaceContainerLow, borderWidth: 1.5, borderColor: C.border },
-  modalBtnCancelText: { fontSize: 15, fontWeight: '700', color: C.text },
-  modalBtnConfirm: { backgroundColor: C.primary, shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 4 },
-  modalBtnConfirmText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  modalSheet: { backgroundColor: UC.bg, borderTopLeftRadius: 12, borderTopRightRadius: 12, padding: 20, paddingBottom: 28, alignItems: 'center', gap: 8 },
+  modalTitle: { fontFamily: ucFont.condensed, fontSize: 26, fontWeight: '700', color: UC.ink, textAlign: 'center' },
+  modalDesc: { fontFamily: ucFont.regular, fontSize: 15, color: UC.muted, textAlign: 'center', lineHeight: 21 },
+  amountRow: { alignSelf: 'stretch', alignItems: 'center', gap: 4, borderTopWidth: 1, borderBottomWidth: 1, borderColor: UC.line, paddingVertical: 16, marginTop: 8 },
+  amountLabel: { fontFamily: ucFont.condensed, fontSize: 13, fontWeight: '700', color: UC.inkSoft, letterSpacing: 0.6 },
+  modalActions: { alignSelf: 'stretch', gap: 6, marginTop: 12 },
+  cancel: { height: 48, alignItems: 'center', justifyContent: 'center' },
+  cancelText: { fontFamily: ucFont.condensed, fontSize: 17, fontWeight: '700', color: UC.teal },
 });

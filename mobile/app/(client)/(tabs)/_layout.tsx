@@ -2,41 +2,41 @@ import { Tabs } from 'expo-router';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
-import { AP, radius, shadow } from '@/design';
+import { UC, ucFont } from '@/uc';
 
-// Onglets AlphaPay (maquette Home) : Home / Cards / History / Settings.
-// Bottom-nav flottante = pilule navy arrondie posée au-dessus du contenu.
+// Onglets client (design « banque ») : Accueil / Cartes / Paiements / Plus.
+// Barre blanche pleine largeur, icônes pleines grises, onglet actif en teal.
+// « history » reste une route de l'onglet mais n'apparaît pas dans la barre.
 const TABS: Record<string, { label: string; icon: string }> = {
-  index: { label: 'Home', icon: 'home' },
-  card: { label: 'Cards', icon: 'credit-card' },
-  history: { label: 'History', icon: 'history' },
-  settings: { label: 'Settings', icon: 'settings' },
+  index: { label: 'Accueil', icon: 'home' },
+  card: { label: 'Cartes', icon: 'shapes' },
+  payments: { label: 'Paiements', icon: 'payments' },
+  settings: { label: 'Plus', icon: 'more-circle' },
 };
 
 function ClientTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
   const routes = state.routes.filter((r: any) => TABS[r.name]);
+  const current = state.routes[state.index]?.name;
   return (
-    <View style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) + 12 }]} pointerEvents="box-none">
-      <View style={styles.pill}>
-        {routes.map((route: any) => {
-          const tab = TABS[route.name];
-          const focused = state.routes[state.index]?.name === route.name;
-          const color = focused ? AP.primary : 'rgba(255,255,255,0.5)';
-          return (
-            <Pressable
-              key={route.key}
-              style={styles.item}
-              onPress={() => navigation.navigate(route.name)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: focused }}
-            >
-              <Icon name={tab.icon} size={24} color={color} />
-              <Text style={[styles.label, { color }]}>{tab.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+      {routes.map((route: any) => {
+        const tab = TABS[route.name];
+        const focused = current === route.name || (route.name === 'index' && current === 'history');
+        const color = focused ? UC.teal : UC.inkSoft;
+        return (
+          <Pressable
+            key={route.key}
+            style={styles.item}
+            onPress={() => navigation.navigate(route.name)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: focused }}
+          >
+            <Icon name={tab.icon} size={24} color={color} />
+            <Text style={[styles.label, { color: focused ? UC.teal : UC.ink }]}>{tab.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -45,28 +45,25 @@ export default function ClientTabLayout() {
   return (
     <Tabs
       tabBar={(props) => <ClientTabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: AP.bg } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: UC.bg } }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="card" options={{ title: 'Cards' }} />
-      <Tabs.Screen name="history" options={{ title: 'History' }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
+      <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="card" options={{ title: 'Cartes' }} />
+      <Tabs.Screen name="payments" options={{ title: 'Paiements' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Plus' }} />
+      <Tabs.Screen name="history" options={{ title: 'Mouvements', href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', left: 20, right: 20 },
-  pill: {
-    height: 76,
+  bar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 8,
-    backgroundColor: AP.secondary,
-    borderRadius: 36,
-    ...shadow(16, AP.secondary, 0.35),
+    backgroundColor: UC.bg,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: UC.lineSoft,
   },
-  item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8 },
-  label: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  item: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  label: { fontFamily: ucFont.regular, fontSize: 13 },
 });

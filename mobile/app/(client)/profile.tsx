@@ -1,184 +1,111 @@
-import { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Icon } from '@/components/Icon';
 import { router } from 'expo-router';
+import { Icon } from '@/components/Icon';
 import { useAuth } from '@/auth';
 import { usePhoto } from '@/photo';
-import { useTheme, THEME_OPTIONS, type Palette, type ThemeName } from '@/theme';
+import { BigTitle, BrandTile, Divider, Label, LinkAction, TopBar, useStatusBar } from '@/components/UcKit';
+import { UC, ucFont } from '@/uc';
+import { useWallet } from '@/wallet-store';
 
-type IconName = string;
+function Line({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
+  return (
+    <>
+      <View style={s.line}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Label>{label}</Label>
+          {value && <Text style={s.value}>{value}</Text>}
+        </View>
+        {children}
+      </View>
+      <Divider />
+    </>
+  );
+}
 
 export default function ProfileScreen() {
+  useStatusBar('dark');
   const { phone, signOut } = useAuth();
-  const { C, name: themeName, setTheme } = useTheme();
+  const { user } = useWallet();
   const { uri: photoUri, pick } = usePhoto();
-  const s = useMemo(() => makeStyles(C), [C]);
+  const confirmDelete = () => Alert.alert('Supprimer le compte', 'Contactez le support AlphaPay pour clôturer votre compte.');
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
+      <TopBar onBack={() => router.back()} />
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={s.title}>Profil</Text>
+        <BigTitle style={{ marginTop: 12 }}>Profil</BigTitle>
 
-        {/* Avatar */}
-        <View style={s.avatarSection}>
-          <Pressable style={s.avatar} onPress={pick}>
-            {photoUri
-              ? <Image source={{ uri: photoUri }} style={s.avatarImg} />
-              : <Text style={s.avatarTxt}>{(phone ?? 'MA').slice(-2)}</Text>}
-            <View style={s.avatarCamera}><Icon name="edit" size={14} color={C.onPrimary} /></View>
+        {/* Identité */}
+        <View style={s.identity}>
+          <Pressable onPress={pick}>
+            <View style={s.ring}>
+              <Image source={{ uri: photoUri ?? user.avatar }} style={s.avatar} />
+            </View>
+            <View style={s.edit}><Icon name="camera" size={14} color={UC.white} /></View>
           </Pressable>
-          <Text style={s.name}>{phone ?? '—'}</Text>
-          <View style={s.badge}>
-            <Icon name="verified" size={13} color={C.success} />
-            <Text style={s.badgeTxt}>Vérifié (Niveau 2)</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.name}>{user.name}</Text>
+            <Text style={s.phone}>{phone ?? user.phone}</Text>
+            <View style={s.kyc}><Icon name="verified" size={14} color={UC.white} /><Text style={s.kycText}>VÉRIFIÉ · NIVEAU 2</Text></View>
           </View>
-          <Text style={s.market}>Marché : Congo 🇨🇬</Text>
         </View>
 
-        {/* Upgrade */}
-        <Pressable style={s.upgrade}>
-          <Icon name="arrow-circle-up" size={22} color={C.primary} />
+        <Label style={s.section}>Informations</Label>
+        <Divider />
+        <Line label="Identifiant AlphaPay" value={user.tag} />
+        <Line label="Pays" value="République du Congo" />
+        <Line label="Type de compte" value="Compte personnel">
+          <LinkAction label="Évoluer" onPress={() => Alert.alert('Évoluer', 'Devenez Marchand ou Développeur depuis le site AlphaPay.')} />
+        </Line>
+
+        <Label style={s.section}>Compte préféré</Label>
+        <Divider />
+        <View style={s.line}>
+          <BrandTile brand="mtn" size={36} />
           <View style={{ flex: 1 }}>
-            <Text style={s.upgradeTitle}>Améliorer votre compte</Text>
-            <Text style={s.upgradeSub}>Devenir Marchand ou Développeur</Text>
+            <Text style={s.value}>MTN MoMo</Text>
+            <Text style={s.phone}>{phone ?? user.phone}</Text>
           </View>
-          <Icon name="chevron-right" size={20} color={C.muted} />
+          <LinkAction label="Modifier" onPress={() => router.push('/(client)/link-account')} />
+        </View>
+        <Divider />
+
+        <Label style={s.section}>Sécurité</Label>
+        <Divider />
+        <Line label="Code PIN"><LinkAction label="Modifier" onPress={() => {}} /></Line>
+        <Line label="Biométrie" value="EMPREINTE DIGITALE"><LinkAction label="Gérer" onPress={() => {}} /></Line>
+
+        <Pressable style={s.logout} onPress={signOut}>
+          <Icon name="log-out" size={18} color={UC.red} />
+          <Text style={s.logoutText}>Se déconnecter</Text>
         </Pressable>
-
-        {/* Comptes liés */}
-        <Section title="Comptes liés" C={C} s={s}>
-          <View style={s.row}>
-            <View style={s.rowLeft}>
-              <View style={[s.opTag, { backgroundColor: C.pendingBg }]}><Text style={[s.opTagTxt, { color: C.pending }]}>MTN</Text></View>
-              <Text style={s.rowLabel}>MTN MoMo</Text>
-            </View>
-            <View style={s.connected}><Icon name="shield" size={13} color={C.success} /><Text style={[s.connectedTxt, { color: C.success }]}>Préféré</Text></View>
-          </View>
-          <Text style={s.rowSub}>{phone ?? '+242 06 123 4567'}</Text>
-          <View style={s.sep} />
-          <Pressable style={s.row} onPress={() => router.push('/(client)/link-account')}>
-            <View style={s.rowLeft}>
-              <View style={[s.opTag, { backgroundColor: C.primarySoft }]}><Icon name="add" size={16} color={C.primary} /></View>
-              <Text style={s.rowLabel}>Choisir le compte préféré</Text>
-            </View>
-            <View style={s.connected}><Text style={[s.connectedTxt, { color: C.primary }]}>MTN · Airtel · Banque</Text><Icon name="chevron-right" size={16} color={C.primary} /></View>
-          </Pressable>
-        </Section>
-
-        {/* Apparence — thème */}
-        <Section title="Apparence" C={C} s={s}>
-          <View style={{ padding: 16 }}>
-            <Text style={s.themeHint}>Choisir le thème</Text>
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              {THEME_OPTIONS.map((t) => (
-                <ThemeSwatch key={t.key} opt={t} active={themeName === t.key} onPress={() => setTheme(t.key)} C={C} s={s} />
-              ))}
-            </View>
-          </View>
-        </Section>
-
-        {/* Sécurité */}
-        <Section title="Sécurité" C={C} s={s}>
-          <MenuItem icon="vpn-key" label="Changer de PIN" onPress={() => {}} C={C} s={s} />
-          <View style={s.sep} />
-          <MenuItem icon="fingerprint" label="Activer la biométrie" onPress={() => {}} C={C} s={s} />
-        </Section>
-
-        {/* Danger */}
-        <Section title="Zone sensible" C={C} s={s}>
-          <MenuItem icon="logout" label="Se déconnecter" onPress={signOut} danger C={C} s={s} />
-          <View style={s.sep} />
-          <MenuItem icon="delete-outline" label="Supprimer le compte" onPress={() => {}} danger C={C} s={s} />
-        </Section>
-
+        <Pressable style={s.delete} onPress={confirmDelete}>
+          <Text style={s.deleteText}>Supprimer le compte</Text>
+        </Pressable>
         <Text style={s.version}>AlphaPay v1.0 · Compte personnel</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Section({ title, children, s }: { title: string; children: React.ReactNode; C: Palette; s: Styles }) {
-  return (
-    <View style={{ marginTop: 22 }}>
-      <Text style={s.sectionTitle}>{title}</Text>
-      <View style={s.card}>{children}</View>
-    </View>
-  );
-}
-
-function MenuItem({ icon, label, onPress, danger, C, s }: { icon: IconName; label: string; onPress: () => void; danger?: boolean; C: Palette; s: Styles }) {
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => [s.menuItem, pressed && { opacity: 0.7 }]}>
-      <View style={[s.menuIcon, danger && { backgroundColor: C.errorContainer }]}>
-        <Icon name={icon} size={20} color={danger ? C.error : C.primary} />
-      </View>
-      <Text style={[s.menuLabel, danger && { color: C.error }]}>{label}</Text>
-      {!danger && <Icon name="chevron-right" size={20} color={C.muted} />}
-    </Pressable>
-  );
-}
-
-function ThemeSwatch({ opt, active, onPress, C, s }: {
-  opt: { key: ThemeName; label: string; swatch: string; bg: string }; active: boolean; onPress: () => void; C: Palette; s: Styles;
-}) {
-  return (
-    <Pressable onPress={onPress} style={[s.swatch, { borderColor: active ? C.primary : C.border }]}>
-      <View style={[s.swatchPreview, { backgroundColor: opt.bg, borderColor: C.border }]}>
-        <View style={[s.swatchDot, { backgroundColor: opt.swatch }]} />
-        {active && (
-          <View style={[s.swatchCheck, { backgroundColor: C.primary }]}>
-            <Icon name="check" size={11} color={C.onPrimary} />
-          </View>
-        )}
-      </View>
-      <Text style={s.swatchLabel}>{opt.label}</Text>
-    </Pressable>
-  );
-}
-
-type Styles = ReturnType<typeof makeStyles>;
-const makeStyles = (C: Palette) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
-  title: { fontSize: 24, fontWeight: '800', color: C.text, marginBottom: 20 },
-
-  avatarSection: { alignItems: 'center', marginBottom: 4 },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarImg: { width: 88, height: 88, borderRadius: 44 },
-  avatarTxt: { fontSize: 26, fontWeight: '900', color: C.onPrimary },
-  avatarCamera: { position: 'absolute', right: 0, bottom: 12, width: 28, height: 28, borderRadius: 14, backgroundColor: C.secondary, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.bg },
-  name: { fontSize: 18, fontWeight: '700', color: C.text },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8, backgroundColor: C.successBg, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  badgeTxt: { fontSize: 12, fontWeight: '700', color: C.success },
-  market: { fontSize: 13, color: C.muted, marginTop: 8 },
-
-  upgrade: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, backgroundColor: C.primarySoft, borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 16 },
-  upgradeTitle: { fontSize: 14, fontWeight: '700', color: C.text },
-  upgradeSub: { fontSize: 12, color: C.muted, marginTop: 1 },
-
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  card: { backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.border, overflow: 'hidden' },
-
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowLabel: { fontSize: 14, fontWeight: '600', color: C.text },
-  rowSub: { fontSize: 12, color: C.muted, paddingHorizontal: 16, paddingBottom: 10 },
-  opTag: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  opTagTxt: { fontSize: 11, fontWeight: '800' },
-  connected: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  connectedTxt: { fontSize: 12, fontWeight: '700' },
-
-  themeHint: { fontSize: 13, color: C.muted, marginBottom: 12 },
-  swatch: { flex: 1, alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 14, padding: 10 },
-  swatchPreview: { width: '100%', height: 40, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  swatchDot: { width: 18, height: 18, borderRadius: 9 },
-  swatchCheck: { position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  swatchLabel: { fontSize: 11, fontWeight: '700', color: C.text },
-
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
-  menuIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: C.surfaceContainerLow, alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: C.text },
-  sep: { height: 1, backgroundColor: C.border, marginLeft: 16 },
-  version: { fontSize: 12, color: C.muted, textAlign: 'center', marginTop: 28 },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: UC.bg },
+  scroll: { paddingHorizontal: 16, paddingBottom: 40 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: UC.bgGrey, borderRadius: 10, padding: 16, marginTop: 20 },
+  ring: { width: 76, height: 76, borderRadius: 38, borderWidth: 3, borderColor: UC.red, alignItems: 'center', justifyContent: 'center', backgroundColor: UC.white },
+  avatar: { width: 66, height: 66, borderRadius: 33, backgroundColor: UC.lineSoft },
+  edit: { position: 'absolute', right: -2, bottom: -2, width: 26, height: 26, borderRadius: 13, backgroundColor: UC.teal, borderWidth: 2, borderColor: UC.white, alignItems: 'center', justifyContent: 'center' },
+  name: { fontFamily: ucFont.condensed, fontSize: 22, fontWeight: '700', color: UC.ink },
+  phone: { fontFamily: ucFont.regular, fontSize: 14, color: UC.muted, marginTop: 2 },
+  kyc: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: UC.teal, borderRadius: 3, paddingHorizontal: 6, paddingVertical: 2, marginTop: 8 },
+  kycText: { fontFamily: ucFont.condensed, fontSize: 12, fontWeight: '700', color: UC.white },
+  section: { marginTop: 28, marginBottom: 8 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 },
+  value: { fontFamily: ucFont.regular, fontSize: 17, color: UC.ink },
+  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1.5, borderColor: UC.red, borderRadius: 6, height: 50, marginTop: 32 },
+  logoutText: { fontFamily: ucFont.condensed, fontSize: 16, fontWeight: '700', color: UC.red },
+  delete: { height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  deleteText: { fontFamily: ucFont.condensed, fontSize: 15, fontWeight: '700', color: UC.muted, textDecorationLine: 'underline' },
+  version: { fontFamily: ucFont.regular, fontSize: 13, color: UC.muted, textAlign: 'center', marginTop: 16 },
 });

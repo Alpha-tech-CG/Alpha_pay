@@ -1,73 +1,74 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Image, ScrollView, StyleSheet, Switch } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, type Href } from 'expo-router';
 import { Icon } from '@/components/Icon';
 import { useAuth } from '@/auth';
-import { AP, soft, radius, shadow } from '@/design';
+import { AvatarBadge, BigTitle, Divider, useStatusBar } from '@/components/UcKit';
+import { UC, ucFont } from '@/uc';
 import { useWallet } from '@/wallet-store';
 
-function Row({ icon, label, children, onPress }: { icon: string; label: string; children: React.ReactNode; onPress?: () => void }) {
+function Row({ icon, label, value, onPress, right }: { icon: string; label: string; value?: string; onPress?: () => void; right?: React.ReactNode }) {
   return (
-    <Pressable style={s.row} onPress={onPress} disabled={!onPress}>
-      <View style={s.rowLeft}>
-        <Icon name={icon} size={18} color={AP.primary} />
+    <>
+      <Pressable style={({ pressed }) => [s.row, pressed && onPress && { opacity: 0.6 }]} onPress={onPress} disabled={!onPress}>
+        <Icon name={icon} size={22} color={UC.ink} />
         <Text style={s.rowLabel}>{label}</Text>
-      </View>
-      {children}
-    </Pressable>
+        {value && <Text style={s.rowValue}>{value}</Text>}
+        {right ?? (onPress && <Icon name="chevron-right" size={20} color={UC.teal} />)}
+      </Pressable>
+      <Divider />
+    </>
   );
 }
 
-export default function Settings() {
+export default function More() {
+  const router = useRouter();
+  useStatusBar('dark');
   const { signOut } = useAuth();
   const { user } = useWallet();
   const [biometrics, setBiometrics] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const go = (href: Href) => () => router.push(href);
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={s.title}>Settings</Text>
+        <View style={s.header}>
+          <BigTitle>Plus</BigTitle>
+          <AvatarBadge uri={user.avatar} count={3} onPress={go('/(client)/profile')} />
+        </View>
 
-        {/* Profil */}
-        <View style={[s.profile, shadow(12, AP.secondary, 0.2)]}>
-          <Image source={{ uri: user.avatar }} style={s.profileAvatar} />
+        <Pressable style={s.profile} onPress={go('/(client)/profile')}>
           <View style={{ flex: 1 }}>
             <Text style={s.profileName}>{user.name}</Text>
-            <Text style={s.profilePhone}>{user.phone}</Text>
+            <Text style={s.profileSub}>{user.phone} · {user.tag}</Text>
           </View>
-          <Pressable style={s.editBtn}>
-            <Icon name="edit-3" size={18} color="#fff" />
-          </Pressable>
-        </View>
+          <Icon name="chevron-right" size={20} color={UC.teal} />
+        </Pressable>
 
-        {/* Sécurité */}
-        <Text style={s.sectionTitle}>SECURITY</Text>
-        <View style={s.group}>
-          <Row icon="lock" label="Change PIN" onPress={() => {}}>
-            <Icon name="chevron-right" size={18} color={AP.mutedForeground} />
-          </Row>
-          <View style={s.divider} />
-          <Row icon="fingerprint" label="Biometrics">
-            <Switch value={biometrics} onValueChange={setBiometrics} trackColor={{ true: AP.primary, false: AP.muted }} thumbColor="#fff" />
-          </Row>
-        </View>
+        <Text style={s.section}>SERVICES</Text>
+        <Divider />
+        <Row icon="qr-code" label="Recevoir de l'argent" onPress={go('/(client)/receive')} />
+        <Row icon="smartphone" label="USSD hors connexion" onPress={go('/(client)/ussd')} />
+        <Row icon="link" label="Lier un compte Mobile Money" onPress={go('/(client)/link-account')} />
 
-        {/* Préférences */}
-        <Text style={s.sectionTitle}>PREFERENCES</Text>
-        <View style={s.group}>
-          <Row icon="languages" label="Language" onPress={() => {}}>
-            <Text style={s.rowValue}>Français</Text>
-          </Row>
-          <View style={s.divider} />
-          <Row icon="moon" label="Dark Mode">
-            <Switch value={darkMode} onValueChange={setDarkMode} trackColor={{ true: AP.primary, false: AP.muted }} thumbColor="#fff" />
-          </Row>
-        </View>
+        <Text style={s.section}>SÉCURITÉ</Text>
+        <Divider />
+        <Row icon="lock" label="Modifier le PIN" onPress={() => {}} />
+        <Row
+          icon="fingerprint"
+          label="Empreinte digitale"
+          right={<Switch value={biometrics} onValueChange={setBiometrics} trackColor={{ true: UC.teal, false: UC.line }} thumbColor={UC.white} />}
+        />
+
+        <Text style={s.section}>PRÉFÉRENCES</Text>
+        <Divider />
+        <Row icon="languages" label="Langue" value="Français" onPress={() => {}} />
+        <Row icon="help-circle" label="Aide et contact" onPress={() => {}} />
 
         <Pressable style={s.logout} onPress={signOut}>
-          <Icon name="log-out" size={18} color={AP.destructive} />
-          <Text style={s.logoutText}>Log out</Text>
+          <Icon name="log-out" size={18} color={UC.red} />
+          <Text style={s.logoutText}>Se déconnecter</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -75,24 +76,16 @@ export default function Settings() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: AP.bg },
-  scroll: { paddingHorizontal: 20, paddingBottom: 120 },
-  title: { fontSize: 20, fontWeight: '700', color: AP.foreground, paddingTop: 8, paddingBottom: 24 },
-
-  profile: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: AP.secondary, borderRadius: radius.xxl, padding: 20 },
-  profileAvatar: { width: 64, height: 64, borderRadius: radius.full, borderWidth: 2, borderColor: AP.primary },
-  profileName: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  profilePhone: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  editBtn: { width: 40, height: 40, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-
-  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: AP.mutedForeground, marginTop: 28, marginBottom: 12, marginLeft: 4 },
-  group: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowLabel: { fontSize: 14, fontWeight: '500', color: AP.foreground },
-  rowValue: { fontSize: 12, fontWeight: '600', color: AP.mutedForeground },
-  divider: { height: 1, backgroundColor: AP.border },
-
-  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: soft.destructive10, borderRadius: radius.xl, padding: 16, marginTop: 28 },
-  logoutText: { fontSize: 15, fontWeight: '700', color: AP.destructive },
+  root: { flex: 1, backgroundColor: UC.bg },
+  scroll: { paddingHorizontal: 16, paddingBottom: 24 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, paddingBottom: 16 },
+  profile: { flexDirection: 'row', alignItems: 'center', backgroundColor: UC.bgGrey, borderRadius: 10, padding: 16 },
+  profileName: { fontFamily: ucFont.condensed, fontSize: 19, fontWeight: '700', color: UC.ink },
+  profileSub: { fontFamily: ucFont.regular, fontSize: 13, color: UC.muted, marginTop: 2 },
+  section: { fontFamily: ucFont.condensed, fontSize: 13, fontWeight: '700', letterSpacing: 0.6, color: UC.inkSoft, marginTop: 24, marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  rowLabel: { flex: 1, fontFamily: ucFont.regular, fontSize: 16, color: UC.ink },
+  rowValue: { fontFamily: ucFont.condensed, fontSize: 13, fontWeight: '700', color: UC.teal, textTransform: 'uppercase' },
+  logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1.5, borderColor: UC.red, borderRadius: 6, height: 50, marginTop: 30 },
+  logoutText: { fontFamily: ucFont.condensed, fontSize: 16, fontWeight: '700', color: UC.red },
 });

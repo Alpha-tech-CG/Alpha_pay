@@ -74,6 +74,7 @@ const AVATAR =
   'https://lh3.googleusercontent.com/a/ACg8ocLiYBSFTKYcXZ-BjTNzJ-4KhUXVuWbDuZ14FLZIa3tdLwX9_g=s96-c';
 
 const INITIAL_TX: Transaction[] = [
+  { id: 't0', title: 'Jumia Congo', subtitle: 'Paiement e-commerce • 16:18', icon: 'shopping-bag', tint: 'secondary', amountCents: -806400, direction: 'out', status: 'pending', createdAt: Date.now(), group: 'Today' },
   { id: 't1', title: 'MTN MoMo Transfer', subtitle: 'MTN MoMo • 14:32', icon: 'smartphone', tint: 'mtn', amountCents: 1500000, direction: 'in', status: 'success', createdAt: Date.now(), group: 'Today' },
   { id: 't2', title: 'Supermarché Casino', subtitle: 'AlphaPay Merchant • 09:15', icon: 'shopping-bag', tint: 'secondary', amountCents: -2450000, direction: 'out', status: 'success', createdAt: Date.now() - 86400000, group: 'Yesterday' },
   { id: 't3', title: 'Netflix Subscription', subtitle: 'Carte virtuelle • 18:00', icon: 'globe', tint: 'failed', amountCents: -600000, direction: 'out', status: 'failed', createdAt: Date.now() - 86400000, group: 'Yesterday' },
