@@ -40,7 +40,7 @@ function BottomNav({ tabs, path }) {
       background: t.surface, borderTop: `1px solid ${t.border}`,
       display: 'none', alignItems: 'stretch',
     }}>
-      {tabs.map((tab) => {
+      {tabs.filter((tab) => !tab.desktopOnly).map((tab) => {
         const active = path === tab.to
         return (
           <Link key={tab.to} to={tab.to} style={{
@@ -67,6 +67,8 @@ export default function AppLayout({ children }) {
     { to: '/payments', icon: 'payments', label: tr('nav.payments') },
     { to: '/developers', icon: 'developers', label: tr('nav.developers') },
     { to: '/team', icon: 'team', label: tr('nav.team') },
+    // Réglage ponctuel : barre latérale seulement, pas dans la barre d'onglets mobile.
+    { to: '/operators', icon: 'operators', label: tr('nav.operators'), desktopOnly: true },
     { to: '/profile', icon: 'profile', label: tr('nav.profile') },
   ]
   const nav = (
@@ -87,7 +89,7 @@ export default function AppLayout({ children }) {
       }} className="pb-sidebar">
         <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>GROUPE ALPHA</div>
         <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 28 }}>
-          Pay<span style={{ color: t.primary }}>Brain</span>
+          Alpha<span style={{ color: t.primary }}>Pay</span>
         </div>
         {nav}
       </aside>
@@ -102,7 +104,7 @@ export default function AppLayout({ children }) {
             borderRight: `1px solid ${t.border}`,
           }}>
             <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 28 }}>
-              Pay<span style={{ color: t.primary }}>Brain</span>
+              Alpha<span style={{ color: t.primary }}>Pay</span>
             </div>
             <div onClick={() => setOpen(false)}>{nav}</div>
           </aside>
