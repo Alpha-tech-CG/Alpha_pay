@@ -34,6 +34,8 @@ x-api-env: &api-env
   API_KEY_PEPPER: dev-only-pepper-not-for-production-0000000000
   INTERNAL_API_TOKEN: dev-only-internal-token-0000000000000000
   JWT_SECRET: dev-only-jwt-secret-not-for-production-000000
+  OTP_HMAC_SECRET: dev-only-otp-secret-not-for-production-0000
+  MESSAGING_WEBHOOK_TOKEN: dev-only-messaging-webhook-token-00000000
   # Emails réels capturés par MailHog ; SMS et WhatsApp factices (GET /dev/outbox).
   EMAIL_PROVIDER: smtp
   SMTP_URL: smtp://mailhog:1025

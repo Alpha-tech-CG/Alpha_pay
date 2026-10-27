@@ -13,6 +13,7 @@ const production = {
   API_KEY_PEPPER: 'p'.repeat(32),
   INTERNAL_API_TOKEN: 't'.repeat(32),
   ALLOWED_ORIGINS: 'https://app.alphapay.cg',
+  OTP_HMAC_SECRET: 'o'.repeat(32),
 };
 
 describe('validateEnv (T-14)', () => {

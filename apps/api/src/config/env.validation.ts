@@ -36,6 +36,7 @@ const REQUIRED_IN_PRODUCTION = [
   'API_KEY_PEPPER',
   'INTERNAL_API_TOKEN',
   'ALLOWED_ORIGINS',
+  'OTP_HMAC_SECRET',
 ];
 
 export function validateEnv(env: Env = process.env): void {
@@ -55,6 +56,9 @@ export function validateEnv(env: Env = process.env): void {
   base64Key32(env, 'PROVIDER_CREDENTIALS_KEY', problems);
   minLength(env, 'API_KEY_PEPPER', 32, problems);
   minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
+  minLength(env, 'OTP_HMAC_SECRET', 32, problems);
+  positiveInt(env, 'OTP_MAX_PER_DESTINATION_PER_HOUR', problems);
+  positiveInt(env, 'OTP_MAX_PER_IP_PER_HOUR', problems);
 
   if (env.SMS_PROVIDER === 'infobip') {
     for (const name of ['INFOBIP_BASE_URL', 'INFOBIP_API_KEY', 'MESSAGING_WEBHOOK_TOKEN']) if (!env[name]) problems.push(`${name} est requis avec SMS_PROVIDER=infobip`);

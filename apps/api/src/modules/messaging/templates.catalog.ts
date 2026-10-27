@@ -89,6 +89,26 @@ export const TEMPLATE_CATALOG: CatalogTemplate[] = [
     variables: ['amount', 'payer', 'operator', 'reference'],
   },
 
+  // ── Notification d'un marchand via l'API Messages (seul format WhatsApp autorisé hors fenêtre de 24 h) ──
+  { key: 'message.notification', channel: 'SMS', version: 1, category: 'TRANSACTIONAL', body: '{{merchantName}} : {{text}}' },
+  {
+    key: 'message.notification',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: 'Message de {{merchantName}} : {{text}}',
+    whatsappTemplateName: 'alphapay_notification',
+    variables: ['merchantName', 'text'],
+  },
+  {
+    key: 'message.notification',
+    channel: 'EMAIL',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    subject: '{{subject}}',
+    body: '{{text}}\n\n— {{merchantName}}',
+  },
+
   // ── Message libre de l'API Messages (SMS et email seulement : WhatsApp exige un modèle) ──
   { key: 'message.libre', channel: 'SMS', version: 1, category: 'TRANSACTIONAL', body: '{{text}}' },
   { key: 'message.libre', channel: 'EMAIL', version: 1, category: 'TRANSACTIONAL', subject: '{{subject}}', body: '{{text}}' },

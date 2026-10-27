@@ -1,4 +1,5 @@
 import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
 import { ANY_MODE, Message, MessageCategory, MessageChannel, MessageStatus, Prisma, PrismaClient } from '@paybrain/database';
 import { DeliveryEvent, InboundMessage, ProviderError } from '@paybrain/providers';
@@ -358,6 +359,27 @@ export class MessagingService {
       }
     }
     return optOuts;
+  }
+
+  // ── Purge ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Un OTP expire au bout de 5 minutes : au-delà de 10 minutes, son contact et
+   * ses variables chiffrés n'ont plus d'utilité (même pour une bascule tardive)
+   * et sont effacés. Idempotent : peut tourner sur plusieurs instances.
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async purgeExpiredOtpContent(now = new Date()): Promise<number> {
+    const res = await this.prisma.message.updateMany({
+      where: {
+        livemode: ANY_MODE,
+        category: 'OTP',
+        createdAt: { lt: new Date(now.getTime() - 10 * 60 * 1000) },
+        OR: [{ variablesEnc: { not: null } }, { contactEnc: { not: null } }],
+      },
+      data: { variablesEnc: null, contactEnc: null },
+    });
+    return res.count;
   }
 
   // ── Lecture ────────────────────────────────────────────────────────────────
