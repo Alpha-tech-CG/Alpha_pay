@@ -19,6 +19,7 @@ import { AppModule } from "./app.module";
 import { loadSecrets } from "./secrets/secrets-loader";
 import { PaymentStatusPoller } from "./modules/payment-status/payment-status.poller";
 import { JsonNestLogger, logger } from "./common/logging/logger";
+import { validateEnv } from "./config/env.validation";
 
 /**
  * Process worker (D-008) : même code que l'API, sans serveur HTTP. Consomme
@@ -26,6 +27,7 @@ import { JsonNestLogger, logger } from "./common/logging/logger";
  */
 async function bootstrap() {
   await loadSecrets();
+  validateEnv();
   if (!process.env.REDIS_URL) throw new Error("REDIS_URL requis pour le worker");
 
   const app = await NestFactory.createApplicationContext(AppModule, { logger: new JsonNestLogger() });

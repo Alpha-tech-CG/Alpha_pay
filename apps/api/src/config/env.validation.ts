@@ -1,0 +1,84 @@
+/**
+ * Validation de la configuration au démarrage (T-14) : l'API et le worker
+ * refusent de démarrer avec une configuration incomplète ou incohérente, en
+ * nommant chaque variable fautive. Documentation : `.env.example`.
+ */
+type Env = NodeJS.ProcessEnv;
+
+function base64Key32(env: Env, name: string, problems: string[]): void {
+  const v = env[name];
+  if (!v) return;
+  if (Buffer.from(v, 'base64').length !== 32) problems.push(`${name} doit être une clé base64 de 32 octets`);
+}
+
+function oneOf(env: Env, name: string, allowed: string[], problems: string[]): void {
+  const v = env[name];
+  if (v !== undefined && v !== '' && !allowed.includes(v)) problems.push(`${name} doit valoir ${allowed.join(' | ')} (reçu « ${v} »)`);
+}
+
+function positiveInt(env: Env, name: string, problems: string[]): void {
+  const v = env[name];
+  if (v !== undefined && v !== '' && !(Number.isInteger(Number(v)) && Number(v) > 0)) problems.push(`${name} doit être un entier positif`);
+}
+
+function minLength(env: Env, name: string, min: number, problems: string[]): void {
+  const v = env[name];
+  if (v && v.length < min) problems.push(`${name} doit compter au moins ${min} caractères`);
+}
+
+/** Variables exigées en production (préproduction comprise). */
+const REQUIRED_IN_PRODUCTION = [
+  'DATABASE_URL',
+  'REDIS_URL',
+  'PUBLIC_API_URL',
+  'PII_ENCRYPTION_KEY',
+  'PROVIDER_CREDENTIALS_KEY',
+  'API_KEY_PEPPER',
+  'INTERNAL_API_TOKEN',
+  'ALLOWED_ORIGINS',
+];
+
+export function validateEnv(env: Env = process.env): void {
+  const problems: string[] = [];
+
+  oneOf(env, 'NODE_ENV', ['development', 'test', 'production'], problems);
+  oneOf(env, 'MOBILE_MONEY_TEST_PROVIDER', ['mock', 'sandbox'], problems);
+  oneOf(env, 'MTN_SANDBOX_CURRENCY', ['EUR', 'XAF'], problems);
+  oneOf(env, 'FEATURE_CARD_PAYMENTS', ['true', 'false'], problems);
+  oneOf(env, 'LOG_LEVEL', ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'], problems);
+  positiveInt(env, 'PORT', problems);
+  positiveInt(env, 'PAYMENT_EXPIRY_SECONDS', problems);
+  base64Key32(env, 'PII_ENCRYPTION_KEY', problems);
+  base64Key32(env, 'PROVIDER_CREDENTIALS_KEY', problems);
+  minLength(env, 'API_KEY_PEPPER', 32, problems);
+  minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
+
+  if (env.PHONE_OPERATOR_PREFIXES) {
+    try {
+      JSON.parse(env.PHONE_OPERATOR_PREFIXES);
+    } catch {
+      problems.push('PHONE_OPERATOR_PREFIXES doit être un JSON, ex. {"MTN":["06"],"AIRTEL":["05","04"]}');
+    }
+  }
+  for (const name of ['DATABASE_URL', 'REDIS_URL', 'PUBLIC_API_URL']) {
+    const v = env[name];
+    if (v) {
+      try {
+        new URL(v);
+      } catch {
+        problems.push(`${name} doit être une URL valide`);
+      }
+    }
+  }
+
+  if (env.NODE_ENV === 'production') {
+    for (const name of REQUIRED_IN_PRODUCTION) if (!env[name]) problems.push(`${name} est requis en production`);
+    if (env.PII_ENCRYPTION_KEY && env.PII_ENCRYPTION_KEY === env.PROVIDER_CREDENTIALS_KEY) {
+      problems.push('PROVIDER_CREDENTIALS_KEY doit être distincte de PII_ENCRYPTION_KEY');
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`Configuration invalide (voir .env.example) :\n  - ${problems.join('\n  - ')}`);
+  }
+}

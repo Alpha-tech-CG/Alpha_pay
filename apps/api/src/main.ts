@@ -34,11 +34,14 @@ import { buildCorsOptions } from "./common/security/cors";
 import { JsonNestLogger } from "./common/logging/logger";
 import { requestLogger } from "./common/logging/request-logger.middleware";
 import { validationExceptionFactory } from "./common/errors/api-error";
+import { validateEnv } from "./config/env.validation";
 
 const MAX_BODY_BYTES = 8 * 1024;
 
 async function bootstrap() {
   await loadSecrets();
+  // Refus de démarrer avec une configuration incomplète (T-14).
+  validateEnv();
 
   // rawBody:true conserve le corps brut de la requête (req.rawBody) — indispensable
   // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).
