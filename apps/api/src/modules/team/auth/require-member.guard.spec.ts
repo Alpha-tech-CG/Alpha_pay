@@ -34,7 +34,7 @@ describe('RequireMemberGuard (isolation multi-tenant Team Members)', () => {
     await expect(guard.canActivate(makeContext(req))).rejects.toThrow(ForbiddenException);
     expect(prisma.merchantMember.findFirst).toHaveBeenCalledWith({
       where: { merchantId: 'm1', userId: 'u1', status: 'ACTIVE' },
-      select: { role: true },
+      select: { id: true, role: true },
     });
   });
 

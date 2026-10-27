@@ -5,6 +5,7 @@ import { MemberRole } from '../permissions/permissions';
 
 export interface AuthenticatedMembership {
   merchantId: string;
+  memberId: string;
   role: MemberRole;
 }
 
@@ -34,7 +35,7 @@ export class RequireMemberGuard implements CanActivate {
 
     const member = await this.prisma.merchantMember.findFirst({
       where: { merchantId, userId: appUser.id, status: 'ACTIVE' },
-      select: { role: true },
+      select: { id: true, role: true },
     });
 
     // Même erreur que le marchand n'existe pas ou n'a pas de membership actif :
@@ -43,7 +44,7 @@ export class RequireMemberGuard implements CanActivate {
       throw new ForbiddenException('Aucun accès à ce marchand');
     }
 
-    const membership: AuthenticatedMembership = { merchantId, role: member.role as MemberRole };
+    const membership: AuthenticatedMembership = { merchantId, memberId: member.id, role: member.role as MemberRole };
     request.membership = membership;
     return true;
   }
