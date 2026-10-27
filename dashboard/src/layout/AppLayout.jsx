@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { UserButton } from '@clerk/clerk-react'
+import { useAuth } from '../auth/session'
 import { useTheme } from '../theme'
 import { useT } from '../i18n'
 
@@ -128,7 +128,7 @@ export default function AppLayout({ children }) {
             <button onClick={toggle} style={iconBtn(t)} title="Theme">
               {mode === 'dark' ? '☀️' : '🌙'}
             </button>
-            <UserButton afterSignOutUrl="/sign-in" />
+            <UserMenu />
           </div>
         </header>
 
@@ -154,5 +154,40 @@ function iconBtn(t) {
   return {
     background: 'transparent', border: `1px solid ${t.border}`, borderRadius: 8,
     padding: '5px 10px', cursor: 'pointer', fontSize: 13, color: t.text,
+  }
+}
+
+/** Menu du compte : nom, déconnexion de cet appareil ou de tous. */
+function UserMenu() {
+  const { t } = useTheme()
+  const { t: tr } = useT()
+  const { user, logout } = useAuth()
+  const [open, setOpen] = useState(false)
+  const initial = (user?.fullName || user?.email || '?').trim().charAt(0).toUpperCase()
+  return (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} style={{
+        width: 34, height: 34, borderRadius: 9999, border: 'none', cursor: 'pointer',
+        background: t.primary, color: t.primaryText, fontWeight: 800,
+      }}>{initial}</button>
+      {open && (
+        <div role="menu" style={{
+          position: 'absolute', right: 0, top: 42, minWidth: 220, zIndex: 20,
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 10, boxShadow: t.shadow, padding: 8,
+        }}>
+          <div style={{ padding: '6px 10px', fontSize: 13, fontWeight: 700 }}>{user?.fullName}</div>
+          <div style={{ padding: '0 10px 8px', fontSize: 12, color: t.textMuted }}>{user?.email}</div>
+          <button role="menuitem" onClick={() => logout(false)} style={menuItem(t)}>{tr('nav.signout')}</button>
+          <button role="menuitem" onClick={() => logout(true)} style={menuItem(t)}>{tr('auth.logoutAll')}</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function menuItem(t) {
+  return {
+    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', fontSize: 13,
+    background: 'transparent', border: 'none', borderRadius: 6, color: t.text, cursor: 'pointer',
   }
 }

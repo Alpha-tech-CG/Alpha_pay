@@ -1,17 +1,14 @@
-// Miroir CLIENT (UI only, jamais autoritatif) de
-// apps/api/src/modules/team/permissions/permissions.ts. Sert uniquement à
-// masquer/désactiver des actions dans l'interface — le backend revérifie
-// tout côté serveur (RequireActionGuard + canActOn dans les services).
-// Garder synchronisé si la matrice backend évolue.
+// Miroir CLIENT (affichage seulement, jamais autoritatif) de
+// apps/api/src/modules/team/permissions/permissions.ts. Sert à masquer ou
+// désactiver des actions dans l'interface ; le serveur revérifie tout.
 
-export const ROLES = ['OWNER', 'ADMIN', 'MANAGER', 'MEMBER', 'VIEWER']
+export const ROLES = ['OWNER', 'ADMIN', 'ACCOUNTANT', 'CASHIER', 'DEVELOPER']
 
-const RANK = { VIEWER: 0, MEMBER: 1, MANAGER: 2, ADMIN: 3, OWNER: 4 }
+const RANK = { OWNER: 3, ADMIN: 2, ACCOUNTANT: 1, CASHIER: 1, DEVELOPER: 1 }
 
 const MATRIX = {
-  'team:view': ROLES,
-  'team:invite': ['OWNER', 'ADMIN', 'MANAGER'],
-  'team:invite_admin': ['OWNER', 'ADMIN'],
+  'team:view': ['OWNER', 'ADMIN'],
+  'team:invite': ['OWNER', 'ADMIN'],
   'team:change_role': ['OWNER', 'ADMIN'],
   'team:suspend': ['OWNER', 'ADMIN'],
   'team:remove': ['OWNER', 'ADMIN'],
@@ -42,13 +39,7 @@ export function assignableRoles(actorRole) {
   return ROLES.filter((r) => canAssignRole(actorRole, r))
 }
 
-// Rôles invitables : règle DIFFÉRENTE de assignableRoles/canAssignRole.
-// InvitationsService.create() n'exige que team:invite_admin pour ADMIN et
-// team:invite pour le reste (donc un MANAGER peut inviter un autre MANAGER —
-// pas de règle de rang strict comme pour le changement de rôle).
+// Invitation : mêmes règles que l'attribution (le serveur applique canAssignRole).
 export function invitableRoles(actorRole) {
-  const roles = []
-  if (can(actorRole, 'team:invite_admin')) roles.push('ADMIN')
-  if (can(actorRole, 'team:invite')) roles.push('MANAGER', 'MEMBER', 'VIEWER')
-  return roles
+  return can(actorRole, 'team:invite') ? assignableRoles(actorRole) : []
 }

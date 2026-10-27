@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate, useParams } from 'react-router-dom'
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
-import { SignInPage, SignUpPage } from './auth/AuthPages'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
+import { ForgotPasswordPage, SignInPage, SignUpPage } from './auth/AuthPages'
+import { useAuth } from './auth/session'
+import { useT } from './i18n'
 import AppLayout from './layout/AppLayout'
 import DashboardHome from './pages/DashboardHome'
 import Payments from './pages/Payments'
 import Developers from './pages/Developers'
 import Profile from './pages/Profile'
-import Onboarding from './pages/Onboarding'
 import Team from './pages/Team'
 import InviteAccept from './pages/InviteAccept'
 import Checkout from './Checkout'
@@ -16,30 +16,38 @@ function CheckoutRoute() {
   return <Checkout linkId={id} />
 }
 
+/** Routes réservées aux utilisateurs connectés (le serveur revérifie chaque requête). */
 function Protected({ children }) {
-  return (
-    <>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut><RedirectToSignIn /></SignedOut>
-    </>
-  )
+  const { status } = useAuth()
+  const { t } = useT()
+  const location = useLocation()
+  if (status === 'loading') return <div style={{ padding: 24 }}>{t('common.loading')}</div>
+  if (status === 'anonymous') {
+    return <Navigate to={`/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`} replace />
+  }
+  return children
+}
+
+/** Un utilisateur déjà connecté n'a rien à faire sur les pages de connexion. */
+function GuestOnly({ children }) {
+  const { status } = useAuth()
+  if (status === 'authenticated') return <Navigate to="/" replace />
+  return children
 }
 
 export default function App() {
   return (
     <Routes>
-      {/* Auth (Clerk gère login, signup, mot de passe oublié, vérif email, MFA) */}
-      <Route path="/sign-in/*" element={<SignInPage />} />
-      <Route path="/sign-up/*" element={<SignUpPage />} />
+      {/* Comptes (§M1) : mot de passe + code à usage unique */}
+      <Route path="/sign-in" element={<GuestOnly><SignInPage /></GuestOnly>} />
+      <Route path="/sign-up" element={<GuestOnly><SignUpPage /></GuestOnly>} />
+      <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
 
       {/* Checkout public (lien de paiement) */}
       <Route path="/pay/:id" element={<CheckoutRoute />} />
 
-      {/* Invitation d'équipe : public (preview), l'acceptation exige Clerk (géré dans la page) */}
+      {/* Invitation d'équipe : aperçu public, acceptation une fois connecté */}
       <Route path="/invite" element={<InviteAccept />} />
-
-      {/* Onboarding (protégé, hors layout) */}
-      <Route path="/onboarding" element={<Protected><Onboarding /></Protected>} />
 
       {/* App protégée avec layout */}
       <Route path="/" element={<Protected><AppLayout><DashboardHome /></AppLayout></Protected>} />

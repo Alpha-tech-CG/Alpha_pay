@@ -1,42 +1,32 @@
-import { useAuth } from '@clerk/clerk-react'
-import { api } from '../api'
+import { authApi } from '../auth/session'
 
 /**
- * Client HTTP pour les endpoints Team Members (auth Clerk Bearer — décision
- * 1A du handoff). Distinct de `api` seul (utilisé tel quel pour les endpoints
- * à clé API) : ces routes exigent un vrai token de session Clerk par requête.
- * Le proxy Vite (dev, vite.config.js) injecte aussi X-API-Key sur /api —
- * inoffensif ici, ClerkSessionGuard ignore cet en-tête.
+ * Client des routes de l'équipe marchand : session de l'utilisateur connecté
+ * (jeton d'accès, renouvelé automatiquement). Le contrôle d'accès est fait
+ * côté serveur à chaque requête.
  */
 export function useTeamApi() {
-  const { getToken } = useAuth()
-
-  async function auth() {
-    const token = await getToken()
-    return { headers: { Authorization: `Bearer ${token}` } }
-  }
-
   return {
-    myMerchants: async () => (await api.get('/v1/me/merchants', await auth())).data,
-    listMembers: async (merchantId) => (await api.get(`/v1/merchants/${merchantId}/members`, await auth())).data,
-    listEvents: async (merchantId) => (await api.get(`/v1/merchants/${merchantId}/members/events`, await auth())).data,
+    myMerchants: async () => (await authApi.get('/v1/me/merchants')).data,
+    listMembers: async (merchantId) => (await authApi.get(`/v1/merchants/${merchantId}/members`)).data,
+    listEvents: async (merchantId) => (await authApi.get(`/v1/merchants/${merchantId}/members/events`)).data,
     listInvitations: async (merchantId) =>
-      (await api.get(`/v1/merchants/${merchantId}/members/invitations`, await auth())).data,
-    invite: async (merchantId, email, role) =>
-      (await api.post(`/v1/merchants/${merchantId}/members/invitations`, { email, role }, await auth())).data,
+      (await authApi.get(`/v1/merchants/${merchantId}/members/invitations`)).data,
+    invite: async (merchantId, contact, role) =>
+      (await authApi.post(`/v1/merchants/${merchantId}/members/invitations`, { ...(contact.includes('@') ? { email: contact } : { phone: contact }), role })).data,
     revokeInvitation: async (merchantId, invitationId) =>
-      api.delete(`/v1/merchants/${merchantId}/members/invitations/${invitationId}`, await auth()),
+      authApi.delete(`/v1/merchants/${merchantId}/members/invitations/${invitationId}`),
     changeRole: async (merchantId, memberId, role) =>
-      (await api.patch(`/v1/merchants/${merchantId}/members/${memberId}`, { role }, await auth())).data,
+      (await authApi.patch(`/v1/merchants/${merchantId}/members/${memberId}`, { role })).data,
     suspend: async (merchantId, memberId) =>
-      api.post(`/v1/merchants/${merchantId}/members/${memberId}/suspend`, {}, await auth()),
+      authApi.post(`/v1/merchants/${merchantId}/members/${memberId}/suspend`, {}),
     reactivate: async (merchantId, memberId) =>
-      api.post(`/v1/merchants/${merchantId}/members/${memberId}/reactivate`, {}, await auth()),
+      authApi.post(`/v1/merchants/${merchantId}/members/${memberId}/reactivate`, {}),
     remove: async (merchantId, memberId) =>
-      api.delete(`/v1/merchants/${merchantId}/members/${memberId}`, await auth()),
+      authApi.delete(`/v1/merchants/${merchantId}/members/${memberId}`),
     transferOwnership: async (merchantId, toUserId) =>
-      api.post(`/v1/merchants/${merchantId}/ownership/transfer`, { toUserId }, await auth()),
-    previewInvitation: async (token) => (await api.get(`/v1/invitations/${token}`)).data,
-    acceptInvitation: async (token) => (await api.post('/v1/invitations/accept', { token }, await auth())).data,
+      authApi.post(`/v1/merchants/${merchantId}/ownership/transfer`, { toUserId }),
+    previewInvitation: async (token) => (await authApi.get(`/v1/invitations/${token}`)).data,
+    acceptInvitation: async (token) => (await authApi.post('/v1/invitations/accept', { token })).data,
   }
 }

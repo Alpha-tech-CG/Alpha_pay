@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
           rewrite: path => path.replace(/^\/api/, ''),
+          // Le cookie de session est limité à /v1/auth côté API ; vu du
+          // navigateur, ces routes vivent sous /api/v1/auth.
+          cookiePathRewrite: { '/v1/auth': '/api/v1/auth' },
           // Sécurité (charte AuthN) : la clé API marchand est injectée CÔTÉ SERVEUR
           // par le proxy, jamais exposée au navigateur. En prod, un BFF jouera ce rôle.
           configure: (proxy) => {

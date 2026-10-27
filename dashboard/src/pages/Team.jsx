@@ -5,7 +5,7 @@ import { Card, Button, Field, Input, Select } from '../ui'
 import { useTeamApi } from '../team/useTeamApi'
 import { assignableRoles, can, canActOn, invitableRoles } from '../team/permissions'
 
-const ROLE_LABEL = { OWNER: 'Owner', ADMIN: 'Admin', MANAGER: 'Manager', MEMBER: 'Membre', VIEWER: 'Lecteur' }
+const ROLE_LABEL = { OWNER: 'Propriétaire', ADMIN: 'Administrateur', ACCOUNTANT: 'Comptable', CASHIER: 'Caissier', DEVELOPER: 'Développeur' }
 const STATUS_LABEL = { ACTIVE: 'Actif', SUSPENDED: 'Suspendu', INVITED: 'Invité', REMOVED: 'Retiré' }
 const STATUS_COLOR = { ACTIVE: '#16a34a', SUSPENDED: '#d97706', INVITED: '#64748b', REMOVED: '#dc2626' }
 const EVENT_LABEL = {
@@ -63,7 +63,7 @@ export default function Team() {
 
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
-  const [inviteRole, setInviteRole] = useState('MEMBER')
+  const [inviteRole, setInviteRole] = useState('CASHIER')
   const [inviteBusy, setInviteBusy] = useState(false)
   const [inviteError, setInviteError] = useState(null)
 
@@ -183,8 +183,8 @@ export default function Team() {
           }}>{inviteOpen ? '– Fermer' : '+ Inviter un membre'}</button>
           {inviteOpen && (
             <form onSubmit={handleInvite} style={{ marginTop: 14 }}>
-              <Field label="Email">
-                <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+              <Field label={tr('team.invite.contact')}>
+                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="caissier@boutique.cg / 06 123 45 67" required />
               </Field>
               <Field label="Rôle">
                 <Select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
@@ -208,7 +208,7 @@ export default function Team() {
                 <div style={{ fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {m.fullName || m.email || m.userId}
                 </div>
-                {m.email && <div style={{ fontSize: 12, color: t.textMuted }}>{m.email}</div>}
+                {(m.email || m.phone) && <div style={{ fontSize: 12, color: t.textMuted }}>{m.email || m.phone}</div>}
               </div>
               <RoleBadge role={m.role} />
               <StatusBadge status={m.status} />
@@ -241,7 +241,7 @@ export default function Team() {
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Invitations en attente</div>
           {invitations.filter((i) => i.status === 'PENDING').map((inv) => (
             <Row key={inv.id}>
-              <div style={{ flex: '1 1 200px', fontSize: 13 }}>{inv.email}</div>
+              <div style={{ flex: '1 1 200px', fontSize: 13 }}>{inv.email || inv.phone}</div>
               <RoleBadge role={inv.role} />
               <div style={{ fontSize: 12, color: t.textMuted }}>
                 expire le {new Date(inv.expiresAt).toLocaleDateString('fr-FR')}

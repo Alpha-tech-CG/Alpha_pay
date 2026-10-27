@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useUser } from '@clerk/clerk-react'
+import { useAuth } from '../auth/session'
 import { useTheme } from '../theme'
 import { useT } from '../i18n'
 import { Card, Button, Field, Input } from '../ui'
@@ -27,7 +27,7 @@ function SecurityRow({ icon, label, value, accent }) {
 export default function Profile() {
   const { t } = useTheme()
   const { t: tr } = useT()
-  const { user } = useUser()
+  const { user, logout } = useAuth()
   const [data, setData] = useState(() => {
     try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {} } catch { return {} }
   })
@@ -36,7 +36,7 @@ export default function Profile() {
   const update = (k) => (e) => { setData((d) => ({ ...d, [k]: e.target.value })); setSaved(false) }
   const save = () => { localStorage.setItem(PROFILE_KEY, JSON.stringify(data)); setSaved(true) }
 
-  const email = user?.primaryEmailAddress?.emailAddress || ''
+  const email = user?.email || ''
   const name = user?.fullName || data.contactName || 'Marchand'
 
   return (
@@ -46,9 +46,7 @@ export default function Profile() {
       {/* Carte profil */}
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {user?.imageUrl
-            ? <img src={user.imageUrl} alt="" style={{ width: 52, height: 52, borderRadius: '50%' }} />
-            : <span style={{ width: 52, height: 52, borderRadius: '50%', background: t.primary, color: t.primaryText, display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 800 }}>{name.charAt(0).toUpperCase()}</span>}
+          {<span style={{ width: 52, height: 52, borderRadius: '50%', background: t.primary, color: t.primaryText, display: 'grid', placeItems: 'center', fontSize: 20, fontWeight: 800 }}>{name.charAt(0).toUpperCase()}</span>}
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{name}</div>
             <div style={{ fontSize: 13, color: t.textMuted, overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
@@ -56,14 +54,14 @@ export default function Profile() {
         </div>
       </Card>
 
-      {/* Sécurité (gérée par Clerk via l'avatar en haut à droite) */}
-      <SectionTitle>Sécurité</SectionTitle>
+      {/* Sécurité du compte (§M1) */}
+      <SectionTitle>{tr('profile.security')}</SectionTitle>
       <Card style={{ padding: '6px 24px' }}>
-        <SecurityRow icon="🛡️" label="Double authentification (2FA)" value="Gérée via le compte" accent={t.primary} />
-        <SecurityRow icon="👆" label="Connexion biométrique" value="Disponible" />
-        <SecurityRow icon="🔑" label="Mot de passe" value="Modifier dans le compte" />
-        <div style={{ padding: '12px 0 4px', fontSize: 12, color: t.textMuted }}>
-          Ces réglages sont gérés via votre compte (icône en haut à droite).
+        <SecurityRow icon="🔐" label={tr('profile.security.login')} value={tr('profile.security.twoSteps')} accent={t.primary} />
+        <SecurityRow icon="✉️" label={email} value={user?.emailVerified ? tr('profile.verified') : tr('profile.unverified')} accent={user?.emailVerified ? t.primary : undefined} />
+        <SecurityRow icon="📱" label={user?.phone || '—'} value={user?.phoneVerified ? tr('profile.verified') : tr('profile.unverified')} accent={user?.phoneVerified ? t.primary : undefined} />
+        <div style={{ padding: '12px 0 8px' }}>
+          <Button variant="ghost" onClick={() => logout(true)}>{tr('auth.logoutAll')}</Button>
         </div>
       </Card>
 
