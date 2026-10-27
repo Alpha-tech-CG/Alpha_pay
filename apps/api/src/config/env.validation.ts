@@ -38,6 +38,7 @@ const REQUIRED_IN_PRODUCTION = [
   'ALLOWED_ORIGINS',
   'OTP_HMAC_SECRET',
   'JWT_SECRET',
+  'CALLBACK_SIGNING_SECRET',
 ];
 
 export function validateEnv(env: Env = process.env): void {
@@ -59,6 +60,7 @@ export function validateEnv(env: Env = process.env): void {
   minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
   minLength(env, 'OTP_HMAC_SECRET', 32, problems);
   minLength(env, 'JWT_SECRET', 32, problems);
+  minLength(env, 'CALLBACK_SIGNING_SECRET', 32, problems);
   positiveInt(env, 'OTP_MAX_PER_DESTINATION_PER_HOUR', problems);
   positiveInt(env, 'OTP_MAX_PER_IP_PER_HOUR', problems);
 

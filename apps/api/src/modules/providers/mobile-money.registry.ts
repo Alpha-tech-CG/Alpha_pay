@@ -10,6 +10,7 @@ import {
   TokenCache,
 } from '@paybrain/providers';
 import { decryptCredentials } from './credentials-crypto';
+import { callbackUrl } from './callback-token';
 
 export type MobileMoneyOperator = 'MTN' | 'AIRTEL';
 
@@ -56,14 +57,9 @@ export class MobileMoneyRegistry {
       {
         environment: connection.environment === 'production' ? 'production' : 'sandbox',
         credentials: decryptCredentials(connection.credentialsEnc),
-        callbackUrl: this.callbackUrl(operator),
+        callbackUrl: callbackUrl(operator, connection.id),
       },
       { tokenCache: this.tokenCache },
     );
-  }
-
-  private callbackUrl(operator: MobileMoneyOperator): string | undefined {
-    const base = process.env.PUBLIC_API_URL;
-    return base ? `${base.replace(/\/$/, '')}/webhooks/${operator.toLowerCase()}` : undefined;
   }
 }

@@ -24,7 +24,16 @@ export class WebhooksService {
     private readonly payments: PaymentsService,
   ) {}
 
-  async handleWebhook(operator: Operator, payload: WebhookPayload, eventTimestamp = Math.floor(Date.now() / 1000)) {
+  /**
+   * `merchantId` (callback par URL à jeton, D-041) limite la recherche aux
+   * transactions de ce marchand : une connexion ne peut pas agir sur un autre.
+   */
+  async handleWebhook(
+    operator: Operator,
+    payload: WebhookPayload,
+    eventTimestamp = Math.floor(Date.now() / 1000),
+    merchantId?: string,
+  ) {
     const { financialTransactionId, externalId } = payload;
 
     // Anti-replay au-delà de la fenêtre temporelle (ALP-157) : un même event
@@ -64,6 +73,7 @@ export class WebhooksService {
           where: {
             operator,
             livemode: ANY_MODE,
+            ...(merchantId ? { merchantId } : {}),
             OR: candidates.flatMap((c) => [{ id: c }, { mtnReferenceId: c }]),
           },
         })

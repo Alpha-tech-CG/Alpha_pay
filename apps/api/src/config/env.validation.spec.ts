@@ -15,6 +15,7 @@ const production = {
   ALLOWED_ORIGINS: 'https://app.alphapay.cg',
   OTP_HMAC_SECRET: 'o'.repeat(32),
   JWT_SECRET: 'j'.repeat(32),
+  CALLBACK_SIGNING_SECRET: 'c'.repeat(32),
 };
 
 describe('validateEnv (T-14)', () => {
