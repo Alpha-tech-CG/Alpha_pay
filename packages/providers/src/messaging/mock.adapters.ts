@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { ProviderError } from '../core/errors';
 import { assertE164 } from '../core/validation';
 import type { IncomingRequest } from '../mobile-money/types';
-import type { DeliveryEvent, DeliveryStatus, EmailProvider, MessageChannel, SendResult, SmsProvider, WhatsAppProvider } from './types';
+import type { DeliveryEvent, DeliveryStatus, EmailProvider, InboundMessage, MessageChannel, SendResult, SmsProvider, WhatsAppProvider } from './types';
 
 export interface MockSentMessage {
   channel: MessageChannel;
@@ -24,6 +24,8 @@ export class MockOutbox {
   readonly failing = new Set<string>();
   /** Si vrai, chaque envoi lève une erreur réessayable (panne fournisseur). */
   unavailable = false;
+  /** Rappel facultatif à chaque envoi (ex. boîte d'envoi de développement). */
+  onRecord?: (message: MockSentMessage) => void;
 
   record(message: Omit<MockSentMessage, 'providerMessageId'>, provider: string): SendResult {
     if (this.unavailable) throw new ProviderError('unavailable', 'Fournisseur factice indisponible', { provider });
@@ -31,7 +33,9 @@ export class MockOutbox {
       throw new ProviderError('rejected', 'Destination non joignable (simulation)', { provider, retryable: false });
     }
     const providerMessageId = `${provider}_${randomUUID()}`;
-    this.sent.push({ ...message, providerMessageId });
+    const recorded = { ...message, providerMessageId };
+    this.sent.push(recorded);
+    this.onRecord?.(recorded);
     return { providerMessageId, cost: { amount: 0, currency: 'XAF' } };
   }
 
@@ -69,6 +73,12 @@ export class MockSmsProvider implements SmsProvider {
 
   parseDeliveryReport(req: IncomingRequest): DeliveryEvent[] {
     return parseMockReports(req);
+  }
+
+  /** Message entrant factice : `{ from, text }`. */
+  parseInbound(req: IncomingRequest): InboundMessage[] {
+    const b = req.body as { from?: unknown; text?: unknown } | undefined;
+    return typeof b?.from === 'string' && typeof b?.text === 'string' ? [{ from: b.from, text: b.text }] : [];
   }
 }
 
