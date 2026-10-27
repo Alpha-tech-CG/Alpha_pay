@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const merchantKey = env.MERCHANT_API_KEY
+  const merchantKey = process.env.MERCHANT_API_KEY ?? env.MERCHANT_API_KEY
+  // Cible de l'API : localhost en dev natif, service `api` dans docker compose.
+  const apiTarget = process.env.API_PROXY_TARGET ?? env.API_PROXY_TARGET ?? 'http://localhost:3000'
 
   return {
     plugins: [react()],
@@ -13,7 +15,7 @@ export default defineConfig(({ mode }) => {
       strictPort: false,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: apiTarget,
           changeOrigin: true,
           rewrite: path => path.replace(/^\/api/, ''),
           // Sécurité (charte AuthN) : la clé API marchand est injectée CÔTÉ SERVEUR
@@ -25,7 +27,7 @@ export default defineConfig(({ mode }) => {
           },
         },
         '/ws': {
-          target: 'ws://localhost:3000',
+          target: apiTarget.replace(/^http/, 'ws'),
           ws: true,
           changeOrigin: true,
           rewrite: path => path.replace(/^\/ws/, ''),

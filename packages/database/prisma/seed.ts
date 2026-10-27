@@ -74,8 +74,7 @@ async function seedDemo(demoMerchantId: string) {
     [15_000n, 'Commande démo — 15 000 XAF'],
     [2_500n, 'Abonnement démo — 2 500 XAF'],
   ];
-  console.log('
-── Démo AlphaPay prête ──');
+  console.log('\n── Démo AlphaPay prête ──');
   console.log(`  Marchand démo : ${demoMerchantId}`);
   for (const [amount, description] of links) {
     const link = await prisma.paymentLink.create({

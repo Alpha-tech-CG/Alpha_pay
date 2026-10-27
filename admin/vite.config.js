@@ -8,6 +8,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const internalToken = process.env.INTERNAL_API_TOKEN ?? env.INTERNAL_API_TOKEN;
+  // Cible de l'API : localhost en dev natif, service `api` dans docker compose.
+  const apiTarget = process.env.API_PROXY_TARGET ?? env.API_PROXY_TARGET ?? 'http://localhost:3000';
   if (!internalToken) {
     throw new Error('INTERNAL_API_TOKEN requis pour demarrer le proxy admin.');
   }
@@ -29,7 +31,7 @@ export default defineConfig(({ mode, command }) => {
       strictPort: false,
       proxy: {
         '/admin-api': {
-          target: 'http://localhost:3000',
+          target: apiTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/admin-api/, ''),
           configure: (proxy) => {

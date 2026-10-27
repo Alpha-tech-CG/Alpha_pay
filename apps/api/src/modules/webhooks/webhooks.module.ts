@@ -10,6 +10,6 @@ import { PaymentsModule } from '../payments/payments.module';
   imports: [WebhooksOutModule, MetricsModule, PaymentsModule],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhooksGateway],
-  exports: [WebhooksGateway],
+  exports: [WebhooksGateway, WebhooksService],
 })
 export class WebhooksModule {}

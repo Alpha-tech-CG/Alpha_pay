@@ -1,94 +1,160 @@
+# AlphaPay V1 — environnement local complet, en une commande :
+#
+#   docker compose up --build
+#
+# Lance Postgres, Redis, MailHog, les migrations, l'API, le worker (file de
+# tâches), le tableau de bord marchand et le back-office. Tous les fournisseurs
+# externes sont FACTICES par défaut (opérateurs, KYC, messages, carte) : aucun
+# compte externe n'est nécessaire (§2.7).
+#
+#   API          http://localhost:3000   (/health, /ready, /docs)
+#   Tableau de bord  http://localhost:5174
+#   Back-office  http://localhost:5180
+#   MailHog      http://localhost:8025   (emails capturés)
+#
+# Les valeurs ci-dessous sont des valeurs de DÉVELOPPEMENT, publiques par
+# construction : ne jamais les réutiliser ailleurs. La pile d'observabilité
+# (Prometheus, Grafana, Loki, Tempo) est séparée : infra/docker-compose.observability.yml.
+name: alphapay-local
+
+x-api-env: &api-env
+  NODE_ENV: development
+  PORT: "3000"
+  DATABASE_URL: postgresql://alphapay:alphapay@postgres:5432/alphapay
+  REDIS_URL: redis://redis:6379
+  PUBLIC_API_URL: http://localhost:3000
+  CHECKOUT_URL: http://localhost:3000
+  ALLOWED_ORIGINS: http://localhost:5174,http://localhost:5180
+  MOBILE_MONEY_TEST_PROVIDER: mock
+  MTN_SANDBOX_CURRENCY: EUR
+  FEATURE_CARD_PAYMENTS: "false"
+  # Clés de développement (base64, 32 octets) — jamais en préproduction ni en production.
+  PII_ENCRYPTION_KEY: ZGV2LW9ubHktcGlpLWtleS0wMDAwMDAwMDAwMDAwMDA=
+  PROVIDER_CREDENTIALS_KEY: ZGV2LW9ubHktcHJvdmlkZXItY3JlZHMtMDAwMDAwMDA=
+  API_KEY_PEPPER: dev-only-pepper-not-for-production-0000000000
+  INTERNAL_API_TOKEN: dev-only-internal-token-0000000000000000
+  JWT_SECRET: dev-only-jwt-secret-not-for-production-000000
+  SMTP_URL: smtp://mailhog:1025
+  LOG_LEVEL: info
+
+x-api-image: &api-image
+  image: alphapay-api:local
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+
 services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: paybrain
+      POSTGRES_USER: alphapay
+      POSTGRES_PASSWORD: alphapay
+      POSTGRES_DB: alphapay
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U alphapay -d alphapay"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
-  # ── Observabilité (ALP-123) ──────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:v2.53.0
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
     ports:
-      - "9090:9090"
-    volumes:
-      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./infra/prometheus/alerts:/etc/prometheus/alerts:ro
-      - prometheus_data:/prometheus
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=15d"
-      - "--web.enable-lifecycle"
-    restart: unless-stopped
+      - "8025:8025"
 
-  grafana:
-    image: grafana/grafana:11.1.0
+  # Migrations versionnées, appliquées avant le démarrage de l'API et du worker.
+  migrate:
+    <<: *api-image
+    command: ["node", "dist/scripts/migrate"]
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *api-image
+    environment: *api-env
     ports:
-      - "3001:3000"
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  # Même image que l'API, sans serveur HTTP : consomme la file de tâches (D-008).
+  worker:
+    <<: *api-image
+    command: ["node", "dist/worker"]
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: paybrain_dev
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      <<: *api-env
+      SERVICE_NAME: alphapay-worker
     depends_on:
-      - prometheus
-      - loki
-    restart: unless-stopped
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
 
-  loki:
-    image: grafana/loki:3.1.0
+  # Fronts en mode développement (Vite) : le proxy injecte côté serveur la clé
+  # API marchand ou le jeton interne, jamais exposés au navigateur. L'accès
+  # par compte (mot de passe + OTP) remplace ce mécanisme avec T-30.
+  dashboard:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm ci --no-audit --no-fund && npx vite --host 0.0.0.0 --port 5174"]
+    environment:
+      API_PROXY_TARGET: http://api:3000
+      MERCHANT_API_KEY: ${MERCHANT_API_KEY:-}
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
+    volumes:
+      - ./dashboard:/app
+      - dashboard_node_modules:/app/node_modules
     ports:
-      - "3100:3100"
-    volumes:
-      - loki_data:/loki
-      - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
-    command: -config.file=/etc/loki/local-config.yaml
-    restart: unless-stopped
-
-  promtail:
-    image: grafana/promtail:3.1.0
-    volumes:
-      - /var/log:/var/log:ro
-      - ./infra/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-    command: -config.file=/etc/promtail/config.yml
+      - "5174:5174"
     depends_on:
-      - loki
-    restart: unless-stopped
+      - api
 
-  tempo:
-    image: grafana/tempo:2.5.0
-    ports:
-      - "3200:3200"   # HTTP API / query
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
+  admin:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm ci --no-audit --no-fund && npx vite --host 0.0.0.0 --port 5180"]
+    environment:
+      API_PROXY_TARGET: http://api:3000
+      INTERNAL_API_TOKEN: dev-only-internal-token-0000000000000000
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     volumes:
-      - tempo_data:/tmp/tempo
-      - ./infra/tempo/tempo-config.yml:/etc/tempo.yaml:ro
-    command: -config.file=/etc/tempo.yaml
-    restart: unless-stopped
+      - ./admin:/app
+      - admin_node_modules:/app/node_modules
+    ports:
+      - "5180:5180"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
   redis_data:
-  prometheus_data:
-  grafana_data:
-  loki_data:
-  tempo_data:
+  dashboard_node_modules:
+  admin_node_modules:
