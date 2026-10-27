@@ -210,6 +210,9 @@ importers:
       argon2:
         specifier: ^0.44.0
         version: 0.44.0
+      bullmq:
+        specifier: ^5.12.0
+        version: 5.81.0
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1

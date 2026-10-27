@@ -6,6 +6,7 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { decryptField, deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
 import { toCents, toMajor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
+import { JobQueue, QUEUES } from '../../common/queue/job-queue';
 
 /** Statut unifié fournisseur → statut stocké (en attendant l'enum de T-44). */
 const STORED_STATUS: Record<PaymentStatusResult['status'], TransactionStatus> = {
@@ -29,6 +30,7 @@ export class PaymentsService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly registry: MobileMoneyRegistry,
+    @Inject(JobQueue) private readonly queue: JobQueue,
   ) {}
 
   async initiatePayment(dto: CreatePaymentDto, merchantId: string, livemode = false) {
@@ -107,6 +109,13 @@ export class PaymentsService {
     await this.prisma.outboxEvent.create({
       data: { transactionId, type: 'payment.initiated', payload: { referenceId: result.providerRef, operator }, status: 'SENT' },
     });
+    // Première relance de statut (intervalles croissants ensuite, cf. PaymentStatusPoller).
+    await this.queue.enqueue(
+      QUEUES.paymentStatus,
+      'poll',
+      { transactionId, attempt: 0 },
+      { delayMs: 5_000, jobId: `poll-${transactionId}-0` },
+    );
     return result.providerRef;
   }
 

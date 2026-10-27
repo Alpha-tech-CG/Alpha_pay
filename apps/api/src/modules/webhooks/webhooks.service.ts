@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@paybrain/database';
+import { PrismaClient, TransactionStatus } from '@paybrain/database';
 import { Operator, WebhookPayload } from '@paybrain/shared';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
@@ -92,25 +92,36 @@ export class WebhooksService {
       mtnReferenceId: transaction.mtnReferenceId,
     });
 
-    if (verifiedStatus === 'PENDING') {
-      return { received: true };
-    }
+    await this.applyVerifiedStatus(transaction, verifiedStatus, failureReason ?? payload.reason, `webhook ${operator}`);
+    return { received: true };
+  }
+
+  /**
+   * Applique un statut CONFIRMÉ par l'opérateur (callback ou relance) puis
+   * notifie le tableau de bord et les webhooks du marchand. Idempotent :
+   * renvoie false si rien n'a changé (déjà final, conflit concurrent).
+   */
+  async applyVerifiedStatus(
+    transaction: { id: string; merchantId: string; externalId: string; mtnReferenceId: string | null; amount: bigint; currency: string },
+    verifiedStatus: TransactionStatus,
+    reason: string | undefined,
+    source: string,
+  ): Promise<boolean> {
+    if (verifiedStatus === 'PENDING') return false;
 
     // Transition via la machine d'état stricte (ALP-167) : SERIALIZABLE + FOR UPDATE
     // + version CAS. Une transition illégale (ex. depuis un état terminal) ou un
-    // conflit concurrent est ignoré gracieusement — le webhook reste idempotent.
+    // conflit concurrent est ignoré gracieusement — le traitement reste idempotent.
     try {
       const result = await transitionStatus(this.prisma, transaction.id, verifiedStatus, {
-        reason: `webhook ${operator}`,
-        failureReason: failureReason ?? payload.reason ?? null,
+        reason: source,
+        failureReason: reason ?? null,
       });
-      if (!result.changed) {
-        return { received: true };
-      }
+      if (!result.changed) return false;
     } catch (err) {
       if (err instanceof IllegalTransitionError || err instanceof ConcurrentModificationError) {
-        this.logger.warn(`Webhook ${operator} : ${err.message} (tx ${transaction.id})`);
-        return { received: true };
+        this.logger.warn(`${source} : ${err.message} (tx ${transaction.id})`);
+        return false;
       }
       throw err;
     }
@@ -118,7 +129,7 @@ export class WebhooksService {
     this.gateway.broadcastToMerchant(transaction.merchantId, 'transaction_update', {
       externalId: transaction.externalId,
       status: verifiedStatus,
-      reason: payload.reason,
+      reason,
     });
 
     // Notifie le marchand via ses webhooks sortants (ALP-132).
@@ -131,10 +142,9 @@ export class WebhooksService {
         status: verifiedStatus,
         amount: transaction.amount,
         currency: transaction.currency,
-        reason: payload.reason,
+        reason,
       }).catch((err) => this.logger.error(`Dispatch webhook sortant échoué: ${err?.message}`));
     }
-
-    return { received: true };
+    return true;
   }
 }

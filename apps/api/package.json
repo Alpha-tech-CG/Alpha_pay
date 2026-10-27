@@ -9,7 +9,9 @@
     "migrate:deploy": "node dist/scripts/migrate",
     "lint": "tsc --noEmit",
     "test": "jest --maxWorkers=4",
-    "test:e2e": "jest --config test/jest-e2e.json"
+    "test:e2e": "jest --config test/jest-e2e.json",
+    "worker": "node dist/worker",
+    "dev:worker": "nest start --watch --entryFile worker"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1071.0",
@@ -30,12 +32,13 @@
     "@opentelemetry/resources": "^1.30.1",
     "@opentelemetry/sdk-node": "^0.57.0",
     "@opentelemetry/semantic-conventions": "^1.30.0",
-    "@paybrain/providers": "workspace:*",
     "@paybrain/database": "workspace:*",
+    "@paybrain/providers": "workspace:*",
     "@paybrain/shared": "workspace:*",
     "@scalar/nestjs-api-reference": "^1.2.4",
     "@sentry/node": "^8.45.0",
     "argon2": "^0.44.0",
+    "bullmq": "^5.12.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "express-rate-limit": "^7.5.0",

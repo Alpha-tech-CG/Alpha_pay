@@ -1,12 +1,14 @@
 import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { MOCK_MOBILE_MONEY_NUMBERS, MockMobileMoneyProvider, ProviderError } from '@paybrain/providers';
 import { PaymentsService, toStoredStatus } from './payments.service';
+import { InMemoryJobQueue } from '../../common/queue/in-memory-job-queue';
 
 describe('PaymentsService', () => {
   let prisma: any;
   let registry: { forMerchant: jest.Mock };
   let provider: { requestPayment: jest.Mock; getPaymentStatus: jest.Mock };
   let service: PaymentsService;
+  let queue: InMemoryJobQueue;
 
   beforeEach(() => {
     prisma = {
@@ -15,7 +17,8 @@ describe('PaymentsService', () => {
     };
     provider = { requestPayment: jest.fn(), getPaymentStatus: jest.fn() };
     registry = { forMerchant: jest.fn().mockResolvedValue(provider) };
-    service = new PaymentsService(prisma, registry as any);
+    queue = new InMemoryJobQueue();
+    service = new PaymentsService(prisma, registry as any, queue);
   });
 
   it('résout l’opérateur depuis le préfixe et envoie la demande avec l’id de transaction comme référence', async () => {
@@ -40,6 +43,9 @@ describe('PaymentsService', () => {
     });
     expect(prisma.transaction.update).toHaveBeenCalledWith({ where: { id: 'tx-1' }, data: { mtnReferenceId: 'ref-mtn' } });
     expect(result).toEqual({ referenceId: 'ref-mtn', transactionId: 'tx-1', operator: 'MTN', status: 'PENDING' });
+    expect(queue.jobs).toEqual([
+      expect.objectContaining({ queue: 'payment-status', data: { transactionId: 'tx-1', attempt: 0 }, opts: { delayMs: 5000, jobId: 'poll-tx-1-0' } }),
+    ]);
   });
 
   it('transmet le mode live au registre et convertit le XAF sans décimale', async () => {

@@ -18,6 +18,8 @@ import { MerchantModule } from './modules/merchant/merchant.module';
 import { TeamModule } from './modules/team/team.module';
 import { DatabaseModule } from './database.module';
 import { ProvidersModule } from './modules/providers/providers.module';
+import { QueueModule } from './common/queue/queue.module';
+import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
 
 @Module({
@@ -26,6 +28,8 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     ScheduleModule.forRoot(),
     DatabaseModule,
     ProvidersModule,
+    QueueModule,
+    PaymentStatusModule,
     SchedulingModule,
     PaymentsModule,
     WebhooksModule,
