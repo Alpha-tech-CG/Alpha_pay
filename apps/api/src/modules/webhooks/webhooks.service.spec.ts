@@ -10,6 +10,7 @@ describe('WebhooksService', () => {
   beforeEach(() => {
     prisma = {
       transaction: { findFirst: jest.fn(), update: jest.fn() },
+      paymentLink: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       webhookLog: { create: jest.fn() },
       webhookInboundEvent: { create: jest.fn().mockResolvedValue({}) },
       // Simule transitionStatus (ALP-167) : exécute le callback avec un tx mock.

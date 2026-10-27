@@ -114,4 +114,29 @@ describe('T-50 Boutiques, caisses et caissiers (HTTP, Postgres réel)', () => {
     // Ni toucher à la caisse d'un autre marchand.
     await a.http().patch(`/v1/merchants/${other.merchantId}/tills/${till1.id}`).set('Authorization', other.auth).send({ name: 'pirate' }).expect(404);
   });
+
+  it('QR imprimable de la caisse en PDF A6 et A5 ; réservé aux gestionnaires ; audité (T-54)', async () => {
+    const owner = await a.signUp();
+    const cashier = await a.inviteAndJoin(owner, 'CASHIER', 'caissier');
+    const { base, till1 } = await storeWithTills(owner);
+    const pdf = (res: any, cb: any) => {
+      res.setEncoding('binary');
+      let data = '';
+      res.on('data', (c: string) => (data += c));
+      res.on('end', () => cb(null, Buffer.from(data, 'binary')));
+    };
+
+    const a6 = await a.http().get(`${base}/tills/${till1.id}/qr.pdf`).set('Authorization', owner.auth).buffer(true).parse(pdf).expect(200);
+    expect(a6.headers['content-type']).toBe('application/pdf');
+    expect(a6.headers['content-disposition']).toContain(`qr-${till1.publicCode}-a6.pdf`);
+    expect((a6.body as Buffer).subarray(0, 5).toString()).toBe('%PDF-');
+    expect((a6.body as Buffer).toString('latin1')).toMatch(/MediaBox \[0 0 297\.6\d* 419\.5\d*\]/);
+
+    const a5 = await a.http().get(`${base}/tills/${till1.id}/qr.pdf?format=a5`).set('Authorization', owner.auth).buffer(true).parse(pdf).expect(200);
+    expect((a5.body as Buffer).toString('latin1')).toMatch(/MediaBox \[0 0 419\.5\d* 595\.2\d*\]/);
+
+    await a.http().get(`${base}/tills/${till1.id}/qr.pdf?format=a4`).set('Authorization', owner.auth).expect(400);
+    await a.http().get(`${base}/tills/${till1.id}/qr.pdf`).set('Authorization', cashier.auth).expect(403);
+    expect(await prisma.auditLog.count({ where: { action: 'stores.qr_generated', targetId: till1.id } })).toBe(2);
+  });
 });

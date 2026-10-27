@@ -1,16 +1,10 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { randomInt } from 'crypto';
 import { Prisma, PrismaClient } from '@paybrain/database';
 import { AuditService } from '../../common/audit/audit.service';
 import { ApiError } from '../../common/errors/api-error';
+import { checkoutUrl, newPublicCode } from '../../common/codes/public-code';
+import { QrFormat, renderTillQrPdf } from './till-qr.pdf';
 import { can, MemberRole } from '../team/permissions/permissions';
-
-// Code public des caisses (QR) : sans caractères ambigus (0/O, 1/l/I).
-const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
-
-export function newPublicCode(length = 8): string {
-  return Array.from({ length }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join('');
-}
 
 export interface Actor {
   userId: string;
@@ -153,6 +147,21 @@ export class StoresService {
       select: { tillId: true },
     });
     return rows.map((r) => r.tillId);
+  }
+
+  /** PDF imprimable du QR de la caisse (T-54) ; la génération est auditée. */
+  async tillQrPdf(merchantId: string, tillId: string, format: QrFormat, actor: Actor): Promise<{ filename: string; pdf: Buffer }> {
+    const till = await this.prisma.till.findFirst({
+      where: { id: tillId, merchantId },
+      include: { store: { select: { name: true, merchant: { select: { name: true } } } } },
+    });
+    if (!till) throw this.notFound('Caisse');
+    const pdf = await renderTillQrPdf(
+      { merchantName: till.store.merchant.name, storeName: till.store.name, tillName: till.name, code: till.publicCode, url: checkoutUrl('c', till.publicCode) },
+      format,
+    );
+    await this.record(actor, merchantId, 'stores.qr_generated', 'till', till.id, { format });
+    return { filename: `qr-${till.publicCode}-${format.toLowerCase()}.pdf`, pdf };
   }
 
   async myTills(merchantId: string, actor: Pick<Actor, 'memberId' | 'role'>) {

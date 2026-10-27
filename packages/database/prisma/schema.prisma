@@ -207,6 +207,9 @@ model Transaction {
   // Point d'encaissement (§M6) : boutique et caisse, si le paiement vient d'une caisse.
   storeId        String?            @map("store_id")
   tillId         String?            @map("till_id")
+  // Lien de paiement d'origine (§M4), le cas échéant.
+  paymentLinkId  String?            @map("payment_link_id")
+  paymentLink    PaymentLink?       @relation(fields: [paymentLinkId], references: [id])
   externalId     String             @map("external_id")
   // Montant en unités mineures de la devise (BIGINT, D-007) : XAF = francs entiers, EUR = centimes.
   amount         BigInt
@@ -234,6 +237,7 @@ model Transaction {
   @@index([payerPhoneHash])
   @@index([merchantId, livemode, createdAt])
   @@index([tillId, livemode, createdAt])
+  @@index([paymentLinkId])
   @@map("transactions")
 }
 
@@ -287,13 +291,20 @@ model PaymentLink {
   // Mode test ou live (§4.6) : jamais mélangés.
   livemode    Boolean   @default(false)
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
-  amount      BigInt // unités mineures de la devise (D-007)
+  // Montant fixe en unités mineures (D-007) ; null = montant libre saisi par le payeur (§M4).
+  amount      BigInt?
   currency    String    @default("XAF")
   description String
+  // Code public de l'URL hébergée (/l/<code>), sans caractère ambigu.
+  publicCode  String?   @unique @map("public_code")
   code        String?   @unique @map("ussd_code") // code court composable en USSD (téléphones à touches)
+  multiUse    Boolean   @default(false) @map("multi_use")
+  active      Boolean   @default(true)
   expiresAt   DateTime? @map("expires_at")
+  // Usage unique : date du paiement réussi qui a consommé le lien.
   usedAt      DateTime? @map("used_at")
   createdAt   DateTime  @default(now()) @map("created_at")
+  payments    Transaction[]
 
   @@index([merchantId, livemode, createdAt])
   @@map("payment_links")
@@ -884,7 +895,7 @@ model Till {
   storeId           String       @map("store_id")
   store             Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name              String
-  // Code public court, porté par le QR (/pay/c/:code) ; ne révèle aucun identifiant interne.
+  // Code public court, porté par le QR (/c/:code) ; ne révèle aucun identifiant interne.
   publicCode        String       @unique @map("public_code")
   active            Boolean      @default(true)
   // Confirmations Vérif en plus de la notification dans l'application.

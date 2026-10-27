@@ -89,6 +89,24 @@ export const TEMPLATE_CATALOG: CatalogTemplate[] = [
     variables: ['amount', 'payer', 'operator', 'reference'],
   },
 
+  // ── Lien de paiement partagé (§M4) ──
+  {
+    key: 'lien.paiement',
+    channel: 'SMS',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: '{{merchantName}} : {{description}} ({{amount}}). Payez par Mobile Money : {{link}}',
+  },
+  {
+    key: 'lien.paiement',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: '{{merchantName}} : {{description}} ({{amount}}). Payez par Mobile Money : {{link}}',
+    whatsappTemplateName: 'alphapay_lien_paiement',
+    variables: ['merchantName', 'description', 'amount', 'link'],
+  },
+
   // ── Équipe : invitation (§M1) ──
   {
     key: 'equipe.invitation',

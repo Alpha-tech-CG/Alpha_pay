@@ -165,6 +165,18 @@ async function bootstrap() {
     }),
   );
 
+  // /v1/public : page de paiement hébergée, sans compte. Chaque POST déclenche
+  // une demande opérateur sur le téléphone d'un tiers : limite stricte par IP.
+  const publicPayLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: createRateLimitStore('public-pay'),
+    message: { error: { code: 'trop_de_requetes', message: 'Trop de demandes de paiement, réessayez dans une minute.' } },
+  });
+  app.use('/v1/public', (req: any, res: any, next: any) => (req.method === 'POST' ? publicPayLimiter(req, res, next) : next()));
+
   // Documentation OpenAPI + playground interactif (ALP-138).
   // Désactivée en production par défaut (réduit la divulgation de la surface
   // d'API) ; réactivable explicitement via ENABLE_API_DOCS=true.

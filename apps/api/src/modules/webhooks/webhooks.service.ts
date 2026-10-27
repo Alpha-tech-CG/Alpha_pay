@@ -138,6 +138,14 @@ export class WebhooksService {
       throw err;
     }
 
+    // Lien de paiement à usage unique : consommé par le premier paiement réussi (§M4).
+    if (verifiedStatus === 'SUCCEEDED') {
+      await this.prisma.paymentLink.updateMany({
+        where: { livemode: transaction.livemode, multiUse: false, usedAt: null, payments: { some: { id: transaction.id } } },
+        data: { usedAt: new Date() },
+      });
+    }
+
     this.gateway.broadcastToMerchant(transaction.merchantId, 'transaction_update', {
       externalId: transaction.externalId,
       status: verifiedStatus,

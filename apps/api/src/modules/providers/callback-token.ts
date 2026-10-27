@@ -16,6 +16,18 @@ function secret(): string {
   return 'dev-only-callback-secret-not-for-production-00';
 }
 
+/**
+ * Jeton de suivi d'un paiement par la page hébergée (T-53) : seul le navigateur
+ * qui a lancé le paiement peut en lire le statut.
+ */
+export function checkoutToken(transactionId: string): string {
+  return createHmac('sha256', secret()).update(`checkout:${transactionId}`).digest('base64url');
+}
+
+export function isValidCheckoutToken(transactionId: string, token: unknown): boolean {
+  return typeof token === 'string' && token.length > 0 && safeEqual(token, checkoutToken(transactionId));
+}
+
 export function callbackToken(connectionId: string): string {
   return createHmac('sha256', secret()).update(`operator-callback:${connectionId}`).digest('base64url');
 }

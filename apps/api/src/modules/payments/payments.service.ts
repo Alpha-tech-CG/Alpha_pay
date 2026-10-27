@@ -31,6 +31,7 @@ export interface InitiatePaymentInput {
   operator?: MobileMoneyOperator;
   description?: string | null;
   tillId?: string;
+  paymentLinkId?: string;
 }
 
 @Injectable()
@@ -78,6 +79,7 @@ export class PaymentsService {
         livemode,
         storeId,
         tillId: input.tillId,
+        paymentLinkId: input.paymentLinkId,
         externalId: input.reference,
         amount: toMinor(input.amount, input.currency),
         currency: input.currency,

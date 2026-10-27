@@ -12,6 +12,12 @@
           "introspectComments": true
         }
       }
+    ],
+    "assets": [
+      {
+        "include": "modules/checkout/public/**/*",
+        "watchAssets": true
+      }
     ]
   }
 }

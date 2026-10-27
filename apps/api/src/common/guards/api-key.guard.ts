@@ -40,6 +40,7 @@ export class ApiKeyGuard implements CanActivate {
         // Best-effort : trace de dernière utilisation.
         this.prisma.apiKey.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
         request.merchant = { id: record.merchant.id, name: record.merchant.name };
+        request.apiKeyId = record.id;
         request.apiKeyScopes = record.scopes;
         // Mode test ou live porté par la clé (§4.6).
         request.livemode = record.mode === 'LIVE';

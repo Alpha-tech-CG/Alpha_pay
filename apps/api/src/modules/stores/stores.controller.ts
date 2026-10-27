@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiProperty, ApiPropertyOptional, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { ApiProduces, ApiProperty, ApiPropertyOptional, ApiSecurity, ApiTags } from '@nestjs/swagger';
+import { ApiError } from '../../common/errors/api-error';
 import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import { SessionGuard } from '../auth/session.guard';
 import { RequireActionGuard } from '../team/auth/require-action.guard';
@@ -106,6 +107,23 @@ export class StoresController {
     @Req() req: any,
   ) {
     return this.stores.unassignMember(merchantId, tillId, memberId, actor(req));
+  }
+
+  @Get('tills/:tillId/qr.pdf')
+  @RequireAction('stores:manage')
+  @ApiProduces('application/pdf')
+  async qr(
+    @Param('merchantId') merchantId: string,
+    @Param('tillId', ParseUUIDPipe) tillId: string,
+    @Query('format') format: string | undefined,
+    @Req() req: any,
+    @Res() res: any,
+  ) {
+    const size = (format ?? 'A6').toUpperCase();
+    if (size !== 'A5' && size !== 'A6') throw new ApiError(HttpStatus.BAD_REQUEST, 'validation_echouee', 'format : A5 ou A6', 'format');
+    const { filename, pdf } = await this.stores.tillQrPdf(merchantId, tillId, size, actor(req));
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${filename}"`, 'Cache-Control': 'no-store' });
+    res.send(pdf);
   }
 
   /** Caisses du membre connecté (caissier : les siennes ; gestionnaires : toutes). */

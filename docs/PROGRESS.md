@@ -2,6 +2,25 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 27-28 octobre 2026 (7) — M4 Encaisser
+
+### Fait
+- **T-50** Boutiques, caisses (code public, options Vérif), caissiers rattachés (migration 25, réversible) ; liste des paiements du tableau de bord cloisonnée par caisse.
+- **T-51/T-61** API publique `/v1/payments` (création, lecture, liste par curseur), clé en `Authorization: Bearer`, `Idempotency-Key` obligatoire, verrou live sans KYB (paiements et clés live). SDK migré.
+- **T-52** Liens de paiement (migration 26, réversible) : montant fixe ou libre, expiration, usage unique ou multiple, désactivation, partage WhatsApp/SMS (URLs prêtes et envoi direct) ; ancien module `/paylinks` supprimé.
+- **T-53** Page de paiement hébergée servie par l'API (`/l/<code>`, `/c/<code>`), ~10 Ko sans framework, suivi du statut par jeton signé.
+- **T-54** QR de caisse en PDF A5/A6 (QR vectoriel, nom du marchand, opérateurs acceptés).
+- Décisions D-044 à D-047.
+
+### Vérifié
+- Tests d'intégration HTTP : cloisonnement caissier (acceptation M1), idempotence, verrou KYB, liens expirés/désactivés/déjà payés sans appel opérateur (acceptation M4), page < 200 Ko, PDF A5/A6.
+- Image Docker reconstruite, migration 26 appliquée par le compose. Navigateur (format téléphone) : QR de caisse → montant, numéro, MTN prérempli → « Validez sur votre téléphone » → « Paiement réussi » via les relances du vrai worker ; page de lien à montant libre.
+
+### Reste / points connus
+- Logos officiels MTN et Airtel à fournir (`apps/api/assets/operators/`).
+- Écrans du tableau de bord (Paiements, liens, boutiques et caisses, impression du QR) : à refaire avec M6 sur les nouvelles routes ; l'ancien écran « Checkout » du tableau de bord devient inutile.
+- Critère « un caissier encaisse depuis le QR en moins de 30 s » : à chronométrer en recette sur téléphone réel.
+
 ## Session du 27 octobre 2026 (6) — M3 Connecteurs (S3 terminé)
 
 ### Fait

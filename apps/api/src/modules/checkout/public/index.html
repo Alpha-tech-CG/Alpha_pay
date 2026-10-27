@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B1E3D">
+<title>Paiement – AlphaPay</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{--navy:#0B1E3D;--cyan:#00B4D8;--bg:#F4F7FA;--line:#DCE3EA;--muted:#5B6B7F;--ok:#0F9D58;--ko:#D93025}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--navy);font:16px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--navy);color:#fff;padding:14px 16px}
+header b{font-weight:700;letter-spacing:.2px}header b span{color:var(--cyan)}
+main{max-width:420px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+.merchant{font-size:13px;color:var(--muted);margin:0 0 4px}
+h1{font-size:20px;margin:0 0 16px}
+.amount{font:500 30px 'JetBrains Mono',ui-monospace,monospace;margin:4px 0 18px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+input{width:100%;height:50px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font:inherit;font-size:17px;color:var(--navy);background:#fff}
+input:focus{outline:2px solid var(--cyan);border-color:transparent}
+.ops{display:flex;gap:10px}
+.ops button{flex:1;height:48px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font:600 15px Inter,system-ui,sans-serif;color:var(--navy);cursor:pointer}
+.ops button[aria-pressed=true]{border-color:var(--cyan);background:#E6F8FC}
+.pay{width:100%;height:54px;margin-top:20px;border:0;border-radius:12px;background:var(--cyan);color:var(--navy);font:700 17px Inter,system-ui,sans-serif;cursor:pointer}
+.pay:disabled{opacity:.6}
+.err{color:var(--ko);font-size:14px;margin-top:12px;min-height:1em}
+.test{background:#FFF4CE;color:#6B4E00;font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:12px}
+.state{text-align:center;padding:12px 0}
+.state .icon{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;background:var(--muted)}
+.state.ok .icon{background:var(--ok)}.state.ko .icon{background:var(--ko)}
+.spin{width:44px;height:44px;margin:4px auto 16px;border:4px solid var(--line);border-top-color:var(--cyan);border-radius:50%;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+.again{background:none;border:0;color:var(--navy);text-decoration:underline;font:inherit;margin-top:12px;cursor:pointer}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:16px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><b>Alpha<span>Pay</span></b></header>
+<main>
+  <div class="card" id="card">
+    <p class="state" id="loading">Chargement…</p>
+
+    <form id="form" hidden novalidate>
+      <div class="test" id="test" hidden>Mode test : aucun argent réel n'est débité.</div>
+      <p class="merchant" id="merchant"></p>
+      <h1 id="title"></h1>
+      <div class="amount" id="fixed" hidden></div>
+      <div id="free" hidden>
+        <label for="amount">Montant (FCFA)</label>
+        <input id="amount" inputmode="numeric" autocomplete="off" placeholder="0">
+      </div>
+      <label for="phone">Votre numéro Mobile Money</label>
+      <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="06 123 45 67">
+      <label>Opérateur</label>
+      <div class="ops" role="group" aria-label="Opérateur">
+        <button type="button" data-op="MTN" aria-pressed="false">MTN MoMo</button>
+        <button type="button" data-op="AIRTEL" aria-pressed="false">Airtel Money</button>
+      </div>
+      <button class="pay" id="pay" type="submit">Payer</button>
+      <p class="err" id="err" role="alert"></p>
+    </form>
+
+    <div class="state" id="wait" hidden>
+      <div class="spin" aria-hidden="true"></div>
+      <p><b>Validez le paiement sur votre téléphone</b></p>
+      <p class="merchant" id="waitmsg">Un message de votre opérateur vous demande votre code secret.</p>
+    </div>
+
+    <div class="state" id="done" hidden>
+      <div class="icon" id="icon"></div>
+      <p><b id="donetitle"></b></p>
+      <p class="merchant" id="donemsg"></p>
+      <button class="again" id="again" type="button" hidden>Réessayer</button>
+    </div>
+  </div>
+</main>
+<footer>Paiement sécurisé par votre opérateur Mobile Money · AlphaPay</footer>
+<script src="/checkout/app.js" defer></script>
+</body>
+</html>

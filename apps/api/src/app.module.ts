@@ -3,7 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { PaylinksModule } from './modules/paylinks/paylinks.module';
+import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
+import { CheckoutModule } from './modules/checkout/checkout.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
@@ -44,7 +45,8 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     SchedulingModule,
     PaymentsModule,
     WebhooksModule,
-    PaylinksModule,
+    PaymentLinksModule,
+    CheckoutModule,
     StatsModule,
     OutboxModule,
     ApiKeysModule,
