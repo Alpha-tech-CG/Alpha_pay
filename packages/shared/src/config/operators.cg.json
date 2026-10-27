@@ -1,0 +1,12 @@
+{
+  "country": "CG",
+  "countryCode": "242",
+  "nationalNumberLength": 9,
+  "prefixes": {
+    "MTN": ["06"],
+    "AIRTEL": ["05", "04"]
+  },
+  "sandboxNumbers": {
+    "MTN": ["+46733123450", "+46733123451", "+46733123452"]
+  }
+}

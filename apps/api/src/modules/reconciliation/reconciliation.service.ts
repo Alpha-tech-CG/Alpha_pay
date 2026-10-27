@@ -9,7 +9,7 @@ import { NotificationService } from "../notifications/notification.service";
 import { ReconciliationReportService } from "./reconciliation-report.service";
 
 // Seuil d'alerte P1 : 100 000 FCFA = 10 000 000 centimes (ALP-140).
-const ALERT_THRESHOLD_CENTS = 100_000n * 100n;
+const ALERT_THRESHOLD_MINOR = 100_000n; // 100 000 XAF
 
 interface DiscrepancyDraft {
   type: ReconciliationDiscrepancyType;
@@ -76,14 +76,14 @@ export class ReconciliationService {
     let totalStatement = 0n;
 
     for (const line of statementLines) {
-      totalStatement += line.amountCents;
+      totalStatement += line.amountMinor;
 
       if (seenRefs.has(line.reference)) {
         discrepancies.push({
           type: "DUPLICATE",
           reference: line.reference,
           ledgerAmount: null,
-          statementAmount: line.amountCents,
+          statementAmount: line.amountMinor,
           details: "Référence dupliquée dans le relevé",
         });
         continue;
@@ -96,20 +96,20 @@ export class ReconciliationService {
           type: "STATEMENT_NOT_IN_LEDGER",
           reference: line.reference,
           ledgerAmount: null,
-          statementAmount: line.amountCents,
+          statementAmount: line.amountMinor,
           details: "Ligne du relevé sans transaction correspondante",
         });
         continue;
       }
 
       tx.matched = true;
-      if (tx.amount !== line.amountCents) {
+      if (tx.amount !== line.amountMinor) {
         discrepancies.push({
           type: "AMOUNT_MISMATCH",
           reference: line.reference,
           ledgerAmount: tx.amount,
-          statementAmount: line.amountCents,
-          details: `Ledger ${tx.amount} vs relevé ${line.amountCents} (centimes)`,
+          statementAmount: line.amountMinor,
+          details: `Ledger ${tx.amount} vs relevé ${line.amountMinor} (XAF)`,
         });
       }
     }
@@ -149,7 +149,7 @@ export class ReconciliationService {
       discrepancies.filter(
         (d) => d.type === "STATEMENT_NOT_IN_LEDGER" || d.type === "DUPLICATE",
       ).length;
-    const alert = maxDiscrepancy > ALERT_THRESHOLD_CENTS;
+    const alert = maxDiscrepancy > ALERT_THRESHOLD_MINOR;
 
     const report = {
       operator,

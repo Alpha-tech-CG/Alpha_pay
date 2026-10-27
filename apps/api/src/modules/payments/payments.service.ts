@@ -1,10 +1,11 @@
 import { BadRequestException, Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaClient, TransactionStatus } from '@paybrain/database';
-import { minorFactor, detectOperator, normalizePhone } from '@paybrain/shared';
+import { detectOperator, toE164 } from '@paybrain/shared';
 import { PaymentStatusResult, ProviderError } from '@paybrain/providers';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { ApiError } from '../../common/errors/api-error';
 import { decryptField, deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
-import { toCents, toMajor } from '../../common/money';
+import { toMajorAmount, toMinor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
 
@@ -47,13 +48,14 @@ export class PaymentsService {
       };
     }
 
-    const phone = `+${normalizePhone(dto.phone)}`;
+    let phone: string;
     let operator: MobileMoneyOperator;
     try {
-      // L'opérateur est déduit du préfixe, toujours modifiable par l'appelant (§4.2).
+      phone = toE164(dto.phone);
+      // L'opérateur est déduit du préfixe (configuration), toujours modifiable par l'appelant (§4.2).
       operator = dto.operator ?? detectOperator(phone);
     } catch (err: any) {
-      throw new BadRequestException(err.message);
+      throw new ApiError(400, 'telephone_invalide', err.message, 'phone');
     }
 
     const transaction = await this.prisma.transaction.create({
@@ -62,7 +64,7 @@ export class PaymentsService {
         operator,
         livemode,
         externalId: dto.externalId,
-        amount: toCents(dto.amount),
+        amount: toMinor(dto.amount, dto.currency),
         currency: dto.currency,
         // PII chiffrée (ALP-164) : le clair ne sert qu'à l'appel opérateur ci-dessous.
         payerPhoneEnc: new Uint8Array(encryptField(phone)),
@@ -75,7 +77,7 @@ export class PaymentsService {
 
     try {
       const providerRef = await this.requestToProvider(transaction.id, merchantId, operator, livemode, {
-        amount: dto.amount,
+        amountMinor: transaction.amount,
         currency: dto.currency,
         phone,
         description: dto.description,
@@ -95,11 +97,11 @@ export class PaymentsService {
     merchantId: string,
     operator: MobileMoneyOperator,
     livemode: boolean,
-    p: { amount: number; currency: string; phone: string; description?: string | null },
+    p: { amountMinor: bigint; currency: string; phone: string; description?: string | null },
   ): Promise<string> {
     const provider = await this.registry.forMerchant(merchantId, operator, livemode);
     const result = await provider.requestPayment({
-      amount: p.amount * minorFactor(p.currency),
+      amount: Number(p.amountMinor),
       currency: p.currency,
       payerPhone: p.phone,
       reference: transactionId,
@@ -147,7 +149,7 @@ export class PaymentsService {
     const tx = await this.prisma.transaction.findUniqueOrThrow({ where: { id: transactionId } });
     if (!tx.payerPhoneEnc) throw new Error('Numéro du payeur absent');
     return this.requestToProvider(tx.id, tx.merchantId, tx.operator as MobileMoneyOperator, tx.livemode, {
-      amount: toMajor(tx.amount),
+      amountMinor: tx.amount,
       currency: tx.currency,
       phone: decryptField(tx.payerPhoneEnc),
       description: tx.payerMessage,
@@ -165,7 +167,7 @@ export class PaymentsService {
       where: { mtnReferenceId: referenceId, merchantId },
     });
     if (!transaction) throw new BadRequestException('Transaction introuvable');
-    // Expose le montant en unités majeures (centimes en interne).
-    return { ...transaction, amount: toMajor(transaction.amount) };
+    // Expose le montant en unités majeures (unités mineures en interne, D-007).
+    return { ...transaction, amount: toMajorAmount(transaction.amount, transaction.currency) };
   }
 }

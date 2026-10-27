@@ -2,6 +2,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { createS3Client } from "../../common/storage/s3-client";
 import { Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
+import { formatAmount } from "../../common/money";
 
 export interface ReconciliationReport {
   operator: string;
@@ -23,10 +24,8 @@ export interface ReconciliationReport {
   }>;
 }
 
-function formatCents(value: string | null): string {
-  if (value === null) return "-";
-  const cents = BigInt(value);
-  return `${cents / 100n}.${String(cents % 100n).padStart(2, "0")} XAF`;
+function formatXaf(value: string | null): string {
+  return value === null ? "-" : formatAmount(BigInt(value), "XAF");
 }
 
 export function renderReconciliationPdf(
@@ -87,9 +86,9 @@ export function renderReconciliationPdf(
       .text("Synthese financiere", { underline: true });
     doc.moveDown(0.4);
     doc.fontSize(9);
-    doc.text(`Total releve : ${formatCents(report.totalStatement)}`);
-    doc.text(`Total ledger : ${formatCents(report.totalLedger)}`);
-    doc.text(`Ecart maximal : ${formatCents(report.maxDiscrepancy)}`);
+    doc.text(`Total releve : ${formatXaf(report.totalStatement)}`);
+    doc.text(`Total ledger : ${formatXaf(report.totalLedger)}`);
+    doc.text(`Ecart maximal : ${formatXaf(report.maxDiscrepancy)}`);
     doc.moveDown();
 
     doc.fontSize(12).text("Ecarts detectes", { underline: true });
@@ -118,11 +117,11 @@ export function renderReconciliationPdf(
         doc.fillColor("#111827").fontSize(7);
         doc.text(item.type, 44, y, { width: 110 });
         doc.text(item.reference, 157, y, { width: 115 });
-        doc.text(formatCents(item.ledgerAmount), 275, y, {
+        doc.text(formatXaf(item.ledgerAmount), 275, y, {
           width: 85,
           align: "right",
         });
-        doc.text(formatCents(item.statementAmount), 363, y, {
+        doc.text(formatXaf(item.statementAmount), 363, y, {
           width: 85,
           align: "right",
         });

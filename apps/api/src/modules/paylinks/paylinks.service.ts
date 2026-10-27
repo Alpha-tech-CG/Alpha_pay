@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import { PrismaClient } from '@paybrain/database';
 import { PaymentsService } from '../payments/payments.service';
 import { CreatePaylinkDto } from './dto/create-paylink.dto';
-import { toCents, toMajor } from '../../common/money';
+import { toMajorAmount, toMinor } from '../../common/money';
 
 @Injectable()
 export class PaylinksService {
@@ -17,7 +17,7 @@ export class PaylinksService {
       : null;
 
     const link = await this.prisma.paymentLink.create({
-      data: { merchantId, amount: toCents(dto.amount), currency: dto.currency, description: dto.description, expiresAt },
+      data: { merchantId, amount: toMinor(dto.amount, dto.currency), currency: dto.currency, description: dto.description, expiresAt },
     });
 
     const baseUrl = process.env.CHECKOUT_URL ?? 'http://localhost:5174';
@@ -42,13 +42,13 @@ export class PaylinksService {
       return {
         id: l.id,
         description: l.description,
-        amount: toMajor(l.amount),
+        amount: toMajorAmount(l.amount, l.currency),
         currency: l.currency,
         active: !used && !expired,
         used,
         expired,
         // Lien à usage unique : payé => montant réglé, sinon 0.
-        totalPaid: used ? toMajor(l.amount) : 0,
+        totalPaid: used ? toMajorAmount(l.amount, l.currency) : 0,
         createdAt: l.createdAt,
       };
     });
@@ -63,7 +63,7 @@ export class PaylinksService {
     if (!link) throw new NotFoundException('Lien introuvable');
     if (link.expiresAt && link.expiresAt < new Date()) throw new BadRequestException('Lien expiré');
 
-    return { ...link, amount: toMajor(link.amount) };
+    return { ...link, amount: toMajorAmount(link.amount, link.currency) };
   }
 
   async pay(id: string, phone: string) {

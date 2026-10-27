@@ -200,7 +200,7 @@ model Transaction {
   // Mode test (sandbox/mocks) ou live (§4.6) : jamais mélangés.
   livemode       Boolean            @default(false)
   externalId     String             @map("external_id")
-  // Montant en centimes (BIGINT) — entier exact, zéro arrondi flottant (ALP-168).
+  // Montant en unités mineures de la devise (BIGINT, D-007) : XAF = francs entiers, EUR = centimes.
   amount         BigInt
   currency       String             @default("XAF")
   // PII chiffrée (ALP-164) : numéro jamais en clair en base.
@@ -276,7 +276,7 @@ model PaymentLink {
   id          String    @id @default(uuid())
   merchantId  String    @map("merchant_id")
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
-  amount      BigInt // centimes (ALP-168)
+  amount      BigInt // unités mineures de la devise (D-007)
   currency    String    @default("XAF")
   description String
   code        String?   @unique @map("ussd_code") // code court composable en USSD (téléphones à touches)
@@ -435,9 +435,9 @@ model ReconciliationRun {
   statementLines   Int                         @map("statement_lines")
   matchedCount     Int                         @map("matched_count")
   discrepancyCount Int                         @map("discrepancy_count")
-  totalStatement   BigInt                      @map("total_statement") // centimes
-  totalLedger      BigInt                      @map("total_ledger") // centimes
-  maxDiscrepancy   BigInt                      @map("max_discrepancy") // centimes
+  totalStatement   BigInt                      @map("total_statement") // XAF (unités mineures)
+  totalLedger      BigInt                      @map("total_ledger") // XAF (unités mineures)
+  maxDiscrepancy   BigInt                      @map("max_discrepancy") // XAF (unités mineures)
   alert            Boolean                     @default(false) // true si écart > seuil P1
   reportJson       Json                        @map("report_json")
   reportJsonKey    String?                     @map("report_json_key")
@@ -456,8 +456,8 @@ model ReconciliationDiscrepancy {
   run             ReconciliationRun             @relation(fields: [runId], references: [id])
   type            ReconciliationDiscrepancyType
   reference       String
-  ledgerAmount    BigInt?                       @map("ledger_amount") // centimes
-  statementAmount BigInt?                       @map("statement_amount") // centimes
+  ledgerAmount    BigInt?                       @map("ledger_amount") // XAF (unités mineures)
+  statementAmount BigInt?                       @map("statement_amount") // XAF (unités mineures)
   details         String?
 
   @@index([runId])

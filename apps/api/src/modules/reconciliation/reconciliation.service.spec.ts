@@ -1,8 +1,8 @@
 import { ReconciliationService } from "./reconciliation.service";
 import { StatementLine } from "./statement-parser";
 
-function line(reference: string, amountCents: bigint): StatementLine {
-  return { reference, amountCents, date: "2026-06-17", raw: {} };
+function line(reference: string, amountMinor: bigint): StatementLine {
+  return { reference, amountMinor, date: "2026-06-17", raw: {} };
 }
 
 function createPrisma(txns: any[]) {
@@ -113,13 +113,13 @@ describe("ReconciliationService.reconcile (ALP-140)", () => {
   });
 
   it("lève une alerte P1 si écart > 100 000 FCFA", async () => {
-    // Transaction ledger absente du relevé, montant 200 000 FCFA = 20 000 000 centimes.
+    // Transaction absente du relevé, montant 200 000 XAF (unités mineures = francs).
     const prisma = createPrisma([
       {
         id: "t1",
         mtnReferenceId: "ref-1",
         externalId: "ext-1",
-        amount: 20_000_000n,
+        amount: 200_000n,
       },
     ]);
     const svc = new ReconciliationService(

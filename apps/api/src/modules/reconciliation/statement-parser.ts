@@ -1,8 +1,9 @@
-import { toCents } from "../../common/money";
+import { toMinor } from "../../common/money";
 
 export interface StatementLine {
   reference: string;
-  amountCents: bigint;
+  /** Montant en unités mineures XAF (francs, D-007). */
+  amountMinor: bigint;
   date: string | null;
   raw: Record<string, string>;
 }
@@ -84,7 +85,7 @@ export function parseStatementCsv(content: string): StatementLine[] {
 
     lines.push({
       reference: reference.trim(),
-      amountCents: toCents(amount),
+      amountMinor: toMinor(amount, "XAF"),
       date: pick(row, DATE_KEYS) ?? null,
       raw: row,
     });

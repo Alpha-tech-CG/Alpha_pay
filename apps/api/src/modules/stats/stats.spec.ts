@@ -34,6 +34,7 @@ describe('Stats (isolation multi-tenant)', () => {
             id: 't-1',
             status: 'SUCCESSFUL',
             amount: 10000n,
+            currency: 'XAF',
             payerPhoneEnc: 'enc',
             payerPhoneHash: 'hash',
             payerPhoneMask: '+242 06 *** **56',
