@@ -1,18 +1,10 @@
 import { WebhooksService } from './webhooks.service';
 import { WebhooksGateway } from './webhooks.gateway';
 
-jest.mock('@paybrain/connectors', () => ({
-  createMtnConnector: jest.fn(),
-  createAirtelConnector: jest.fn(),
-}));
-
-import { createMtnConnector, createAirtelConnector } from '@paybrain/connectors';
-
 describe('WebhooksService', () => {
   let prisma: any;
   let gateway: { broadcastToMerchant: jest.Mock };
-  let mtnGetStatus: jest.Mock;
-  let airtelGetStatus: jest.Mock;
+  let fetchProviderStatus: jest.Mock;
   let service: WebhooksService;
 
   beforeEach(() => {
@@ -34,13 +26,12 @@ describe('WebhooksService', () => {
       }),
     };
     gateway = { broadcastToMerchant: jest.fn() };
-    mtnGetStatus = jest.fn();
-    airtelGetStatus = jest.fn();
-    (createMtnConnector as jest.Mock).mockReturnValue({ getStatus: mtnGetStatus });
-    (createAirtelConnector as jest.Mock).mockReturnValue({ getStatus: airtelGetStatus });
+    fetchProviderStatus = jest.fn();
 
     const webhookDelivery = { dispatch: jest.fn().mockResolvedValue(0) };
-    service = new WebhooksService(prisma, gateway as unknown as WebhooksGateway, webhookDelivery as any);
+    service = new WebhooksService(prisma, gateway as unknown as WebhooksGateway, webhookDelivery as any, {
+      fetchProviderStatus,
+    } as any);
   });
 
   it('ignores a callback for a transaction it does not know about', async () => {
@@ -48,13 +39,14 @@ describe('WebhooksService', () => {
 
     const result = await service.handleWebhook('MTN', {
       financialTransactionId: 'unknown-ref',
+      externalId: 'unknown-tx',
       status: 'SUCCESSFUL',
     } as any);
 
     expect(result).toEqual({ received: true });
     expect(prisma.webhookLog.create).not.toHaveBeenCalled();
     expect(prisma.transaction.update).not.toHaveBeenCalled();
-    expect(mtnGetStatus).not.toHaveBeenCalled();
+    expect(fetchProviderStatus).not.toHaveBeenCalled();
   });
 
   it('never trusts the status in the payload: it re-verifies with the operator', async () => {
@@ -65,14 +57,18 @@ describe('WebhooksService', () => {
       merchantId: 'm-1',
       status: 'PENDING',
     });
-    mtnGetStatus.mockResolvedValue('FAILED');
+    fetchProviderStatus.mockResolvedValue({ status: 'FAILED' });
 
     await service.handleWebhook('MTN', {
-      financialTransactionId: 'ref-1',
+      financialTransactionId: 'fin-1',
+      externalId: 'tx-1',
       status: 'SUCCESSFUL', // payload lies, real status (mocked) says FAILED
     } as any);
 
-    expect(mtnGetStatus).toHaveBeenCalledWith('ref-1');
+    expect(fetchProviderStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 'tx-1', mtnReferenceId: 'ref-1' }));
+    expect(prisma.transaction.findFirst).toHaveBeenCalledWith({
+      where: { operator: 'MTN', OR: [{ id: 'tx-1' }, { mtnReferenceId: 'tx-1' }] },
+    });
     // La transition passe désormais par la machine d'état (SERIALIZABLE + FOR UPDATE).
     expect(prisma.$transaction).toHaveBeenCalled();
     expect(gateway.broadcastToMerchant).toHaveBeenCalledWith('m-1', 'transaction_update', {
@@ -91,11 +87,12 @@ describe('WebhooksService', () => {
     });
 
     await service.handleWebhook('MTN', {
-      financialTransactionId: 'ref-2',
+      financialTransactionId: 'fin-2',
+      externalId: 'tx-2',
       status: 'FAILED',
     } as any);
 
-    expect(mtnGetStatus).not.toHaveBeenCalled();
+    expect(fetchProviderStatus).not.toHaveBeenCalled();
     expect(prisma.transaction.update).not.toHaveBeenCalled();
   });
 
@@ -106,10 +103,11 @@ describe('WebhooksService', () => {
       externalId: 'ext-3',
       status: 'PENDING',
     });
-    mtnGetStatus.mockResolvedValue('PENDING');
+    fetchProviderStatus.mockResolvedValue({ status: 'PENDING' });
 
     await service.handleWebhook('MTN', {
-      financialTransactionId: 'ref-3',
+      financialTransactionId: 'fin-3',
+      externalId: 'tx-3',
       status: 'SUCCESSFUL',
     } as any);
 
@@ -138,21 +136,26 @@ describe('WebhooksService', () => {
     expect(prisma.webhookInboundEvent.create).not.toHaveBeenCalled();
   });
 
-  it('routes AIRTEL callbacks to the Airtel connector, not MTN', async () => {
+  it('retrouve une transaction Airtel par notre identifiant de transaction et confirme son statut', async () => {
     prisma.transaction.findFirst.mockResolvedValue({
       id: 'tx-4',
       mtnReferenceId: 'ref-4',
       externalId: 'ext-4',
+      operator: 'AIRTEL',
       status: 'PENDING',
     });
-    airtelGetStatus.mockResolvedValue('SUCCESSFUL');
+    fetchProviderStatus.mockResolvedValue({ status: 'SUCCESSFUL' });
 
     await service.handleWebhook('AIRTEL', {
-      financialTransactionId: 'ref-4',
-      status: 'SUCCESSFUL',
+      transaction: { id: 'ref-4', status_code: 'TS', airtel_money_id: 'am-4' },
     } as any);
 
-    expect(airtelGetStatus).toHaveBeenCalledWith('ref-4');
-    expect(mtnGetStatus).not.toHaveBeenCalled();
+    expect(prisma.webhookInboundEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ operator: 'AIRTEL', providerEventId: 'am-4' }),
+    });
+    expect(prisma.transaction.findFirst).toHaveBeenCalledWith({
+      where: { operator: 'AIRTEL', OR: [{ id: 'ref-4' }, { mtnReferenceId: 'ref-4' }] },
+    });
+    expect(fetchProviderStatus).toHaveBeenCalledWith(expect.objectContaining({ operator: 'AIRTEL' }));
   });
 });

@@ -1,4 +1,5 @@
 import { IsIn, IsInt, IsString, Matches, Max, MaxLength, Min, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { SUPPORTED_CURRENCIES } from '@paybrain/shared';
 import { IsE164Phone } from '../../../common/validation/is-e164-phone.validator';
 
@@ -24,6 +25,12 @@ export class CreatePaymentDto {
     message: 'externalId doit correspondre à [A-Za-z0-9_-]{1,64}',
   })
   externalId!: string;
+
+  /** Opérateur forcé ; sinon déduit du préfixe du numéro (§4.2). */
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
+  @IsIn(['MTN', 'AIRTEL'])
+  operator?: 'MTN' | 'AIRTEL';
 
   @IsOptional()
   @IsString()

@@ -39,6 +39,8 @@ export class ApiKeyGuard implements CanActivate {
         this.prisma.apiKey.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
         request.merchant = { id: record.merchant.id, name: record.merchant.name };
         request.apiKeyScopes = record.scopes;
+        // Mode test ou live porté par la clé (§4.6).
+        request.livemode = record.mode === 'LIVE';
         return true;
       }
       throw new UnauthorizedException('Clé API invalide');

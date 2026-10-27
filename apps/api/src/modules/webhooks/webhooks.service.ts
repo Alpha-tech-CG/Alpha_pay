@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { Operator, WebhookPayload } from '@paybrain/shared';
-import { createAirtelConnector, createMtnConnector } from '@paybrain/connectors';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
+import { PaymentsService } from '../payments/payments.service';
 import { ConcurrentModificationError, IllegalTransitionError, transitionStatus } from '../transactions/transaction-state';
 
 const STATUS_EVENT: Record<string, string> = {
@@ -16,13 +16,11 @@ const STATUS_EVENT: Record<string, string> = {
 @Injectable()
 export class WebhooksService {
   private readonly logger = new Logger(WebhooksService.name);
-  private readonly mtn = createMtnConnector();
-  private readonly airtel = createAirtelConnector();
-
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly gateway: WebhooksGateway,
     private readonly webhookDelivery: WebhookDeliveryService,
+    private readonly payments: PaymentsService,
   ) {}
 
   async handleWebhook(operator: Operator, payload: WebhookPayload, eventTimestamp = Math.floor(Date.now() / 1000)) {
@@ -31,7 +29,8 @@ export class WebhooksService {
     // Anti-replay au-delà de la fenêtre temporelle (ALP-157) : un même event
     // opérateur ne doit déclencher le traitement qu'une seule fois. La contrainte
     // unique (operator, providerEventId) en base sert de verrou de déduplication.
-    const providerEventId = financialTransactionId ?? externalId;
+    const airtelTx = (payload as any).transaction as { id?: string; airtel_money_id?: string } | undefined;
+    const providerEventId = financialTransactionId ?? externalId ?? airtelTx?.airtel_money_id ?? airtelTx?.id;
     if (!providerEventId) {
       this.logger.warn(`Webhook ${operator} sans identifiant d'event exploitable — ignoré`);
       return { received: true };
@@ -55,15 +54,18 @@ export class WebhooksService {
       throw err;
     }
 
-    const transaction = await this.prisma.transaction.findFirst({
-      where: {
-        operator,
-        OR: [
-          { mtnReferenceId: financialTransactionId ?? '__none__' },
-          { externalId: externalId ?? '__none__' },
-        ],
-      },
-    });
+    // La référence envoyée à l'opérateur est l'id de la transaction AlphaPay :
+    // MTN la renvoie dans `externalId`, Airtel renvoie notre identifiant de
+    // transaction (stocké comme référence fournisseur).
+    const candidates = [externalId, (payload as any).transaction?.id].filter((v): v is string => typeof v === 'string');
+    const transaction = candidates.length
+      ? await this.prisma.transaction.findFirst({
+          where: {
+            operator,
+            OR: candidates.flatMap((c) => [{ id: c }, { mtnReferenceId: c }]),
+          },
+        })
+      : null;
 
     if (!transaction) {
       this.logger.warn(`Webhook ${operator} reçu pour une transaction inconnue (externalId=${externalId})`);
@@ -85,8 +87,10 @@ export class WebhooksService {
       return { received: true };
     }
 
-    const connector = operator === 'MTN' ? this.mtn : this.airtel;
-    const verifiedStatus = await connector.getStatus(transaction.mtnReferenceId);
+    const { status: verifiedStatus, failureReason } = await this.payments.fetchProviderStatus({
+      ...transaction,
+      mtnReferenceId: transaction.mtnReferenceId,
+    });
 
     if (verifiedStatus === 'PENDING') {
       return { received: true };
@@ -98,7 +102,7 @@ export class WebhooksService {
     try {
       const result = await transitionStatus(this.prisma, transaction.id, verifiedStatus, {
         reason: `webhook ${operator}`,
-        failureReason: payload.reason ?? null,
+        failureReason: failureReason ?? payload.reason ?? null,
       });
       if (!result.changed) {
         return { received: true };

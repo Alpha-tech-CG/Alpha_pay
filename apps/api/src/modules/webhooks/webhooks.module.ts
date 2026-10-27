@@ -4,9 +4,10 @@ import { WebhooksService } from './webhooks.service';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 import { MetricsModule } from '../metrics/metrics.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
-  imports: [WebhooksOutModule, MetricsModule],
+  imports: [WebhooksOutModule, MetricsModule, PaymentsModule],
   controllers: [WebhooksController],
   providers: [WebhooksService, WebhooksGateway],
   exports: [WebhooksGateway],

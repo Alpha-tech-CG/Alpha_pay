@@ -18,7 +18,7 @@ export class PaymentsController {
   @RequiredScopes('payments:write')
   @UseInterceptors(IdempotencyInterceptor)
   initiate(@Body() dto: CreatePaymentDto, @Req() req: any) {
-    return this.paymentsService.initiatePayment(dto, req.merchant.id);
+    return this.paymentsService.initiatePayment(dto, req.merchant.id, req.livemode === true);
   }
 
   @Get(':referenceId')

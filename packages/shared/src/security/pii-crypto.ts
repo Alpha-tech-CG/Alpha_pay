@@ -19,8 +19,11 @@ function getSearchKey(): Buffer {
   return createHmac('sha256', getKek()).update('pii-search-key').digest();
 }
 
-export function encryptField(plaintext: string): Buffer {
-  const kek = getKek();
+/**
+ * Chiffrement d'enveloppe AES-256-GCM. `kek` permet une clé maîtresse dédiée
+ * (ex. identifiants opérateur) ; par défaut, la clé PII.
+ */
+export function encryptField(plaintext: string, kek: Buffer = getKek()): Buffer {
   const dek = randomBytes(32);
   const iv1 = randomBytes(12);
   const c1 = createCipheriv(ALGO, dek, iv1);
@@ -35,7 +38,7 @@ export function encryptField(plaintext: string): Buffer {
   return Buffer.concat([Buffer.from([VERSION]), iv2, tag2, encDek, iv1, tag1, ct]);
 }
 
-export function decryptField(blob: Uint8Array): string {
+export function decryptField(blob: Uint8Array, kek: Buffer = getKek()): string {
   const data = Buffer.from(blob);
   if (data[0] !== VERSION) throw new Error(`pii-crypto: version inconnue ${data[0]}`);
   let off = 1;
@@ -45,7 +48,7 @@ export function decryptField(blob: Uint8Array): string {
   const iv1 = data.subarray(off, off + 12); off += 12;
   const tag1 = data.subarray(off, off + 16); off += 16;
   const ct = data.subarray(off);
-  const d2 = createDecipheriv(ALGO, getKek(), iv2);
+  const d2 = createDecipheriv(ALGO, kek, iv2);
   d2.setAuthTag(tag2);
   const dek = Buffer.concat([d2.update(encDek), d2.final()]);
   const d1 = createDecipheriv(ALGO, dek, iv1);

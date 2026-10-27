@@ -10,7 +10,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 
 # 1. Prune : ne garde que le sous-arbre de l'API (api + shared + database +
-# connectors) avec un lockfile élagué. Exclut tout le frontend (next,
+# providers) avec un lockfile élagué. Exclut tout le frontend (next,
 # posthog-js, @img…) qui n'a rien à faire dans l'image API.
 FROM base AS pruner
 COPY . .
@@ -40,7 +40,7 @@ COPY tsconfig.base.json ./tsconfig.base.json
 RUN pnpm --filter @paybrain/database db:generate
 RUN pnpm --filter @paybrain/shared build \
   && pnpm --filter @paybrain/database build \
-  && pnpm --filter @paybrain/connectors build \
+  && pnpm --filter @paybrain/providers build \
   && pnpm --filter @paybrain/api build
 
 # 4. Déploiement autonome de l'API (hors workspace, /prod). `pnpm deploy` produit

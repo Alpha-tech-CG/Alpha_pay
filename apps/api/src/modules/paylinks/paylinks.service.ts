@@ -70,6 +70,7 @@ export class PaylinksService {
     const link = await this.findById(id);
     if (link.usedAt) throw new BadRequestException('Ce lien de paiement a déjà été utilisé');
 
+    // Liens en mode test jusqu'à l'ajout de livemode sur les liens (T-11/T-52).
     const result = await this.paymentsService.initiatePayment(
       {
         // findById renvoie déjà le montant en unités majeures.

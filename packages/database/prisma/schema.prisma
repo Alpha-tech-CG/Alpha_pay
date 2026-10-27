@@ -101,32 +101,33 @@ enum MerchantType {
 }
 
 model Merchant {
-  id               String                @id @default(uuid())
-  name             String
-  emailEncrypted   Bytes                 @map("email_encrypted")
-  emailHash        Bytes                 @unique @map("email_hash")
-  phone            String?
-  companyName      String?               @map("company_name")
-  country          String?
-  website          String?
-  useCase          String?               @map("use_case")
-  idDocumentKey    String?               @map("id_document_key")
-  merchantType     MerchantType          @default(MERCHANT) @map("merchant_type")
-  onboardingStatus OnboardingStatus      @default(PENDING) @map("onboarding_status")
-  rejectionReason  String?               @map("rejection_reason")
-  isActive         Boolean               @default(false) @map("is_active")
-  clerkUserId      String?               @unique @map("clerk_user_id")
-  ownerUserId      String?               @map("owner_user_id")
-  createdAt        DateTime              @default(now()) @map("created_at")
-  updatedAt        DateTime              @updatedAt @map("updated_at")
-  transactions     Transaction[]
-  paymentLinks     PaymentLink[]
-  apiKeys          ApiKey[]
-  webhookEndpoints WebhookEndpoint[]
-  owner            AppUser?              @relation("MerchantOwner", fields: [ownerUserId], references: [id])
-  members          MerchantMember[]
-  invitations      MerchantInvitation[]
-  memberEvents     MerchantMemberEvent[]
+  id                  String                @id @default(uuid())
+  name                String
+  emailEncrypted      Bytes                 @map("email_encrypted")
+  emailHash           Bytes                 @unique @map("email_hash")
+  phone               String?
+  companyName         String?               @map("company_name")
+  country             String?
+  website             String?
+  useCase             String?               @map("use_case")
+  idDocumentKey       String?               @map("id_document_key")
+  merchantType        MerchantType          @default(MERCHANT) @map("merchant_type")
+  onboardingStatus    OnboardingStatus      @default(PENDING) @map("onboarding_status")
+  rejectionReason     String?               @map("rejection_reason")
+  isActive            Boolean               @default(false) @map("is_active")
+  clerkUserId         String?               @unique @map("clerk_user_id")
+  ownerUserId         String?               @map("owner_user_id")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  transactions        Transaction[]
+  paymentLinks        PaymentLink[]
+  apiKeys             ApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
+  owner               AppUser?              @relation("MerchantOwner", fields: [ownerUserId], references: [id])
+  members             MerchantMember[]
+  invitations         MerchantInvitation[]
+  memberEvents        MerchantMemberEvent[]
+  providerConnections ProviderConnection[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -196,6 +197,8 @@ model Transaction {
   merchant       Merchant           @relation(fields: [merchantId], references: [id])
   mtnReferenceId String?            @map("mtn_reference_id")
   operator       Operator           @default(MTN)
+  // Mode test (sandbox/mocks) ou live (§4.6) : jamais mélangés.
+  livemode       Boolean            @default(false)
   externalId     String             @map("external_id")
   // Montant en centimes (BIGINT) — entier exact, zéro arrondi flottant (ALP-168).
   amount         BigInt
@@ -221,6 +224,7 @@ model Transaction {
   @@index([externalId])
   @@index([mtnReferenceId])
   @@index([payerPhoneHash])
+  @@index([merchantId, livemode, createdAt])
   @@map("transactions")
 }
 
@@ -593,3 +597,29 @@ model MerchantMemberEvent {
 // détenir les fonds. Les entités ci-dessous sont des règles/instructions/miroirs,
 // aucun compte ne « détient » de la valeur.
 // ─────────────────────────────────────────────────────────────────────────────
+
+enum ProviderConnectionStatus {
+  PENDING // en attente de connexion (identifiants non saisis ou non vérifiés)
+  ACTIVE
+  DISABLED
+}
+
+// Connexion du marchand à SON compte opérateur (§4.3, D-006). Les identifiants
+// API sont chiffrés (AES-256-GCM, clé maîtresse PROVIDER_CREDENTIALS_KEY hors
+// base) : chaque paiement part avec eux, les fonds arrivent chez le marchand.
+model ProviderConnection {
+  id             String                   @id @default(uuid())
+  merchantId     String                   @map("merchant_id")
+  merchant       Merchant                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  operator       Operator
+  livemode       Boolean                  @default(false)
+  environment    String // "sandbox" | "production"
+  credentialsEnc Bytes?                   @map("credentials_enc")
+  status         ProviderConnectionStatus @default(PENDING)
+  lastVerifiedAt DateTime?                @map("last_verified_at")
+  createdAt      DateTime                 @default(now()) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([merchantId, operator, livemode])
+  @@map("provider_connections")
+}

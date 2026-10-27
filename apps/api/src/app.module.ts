@@ -17,6 +17,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { TeamModule } from './modules/team/team.module';
 import { DatabaseModule } from './database.module';
+import { ProvidersModule } from './modules/providers/providers.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     DatabaseModule,
+    ProvidersModule,
     SchedulingModule,
     PaymentsModule,
     WebhooksModule,
