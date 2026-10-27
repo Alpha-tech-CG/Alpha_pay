@@ -60,11 +60,11 @@ describe('PaymentStatusPoller', () => {
     const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.slow); // réussit après 15 s
 
     now += 5_000;
-    await queue.drain('payment-status'); // relance 0 : toujours en attente
+    await queue.drainOnce('payment-status'); // relance 0 : toujours en attente
     expect(queue.jobs).toEqual([expect.objectContaining({ opts: expect.objectContaining({ delayMs: 10_000, jobId: `poll-${transactionId}-1` }) })]);
 
     now += 10_000;
-    await queue.drain('payment-status'); // relance 1 : réussi
+    await queue.drainOnce('payment-status'); // relance 1 : réussi
     expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'SUCCESSFUL', undefined, 'relance de statut');
     expect(queue.jobs).toHaveLength(0);
   });
@@ -73,7 +73,7 @@ describe('PaymentStatusPoller', () => {
     process.env.PAYMENT_EXPIRY_SECONDS = '20';
     const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.expire); // l'opérateur ne répond qu'à 30 s
     now += 25_000;
-    await queue.drain('payment-status');
+    await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'FAILED', 'EXPIRED', 'relance : expiration');
     delete process.env.PAYMENT_EXPIRY_SECONDS;
   });
@@ -81,14 +81,14 @@ describe('PaymentStatusPoller', () => {
   it('ne fait rien pour un paiement déjà final (callback arrivé avant la relance)', async () => {
     const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.success);
     txs.get(transactionId).status = 'SUCCESSFUL';
-    await queue.drain('payment-status');
+    await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).not.toHaveBeenCalled();
     expect(queue.jobs).toHaveLength(0);
   });
 
   it('un paiement refusé par le payeur aboutit à FAILED', async () => {
     await pay(MOCK_MOBILE_MONEY_NUMBERS.failure);
-    await queue.drain('payment-status');
+    await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.anything(), 'FAILED', 'APPROVAL_REJECTED', 'relance de statut');
   });
 });

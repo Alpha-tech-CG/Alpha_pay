@@ -45,6 +45,9 @@ export function validateEnv(env: Env = process.env): void {
   oneOf(env, 'MOBILE_MONEY_TEST_PROVIDER', ['mock', 'sandbox'], problems);
   oneOf(env, 'MTN_SANDBOX_CURRENCY', ['EUR', 'XAF'], problems);
   oneOf(env, 'FEATURE_CARD_PAYMENTS', ['true', 'false'], problems);
+  oneOf(env, 'SMS_PROVIDER', ['mock', 'infobip'], problems);
+  oneOf(env, 'WHATSAPP_PROVIDER', ['mock', 'meta'], problems);
+  oneOf(env, 'EMAIL_PROVIDER', ['mock', 'smtp'], problems);
   oneOf(env, 'LOG_LEVEL', ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'], problems);
   positiveInt(env, 'PORT', problems);
   positiveInt(env, 'PAYMENT_EXPIRY_SECONDS', problems);
@@ -53,6 +56,24 @@ export function validateEnv(env: Env = process.env): void {
   minLength(env, 'API_KEY_PEPPER', 32, problems);
   minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
 
+  if (env.SMS_PROVIDER === 'infobip') {
+    for (const name of ['INFOBIP_BASE_URL', 'INFOBIP_API_KEY', 'MESSAGING_WEBHOOK_TOKEN']) if (!env[name]) problems.push(`${name} est requis avec SMS_PROVIDER=infobip`);
+  }
+  if (env.WHATSAPP_PROVIDER === 'meta') {
+    for (const name of ['WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_APP_SECRET', 'WHATSAPP_VERIFY_TOKEN']) {
+      if (!env[name]) problems.push(`${name} est requis avec WHATSAPP_PROVIDER=meta`);
+    }
+  }
+  if (env.EMAIL_PROVIDER === 'smtp') {
+    for (const name of ['SMTP_URL', 'EMAIL_FROM']) if (!env[name]) problems.push(`${name} est requis avec EMAIL_PROVIDER=smtp`);
+  }
+  if (env.MESSAGE_CREDIT_COSTS) {
+    try {
+      JSON.parse(env.MESSAGE_CREDIT_COSTS);
+    } catch {
+      problems.push('MESSAGE_CREDIT_COSTS doit être un JSON, ex. {"SMS":1,"WHATSAPP":1,"EMAIL":1}');
+    }
+  }
   if (env.PHONE_OPERATOR_PREFIXES) {
     try {
       JSON.parse(env.PHONE_OPERATOR_PREFIXES);

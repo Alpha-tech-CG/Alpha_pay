@@ -43,3 +43,12 @@ describe('validateEnv (T-14)', () => {
     expect(() => validateEnv({ NODE_ENV: 'development', [name]: value })).toThrow(new RegExp(name));
   });
 });
+
+describe('validateEnv — fournisseurs de messages', () => {
+  it('exige les identifiants du fournisseur choisi', () => {
+    expect(() => validateEnv({ NODE_ENV: 'development', SMS_PROVIDER: 'infobip' })).toThrow(/INFOBIP_API_KEY est requis/);
+    expect(() => validateEnv({ NODE_ENV: 'development', WHATSAPP_PROVIDER: 'meta' })).toThrow(/WHATSAPP_APP_SECRET est requis/);
+    expect(() => validateEnv({ NODE_ENV: 'development', SMS_PROVIDER: 'twilio' })).toThrow(/SMS_PROVIDER/);
+    expect(() => validateEnv({ NODE_ENV: 'development', EMAIL_PROVIDER: 'smtp', SMTP_URL: 'smtp://x:25', EMAIL_FROM: 'a@b.cg' })).not.toThrow();
+  });
+});

@@ -20,6 +20,8 @@ import { DatabaseModule } from './database.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { QueueModule } from './common/queue/queue.module';
 import { HealthModule } from './modules/health/health.module';
+import { KvModule } from './common/kv/kv.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
 
@@ -31,6 +33,8 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     ProvidersModule,
     QueueModule,
     HealthModule,
+    KvModule,
+    MessagingModule,
     PaymentStatusModule,
     SchedulingModule,
     PaymentsModule,

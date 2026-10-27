@@ -1,0 +1,95 @@
+import type { MessageCategory, MessageChannel } from '@paybrain/database';
+
+export interface CatalogTemplate {
+  key: string;
+  channel: MessageChannel;
+  version: number;
+  category: MessageCategory;
+  subject?: string;
+  body: string;
+  /** Nom du modèle pré-approuvé chez Meta (WhatsApp). */
+  whatsappTemplateName?: string;
+  /** Ordre des variables transmises au modèle WhatsApp. */
+  variables?: string[];
+}
+
+/**
+ * Catalogue des modèles de messages (§M9), en français. Versionnés : pour
+ * modifier un texte, AJOUTER une entrée avec `version + 1` (l'ancienne reste
+ * pour l'historique). Synchronisé en base au démarrage (ajout seul).
+ * Vocabulaire interdit (§4.4) : jamais « solde AlphaPay », « nous encaissons ».
+ */
+export const TEMPLATE_CATALOG: CatalogTemplate[] = [
+  // ── Codes à usage unique (OTP) ──
+  {
+    key: 'otp.code',
+    channel: 'SMS',
+    version: 1,
+    category: 'OTP',
+    body: 'AlphaPay : votre code de vérification est {{code}}. Il expire dans 5 minutes. Ne le communiquez à personne.',
+  },
+  {
+    key: 'otp.code',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'OTP',
+    body: '{{code}} est votre code de vérification AlphaPay.',
+    whatsappTemplateName: 'alphapay_otp',
+    variables: ['code'],
+  },
+  {
+    key: 'otp.code',
+    channel: 'EMAIL',
+    version: 1,
+    category: 'OTP',
+    subject: 'Votre code de vérification AlphaPay',
+    body: 'Bonjour,\n\nVotre code de vérification est : {{code}}\n\nIl expire dans 5 minutes. Ne le communiquez à personne : AlphaPay ne vous le demandera jamais.\n\nL’équipe AlphaPay',
+  },
+  // OTP envoyés par un marchand via l'API Messages (au nom du marchand).
+  {
+    key: 'otp.code_marchand',
+    channel: 'SMS',
+    version: 1,
+    category: 'OTP',
+    body: '{{merchantName}} : votre code de vérification est {{code}}. Il expire dans 5 minutes.',
+  },
+  {
+    key: 'otp.code_marchand',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'OTP',
+    body: '{{code}} est votre code de vérification.',
+    whatsappTemplateName: 'alphapay_otp',
+    variables: ['code'],
+  },
+  {
+    key: 'otp.code_marchand',
+    channel: 'EMAIL',
+    version: 1,
+    category: 'OTP',
+    subject: '{{merchantName}} — votre code de vérification',
+    body: 'Bonjour,\n\nVotre code de vérification {{merchantName}} est : {{code}}\n\nIl expire dans 5 minutes.',
+  },
+
+  // ── Vérif : confirmation de paiement reçu (§M5) ──
+  {
+    key: 'verif.paiement_recu',
+    channel: 'SMS',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: 'Paiement reçu : {{amount}} de {{payer}}, {{operator}}, réf. {{reference}}',
+  },
+  {
+    key: 'verif.paiement_recu',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: 'Paiement reçu : {{amount}} de {{payer}}, {{operator}}, réf. {{reference}}',
+    whatsappTemplateName: 'alphapay_paiement_recu',
+    variables: ['amount', 'payer', 'operator', 'reference'],
+  },
+
+  // ── Message libre de l'API Messages (SMS et email seulement : WhatsApp exige un modèle) ──
+  { key: 'message.libre', channel: 'SMS', version: 1, category: 'TRANSACTIONAL', body: '{{text}}' },
+  { key: 'message.libre', channel: 'EMAIL', version: 1, category: 'TRANSACTIONAL', subject: '{{subject}}', body: '{{text}}' },
+];

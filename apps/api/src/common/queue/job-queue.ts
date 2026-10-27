@@ -7,6 +7,8 @@
 export const QUEUES = {
   /** Relance du statut d'un paiement en attente auprès de l'opérateur (§M3). */
   paymentStatus: 'payment-status',
+  /** Envoi d'un message (SMS, WhatsApp, email) via son fournisseur (§M9). */
+  messages: 'messages',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

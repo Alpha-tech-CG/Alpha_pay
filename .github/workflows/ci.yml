@@ -79,6 +79,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/alphapay_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/alphapay_test
       REDIS_URL: redis://localhost:6379
       NODE_ENV: test
     steps:
@@ -99,6 +100,9 @@ jobs:
         run: pnpm --filter @paybrain/database exec prisma migrate deploy
       - name: Tests unitaires et de contrat
         run: pnpm run test
+      # Base réelle, fournisseurs factices (§9) : messages, crédits, OTP…
+      - name: Tests d'intégration
+        run: pnpm --filter @paybrain/api test:integration
 
   audit:
     name: Audit des dépendances
