@@ -67,9 +67,13 @@ export class MtnMobileMoneyProvider implements MobileMoneyProvider {
     return withRetry(fn, { sleep: this.deps.sleep });
   }
 
-  private async accessToken(): Promise<string> {
-    const key = `mtn:collection:${this.connection.environment}:${this.creds.apiUserId}`;
-    const cached = await this.cache.get(key);
+  private tokenKey(): string {
+    return `mtn:collection:${this.connection.environment}:${this.creds.apiUserId}`;
+  }
+
+  private async accessToken(force = false): Promise<string> {
+    const key = this.tokenKey();
+    const cached = force ? null : await this.cache.get(key);
     if (cached) return cached;
 
     const basic = Buffer.from(`${this.creds.apiUserId}:${this.creds.apiKey}`).toString('base64');
@@ -94,6 +98,11 @@ export class MtnMobileMoneyProvider implements MobileMoneyProvider {
       'X-Target-Environment': this.targetEnvironment,
       'Ocp-Apim-Subscription-Key': this.creds.subscriptionKey,
     };
+  }
+
+  /** Identifiants valides si l'opérateur délivre un jeton (sans cache : vraie vérification). */
+  async verifyCredentials(): Promise<void> {
+    await this.accessToken(true);
   }
 
   /** L'identifiant MTN (X-Reference-Id) est dérivé de la référence AlphaPay. */

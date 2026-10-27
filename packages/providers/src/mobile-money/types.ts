@@ -63,6 +63,8 @@ export interface MobileMoneyProvider {
   verifyAccountHolder?(phone: string): Promise<AccountHolderResult>;
   /** Présent si l'opérateur envoie des callbacks ; renvoie null si la requête n'est pas exploitable. */
   parseCallback?(req: IncomingRequest): CallbackResult | null;
+  /** Vérifie que les identifiants sont acceptés par l'opérateur (obtention d'un jeton). */
+  verifyCredentials(): Promise<void>;
 }
 
 /** Connexion opérateur d'un marchand (identifiants déjà déchiffrés). */

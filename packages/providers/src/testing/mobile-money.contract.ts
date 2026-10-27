@@ -94,6 +94,10 @@ export function describeMobileMoneyContract(name: string, makeHarness: () => Mob
       expect(h.provider.parseCallback({ headers: {}, body: { inattendu: true } })).toBeNull();
     });
 
+    it('verifyCredentials accepte des identifiants valides', async () => {
+      await expect(h.provider.verifyCredentials()).resolves.toBeUndefined();
+    });
+
     it('verifyAccountHolder (si supporté) renvoie un booléen active', async () => {
       if (!h.provider.verifyAccountHolder) return;
       const res = await h.provider.verifyAccountHolder(h.phones.success);

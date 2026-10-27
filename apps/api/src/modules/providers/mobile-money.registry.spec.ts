@@ -12,7 +12,7 @@ describe('MobileMoneyRegistry', () => {
     process.env = { ...env };
     delete process.env.MOBILE_MONEY_TEST_PROVIDER;
     prisma = { providerConnection: { findUnique: jest.fn() } };
-    registry = new MobileMoneyRegistry(prisma as any, new MemoryTokenCache());
+    registry = new MobileMoneyRegistry(prisma as any, new MemoryTokenCache(), null);
   });
   afterAll(() => {
     process.env = env;

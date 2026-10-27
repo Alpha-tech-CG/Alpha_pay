@@ -16,7 +16,7 @@ function credentialsKey(): Buffer {
   return Buffer.alloc(32, 11);
 }
 
-export function encryptCredentials(credentials: Record<string, string>): Uint8Array {
+export function encryptCredentials(credentials: Record<string, string>): Uint8Array<ArrayBuffer> {
   return new Uint8Array(encryptField(JSON.stringify(credentials), credentialsKey()));
 }
 

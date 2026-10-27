@@ -146,6 +146,22 @@ describe('Adaptateur MTN', () => {
     expect((call.body as any).amount).toBe('15000');
   });
 
+  it('verifyCredentials : identifiants refusés par MTN → auth_failed, sans réessai', async () => {
+    const server = new FakeMtnServer();
+    const p = mtnProviderFactory.create({ environment: 'sandbox', credentials: { ...credentials, apiKey: 'faux' } }, { http: server, sleep: noSleep });
+    await expect(p.verifyCredentials()).rejects.toMatchObject({ code: 'auth_failed', retryable: false });
+    expect(server.calls).toHaveLength(1);
+  });
+
+  it('verifyCredentials ignore le cache : une clé révoquée est détectée', async () => {
+    const server = new FakeMtnServer();
+    const cache = new MemoryTokenCache();
+    const p = mtnProviderFactory.create({ environment: 'sandbox', credentials }, { http: server, tokenCache: cache, sleep: noSleep });
+    await p.verifyCredentials();
+    await p.verifyCredentials();
+    expect(server.tokenCalls).toBe(2);
+  });
+
   it('refuse une connexion sans identifiants complets', () => {
     expect(() => mtnProviderFactory.create({ environment: 'sandbox', credentials: { apiUserId: 'u' } })).toThrow(
       expect.objectContaining({ code: 'not_configured' }),

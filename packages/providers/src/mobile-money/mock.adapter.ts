@@ -116,6 +116,8 @@ export class MockMobileMoneyProvider implements MobileMoneyProvider {
     }
   }
 
+  async verifyCredentials(): Promise<void> {}
+
   async verifyAccountHolder(phone: string): Promise<AccountHolderResult> {
     assertE164(PROVIDER, phone);
     return phone === MOCK_MOBILE_MONEY_NUMBERS.inactive ? { active: false } : { active: true, name: 'Client Test' };

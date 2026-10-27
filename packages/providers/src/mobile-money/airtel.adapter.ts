@@ -76,9 +76,13 @@ export class AirtelMobileMoneyProvider implements MobileMoneyProvider {
     return withRetry(fn, { sleep: this.deps.sleep });
   }
 
-  private async accessToken(): Promise<string> {
-    const key = `airtel:${this.connection.environment}:${this.creds.clientId}`;
-    const cached = await this.cache.get(key);
+  private tokenKey(): string {
+    return `airtel:${this.connection.environment}:${this.creds.clientId}`;
+  }
+
+  private async accessToken(force = false): Promise<string> {
+    const key = this.tokenKey();
+    const cached = force ? null : await this.cache.get(key);
     if (cached) return cached;
 
     const res = await this.retry(async () => {
@@ -98,6 +102,11 @@ export class AirtelMobileMoneyProvider implements MobileMoneyProvider {
 
   private async headers(currency: string): Promise<Record<string, string>> {
     return { Authorization: `Bearer ${await this.accessToken()}`, 'X-Country': COUNTRY, 'X-Currency': currency };
+  }
+
+  /** Identifiants valides si l'opérateur délivre un jeton (sans cache : vraie vérification). */
+  async verifyCredentials(): Promise<void> {
+    await this.accessToken(true);
   }
 
   /** L'identifiant de transaction Airtel est dérivé de la référence AlphaPay. */
