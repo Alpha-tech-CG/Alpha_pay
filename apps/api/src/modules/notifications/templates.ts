@@ -45,42 +45,6 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     subject: "PayBrain — Demande non retenue",
     body: "Bonjour {{name}},\n\nAprès examen, nous ne sommes pas en mesure d'activer votre compte PayBrain pour le motif suivant :\n\n  {{reason}}\n\nSi vous pensez que c'est une erreur, répondez à cet email.\n\nCordialement,\nL'équipe PayBrain",
   },
-  /* ── Wallet client (SMS) ── */
-  "wallet.cashin.success": {
-    version: "v1",
-    subject: "PayBrain – Rechargement reçu",
-    body: "PayBrain : votre wallet a été crédité de {{amount}} {{currency}}. Solde : {{balance}} {{currency}}.",
-  },
-  "wallet.cashin.failed": {
-    version: "v1",
-    subject: "PayBrain – Rechargement échoué",
-    body: "PayBrain : votre rechargement de {{amount}} {{currency}} via {{operator}} a échoué. Réessayez depuis l'app.",
-  },
-  "wallet.cashout.success": {
-    version: "v1",
-    subject: "PayBrain – Retrait effectué",
-    body: "PayBrain : retrait de {{amount}} {{currency}} vers {{operator}} ({{phone}}) effectué. Solde restant : {{balance}} {{currency}}.",
-  },
-  "wallet.cashout.failed": {
-    version: "v1",
-    subject: "PayBrain – Retrait échoué",
-    body: "PayBrain : votre retrait de {{amount}} {{currency}} a échoué. Votre solde a été restitué intégralement.",
-  },
-  "wallet.p2p.received": {
-    version: "v1",
-    subject: "PayBrain – Argent reçu",
-    body: "PayBrain : vous avez reçu {{amount}} {{currency}} de {{from}}. Solde : {{balance}} {{currency}}.",
-  },
-  "wallet.otp": {
-    version: "v1",
-    subject: "PayBrain – Code de vérification",
-    body: "PayBrain : votre code de vérification est {{otp}}. Valable 10 minutes. Ne le partagez jamais — PayBrain ne vous le demandera jamais.",
-  },
-  "wallet.locked": {
-    version: "v1",
-    subject: "PayBrain – Compte verrouillé",
-    body: "PayBrain : votre compte est temporairement verrouillé après plusieurs PIN incorrects. Réessayez dans {{minutes}} min. Si ce n'était pas vous, contactez le support.",
-  },
   /* ── Équipe marchand (Team Members) ── */
   "team.invitation": {
     version: "v1",
@@ -91,16 +55,6 @@ export const TEMPLATES: Record<string, NotificationTemplate> = {
     version: "v1",
     subject: "[PayBrain] Nouvelle inscription — {{name}}",
     body: "Nouvel inscrit en attente de validation :\n\nNom    : {{name}}\nEmail  : {{email}}\nType   : {{merchantType}}\nID     : {{merchantId}}\n\nValider ou rejeter :\nhttps://dashboard.paybrain.cg/internal/onboarding/{{merchantId}}",
-  },
-  "ops.wallet-float-alert": {
-    version: "v1",
-    subject: "[PayBrain] ⚠️ Écart de float wallet détecté",
-    body: "ALERTE réconciliation float wallet ({{date}}) :\n\nÉcart d'intégrité : {{drift}} centimes\nSolde total wallets : {{totalBalance}} centimes\nAttendu (transactions) : {{expectedBalance}} centimes\nWallets incohérents : {{inconsistentCount}}\n\nUn écart non nul = bug de crédit ou fraude interne. Investiguer immédiatement.\nRun : {{runId}}",
-  },
-  "ops.wallet-float-summary": {
-    version: "v1",
-    subject: "[PayBrain] Réconciliation float wallet OK — {{date}}",
-    body: "Réconciliation float wallet ({{date}}) : intégrité vérifiée.\n\nWallets : {{walletCount}}\nSolde total : {{totalBalance}} centimes\nExposition float (opérateurs) : {{floatExposure}} centimes\nRun : {{runId}}",
   },
 };
 

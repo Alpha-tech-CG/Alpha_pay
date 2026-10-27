@@ -1,5 +1,5 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { KycDocumentType, WalletKycDocType } from '@paybrain/database';
+import { KycDocumentType } from '@paybrain/database';
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createS3Client } from '../../common/storage/s3-client';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -47,34 +47,6 @@ export class KycDocumentStorageService {
 
   async verifyUploadedDocument(key: string, merchantId: string, caseId: string, type: KycDocumentType) {
     const prefix = `merchants/${merchantId}/cases/${caseId}/${type}/`;
-    if (!key.startsWith(prefix) || key.includes('..')) throw new ServiceUnavailableException('Clé de document KYC invalide');
-    await this.headCheck(key);
-  }
-
-  /* ── KYC wallet client (pièce d'identité N0 → N1) ── */
-
-  async createWalletUploadUrl(walletId: string, type: WalletKycDocType, contentType: string) {
-    const bucket = this.getBucket();
-    const extension = EXTENSIONS[contentType];
-    if (!extension) throw new ServiceUnavailableException('Format de document KYC non supporté');
-    const key = `wallets/${walletId}/kyc/${type}/${randomUUID()}.${extension}`;
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ContentType: contentType,
-      ServerSideEncryption: 'AES256',
-      Metadata: { wallet: walletId, type },
-    });
-    return {
-      key,
-      uploadUrl: await getSignedUrl(this.s3, command, { expiresIn: 300 }),
-      expiresInSeconds: 300,
-      requiredHeaders: { 'content-type': contentType, 'x-amz-server-side-encryption': 'AES256' },
-    };
-  }
-
-  async verifyWalletUploadedDocument(key: string, walletId: string, type: WalletKycDocType) {
-    const prefix = `wallets/${walletId}/kyc/${type}/`;
     if (!key.startsWith(prefix) || key.includes('..')) throw new ServiceUnavailableException('Clé de document KYC invalide');
     await this.headCheck(key);
   }

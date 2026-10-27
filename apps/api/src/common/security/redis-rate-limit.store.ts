@@ -6,7 +6,7 @@ import type { Store, Options, IncrementResponse } from 'express-rate-limit';
  *
  * Le MemoryStore par défaut est PAR INSTANCE : avec N pods, la limite effective
  * est N× la limite configurée — ce qui affaiblit directement la protection
- * anti-brute-force du PIN wallet (/v1/wallet/auth, /v1/checkout). Un store Redis
+ * anti-brute-force (auth, OTP, invitations). Un store Redis
  * partage le compteur entre toutes les instances → la limite est globale.
  *
  * Implémentation « fenêtre fixe » (INCR + PEXPIRE au premier hit), équivalente au

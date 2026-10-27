@@ -27,29 +27,6 @@ export class MetricsService implements OnModuleInit {
     registers: [this.registry],
   });
 
-  readonly settlementsTotal = new Counter({
-    name: 'paybrain_settlements_total',
-    help: 'Reversements marchands déclenchés',
-    labelNames: ['status', 'currency'],
-    registers: [this.registry],
-  });
-
-  // ALP-173 : un pic d'échecs PIN = attaque brute-force en cours (alerte Grafana).
-  readonly walletPinFailuresTotal = new Counter({
-    name: 'paybrain_wallet_pin_failures_total',
-    help: 'Échecs de vérification PIN wallet',
-    labelNames: ['result'], // invalid | locked
-    registers: [this.registry],
-  });
-
-  // ALP-175 : écart d'intégrité du float wallet (centimes). Doit rester à 0 ;
-  // toute valeur non nulle = bug de crédit ou fraude interne → alerte Grafana.
-  readonly walletFloatDriftCents = new Gauge({
-    name: 'paybrain_wallet_float_drift_cents',
-    help: 'Écart entre la somme des soldes wallets et la somme des transactions (centimes)',
-    registers: [this.registry],
-  });
-
   onModuleInit() {
     collectDefaultMetrics({ register: this.registry, prefix: 'paybrain_node_' });
   }

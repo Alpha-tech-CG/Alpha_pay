@@ -5,9 +5,6 @@ import { can, roleOf } from './rbac';
 import { DEMO, useSessionUser } from './session';
 import Search from './pages/Search';
 import Kyc from './pages/Kyc';
-import ClientKyc from './pages/ClientKyc';
-import WalletClients from './pages/WalletClients';
-import Settlements from './pages/Settlements';
 import Reconciliation from './pages/Reconciliation';
 
 function Gate({ cap, children }) {
@@ -41,9 +38,6 @@ export default function App() {
       } />
       <Route path="/" element={<Protected cap="search.view"><Search /></Protected>} />
       <Route path="/kyc" element={<Protected cap="kyc.view"><Kyc /></Protected>} />
-      <Route path="/client-kyc" element={<Protected cap="kyc.view"><ClientKyc /></Protected>} />
-      <Route path="/wallets" element={<Protected cap="wallet.view"><WalletClients /></Protected>} />
-      <Route path="/settlements" element={<Protected cap="settlement.view"><Settlements /></Protected>} />
       <Route path="/reconciliation" element={<Protected cap="reconciliation.view"><Reconciliation /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

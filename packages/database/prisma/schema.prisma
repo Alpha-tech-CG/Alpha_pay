@@ -29,19 +29,6 @@ enum OutboxStatus {
   DEAD
 }
 
-enum AccountType {
-  ASSET
-  LIABILITY
-  REVENUE
-  EXPENSE
-  EQUITY
-}
-
-enum EntryDirection {
-  DEBIT
-  CREDIT
-}
-
 enum WebhookInboundStatus {
   RECEIVED
   PROCESSED
@@ -84,26 +71,6 @@ enum NotificationStatus {
   SKIPPED
 }
 
-enum SettlementFrequency {
-  DAILY
-  T1
-  T2
-  WEEKLY
-}
-
-enum SettlementStatus {
-  PENDING_VALIDATION
-  INITIATED
-  SENT
-  CONFIRMED
-  FAILED
-}
-
-enum SettlementPayoutMethod {
-  BANK
-  MOMO
-}
-
 enum KycStatus {
   NOT_STARTED
   SUBMITTED
@@ -133,146 +100,6 @@ enum MerchantType {
   DEVELOPER
 }
 
-enum UserRole {
-  CLIENT
-  MERCHANT
-  MERCHANT_CASHIER
-  ADMIN_STAFF
-}
-
-enum WalletStatus {
-  PENDING_VERIFICATION
-  ACTIVE
-  SUSPENDED
-  CLOSED
-}
-
-enum WalletTxType {
-  CASH_IN
-  PAY
-  CASH_OUT
-  P2P_SEND
-  P2P_RECEIVE
-  REFUND
-}
-
-// Niveaux KYC e-money (ALP-174). N0 = numéro vérifié (OTP) seulement ;
-// N1 = pièce d'identité vérifiée ; N2 = vérification renforcée.
-enum WalletKycLevel {
-  N0
-  N1
-  N2
-}
-
-// Pièces d'identité uploadées par le client pour passer N0 → N1 (ALP-177).
-enum WalletKycDocType {
-  ID_FRONT
-  ID_BACK
-  SELFIE
-}
-
-enum WalletKycDocStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-// Portefeuille électronique du client final (closed-loop wallet).
-model Wallet {
-  id                String         @id @default(uuid())
-  phone             String         @unique
-  pinHash           String         @map("pin_hash")
-  balanceCents      BigInt         @default(0) @map("balance_cents")
-  currency          String         @default("XAF")
-  role              UserRole       @default(CLIENT)
-  status            WalletStatus   @default(ACTIVE)
-  kycLevel          WalletKycLevel @default(N0) @map("kyc_level")
-  fullName          String?        @map("full_name")
-  pushToken         String?        @map("push_token")
-  // Rattachement d'un caissier (MERCHANT_CASHIER) au marchand pour lequel il encaisse.
-  merchantId        String?        @map("merchant_id")
-  merchant          Merchant?      @relation(fields: [merchantId], references: [id])
-  // OTP d'inscription (ALP-171) : preuve de possession du numéro.
-  otpHash           String?        @map("otp_hash")
-  otpExpiresAt      DateTime?      @map("otp_expires_at")
-  otpAttempts       Int            @default(0) @map("otp_attempts")
-  // Verrouillage progressif anti brute-force PIN (ALP-173).
-  failedPinAttempts Int            @default(0) @map("failed_pin_attempts")
-  lockedUntil       DateTime?      @map("locked_until")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-
-  sentTxs      WalletTransaction[] @relation("SenderWallet")
-  receivedTxs  WalletTransaction[] @relation("ReceiverWallet")
-  kycDocuments WalletKycDocument[]
-
-  @@index([phone])
-  @@index([merchantId])
-  @@map("wallets")
-}
-
-// Transaction sur portefeuille client (ledger simplifié en partie simple).
-model WalletTransaction {
-  id             String            @id @default(uuid())
-  walletId       String            @map("wallet_id")
-  wallet         Wallet            @relation("SenderWallet", fields: [walletId], references: [id])
-  type           WalletTxType
-  amountCents    BigInt            @map("amount_cents")
-  balanceBefore  BigInt            @map("balance_before")
-  balanceAfter   BigInt            @map("balance_after")
-  status         TransactionStatus @default(PENDING)
-  description    String?
-  operatorRef    String?           @map("operator_ref") // référence opérateur (MTN/Airtel)
-  merchantId     String?           @map("merchant_id") // si PAY vers un marchand
-  peerWalletId   String?           @map("peer_wallet_id") // si P2P
-  peerWallet     Wallet?           @relation("ReceiverWallet", fields: [peerWalletId], references: [id])
-  idempotencyKey String?           @map("idempotency_key") // rejeu client (double-tap, retry réseau)
-  qrNonce        String?           @unique @map("qr_nonce") // usage unique d'un QR signé (anti-rejeu)
-  metadata       Json?
-  createdAt      DateTime          @default(now()) @map("created_at")
-
-  @@unique([walletId, idempotencyKey])
-  @@index([walletId, createdAt])
-  @@index([merchantId])
-  @@index([status])
-  @@map("wallet_transactions")
-}
-
-// Plafonds e-money par niveau KYC (ALP-174). Table éditable (endpoint interne)
-// pour ajuster les seuils sans redéploiement, en fonction des exigences BEAC /
-// de la banque partenaire. Montants en centimes (×100), devise wallet (XAF).
-model WalletLimit {
-  level           WalletKycLevel @id
-  maxBalanceCents BigInt         @map("max_balance_cents") // solde maximum autorisé
-  perTxCents      BigInt         @map("per_tx_cents") // montant max par opération sortante
-  dailyCents      BigInt         @map("daily_cents") // volume sortant / 24 h glissantes
-  monthlyCents    BigInt         @map("monthly_cents") // volume sortant / 30 j glissants
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-
-  @@map("wallet_limits")
-}
-
-// Pièce d'identité soumise par un client wallet lors de l'inscription (KYC N1).
-// Démo : l'image est stockée encodée en base (base64) — pas de dépendance S3.
-// En prod, remplacer `dataBase64` par une clé d'objet chiffré (bucket KYC).
-model WalletKycDocument {
-  id           String             @id @default(uuid())
-  walletId     String             @map("wallet_id")
-  wallet       Wallet             @relation(fields: [walletId], references: [id])
-  type         WalletKycDocType
-  mimeType     String             @map("mime_type")
-  storageKey   String             @map("storage_key") // clé S3 (KYC_DOCUMENTS_BUCKET)
-  status       WalletKycDocStatus @default(PENDING)
-  reviewedBy   String?            @map("reviewed_by") // officer (e-mail)
-  reviewReason String?            @map("review_reason")
-  reviewedAt   DateTime?          @map("reviewed_at")
-  createdAt    DateTime           @default(now()) @map("created_at")
-
-  @@index([walletId])
-  @@index([status])
-  @@map("wallet_kyc_documents")
-}
-
 model Merchant {
   id               String                @id @default(uuid())
   name             String
@@ -287,7 +114,6 @@ model Merchant {
   merchantType     MerchantType          @default(MERCHANT) @map("merchant_type")
   onboardingStatus OnboardingStatus      @default(PENDING) @map("onboarding_status")
   rejectionReason  String?               @map("rejection_reason")
-  feeProfileId     String?               @map("fee_profile_id") // commission techno appliquée (orchestration)
   isActive         Boolean               @default(false) @map("is_active")
   clerkUserId      String?               @unique @map("clerk_user_id")
   ownerUserId      String?               @map("owner_user_id")
@@ -297,15 +123,12 @@ model Merchant {
   paymentLinks     PaymentLink[]
   apiKeys          ApiKey[]
   webhookEndpoints WebhookEndpoint[]
-  cashierWallets   Wallet[]
   owner            AppUser?              @relation("MerchantOwner", fields: [ownerUserId], references: [id])
   members          MerchantMember[]
   invitations      MerchantInvitation[]
   memberEvents     MerchantMemberEvent[]
-  feeProfile       FeeProfile?           @relation(fields: [feeProfileId], references: [id])
 
   @@index([onboardingStatus])
-  @@index([feeProfileId])
   @@map("merchants")
 }
 
@@ -386,12 +209,6 @@ model Transaction {
   failureReason  String?            @map("failure_reason")
   retryCount     Int                @default(0) @map("retry_count")
   version        Int                @default(0)
-  // Orchestration (migration 17) : partenaire choisi + traçabilité du routage
-  // et commission techno appliquée. Scalaires de suivi (pas de relation).
-  partnerId      String?            @map("partner_id")
-  routingRuleId  String?            @map("routing_rule_id")
-  routingReason  String?            @map("routing_reason")
-  feeCents       BigInt?            @map("fee_cents")
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
   webhookLogs    WebhookLog[]
@@ -404,7 +221,6 @@ model Transaction {
   @@index([externalId])
   @@index([mtnReferenceId])
   @@index([payerPhoneHash])
-  @@index([partnerId])
   @@map("transactions")
 }
 
@@ -573,76 +389,6 @@ model KycEvent {
   @@map("kyc_events")
 }
 
-// Reversement aux marchands : configuration + batches (ALP-141).
-model MerchantSettlementConfig {
-  id                         String                 @id @default(uuid())
-  merchantId                 String                 @unique @map("merchant_id")
-  frequency                  SettlementFrequency    @default(T1)
-  minAmountCents             BigInt                 @default(0) @map("min_amount_cents")
-  commissionBps              Int                    @default(150) @map("commission_bps") // 1.5%
-  dayOfWeek                  Int?                   @map("day_of_week") // 1=lundi (fréquence WEEKLY)
-  enabled                    Boolean                @default(true)
-  payoutMethod               SettlementPayoutMethod @default(MOMO) @map("payout_method")
-  payoutProvider             String?                @map("payout_provider")
-  payoutDestinationEncrypted Bytes?                 @map("payout_destination_encrypted")
-  // Devise de reversement souhaitée par le marchand (ALP-151). Si différente de
-  // la devise encaissée, le net est converti au moment du settlement.
-  settlementCurrency         String?                @map("settlement_currency")
-  createdAt                  DateTime               @default(now()) @map("created_at")
-
-  @@map("merchant_settlement_configs")
-}
-
-model SettlementBatch {
-  id                       String            @id @default(uuid())
-  batchNumber              String            @unique @map("batch_number")
-  merchantId               String            @map("merchant_id")
-  periodStart              DateTime          @map("period_start")
-  periodEnd                DateTime          @map("period_end")
-  currency                 String            @default("XAF")
-  grossCents               BigInt            @map("gross_cents")
-  commissionCents          BigInt            @map("commission_cents")
-  holdsCents               BigInt            @default(0) @map("holds_cents")
-  netCents                 BigInt            @map("net_cents")
-  // FX (ALP-151) : si la devise de reversement diffère de la devise encaissée,
-  // le net converti et le taux utilisé sont conservés pour le décaissement.
-  settlementCurrency       String?           @map("settlement_currency")
-  settledNetCents          BigInt?           @map("settled_net_cents")
-  fxRate                   Decimal?          @map("fx_rate") @db.Decimal(20, 10)
-  status                   SettlementStatus  @default(INITIATED)
-  requiresDoubleValidation Boolean           @default(false) @map("requires_double_validation")
-  validatedBy              String[]          @default([]) @map("validated_by")
-  version                  Int               @default(0)
-  sentAt                   DateTime?         @map("sent_at")
-  confirmedAt              DateTime?         @map("confirmed_at")
-  failedAt                 DateTime?         @map("failed_at")
-  failureReason            String?           @map("failure_reason")
-  payoutProvider           String?           @map("payout_provider")
-  externalReference        String?           @map("external_reference")
-  receiptPdfKey            String?           @map("receipt_pdf_key")
-  createdAt                DateTime          @default(now()) @map("created_at")
-  audits                   SettlementAudit[]
-
-  @@index([merchantId, status])
-  // Index unique PARTIEL (merchant_id, period_start, period_end) WHERE status <> 'FAILED'
-  // — défense en profondeur anti double-reversement. Non exprimable en Prisma
-  // (index partiel) : défini en SQL brut dans la migration 16_settlement_period_unique.
-  @@map("settlement_batches")
-}
-
-model SettlementAudit {
-  id        String          @id @default(uuid())
-  batchId   String          @map("batch_id")
-  batch     SettlementBatch @relation(fields: [batchId], references: [id])
-  action    String
-  actor     String
-  details   String?
-  createdAt DateTime        @default(now()) @map("created_at")
-
-  @@index([batchId])
-  @@map("settlement_audits")
-}
-
 // Notifications multi-canal (ALP-143).
 model NotificationLog {
   id                String              @id @default(uuid())
@@ -714,78 +460,6 @@ model ReconciliationDiscrepancy {
   @@map("reconciliation_discrepancies")
 }
 
-// Réconciliation du float wallet (ALP-175). Vérifie l'intégrité interne du
-// sous-système wallet : Σ soldes == Σ transactions signées, et l'exposition
-// float sur les comptes de collecte opérateurs.
-model WalletReconciliationRun {
-  id                      String   @id @default(uuid())
-  runDate                 DateTime @map("run_date")
-  walletCount             Int      @map("wallet_count")
-  totalBalanceCents       BigInt   @map("total_balance_cents") // Σ soldes courants
-  expectedBalanceCents    BigInt   @map("expected_balance_cents") // Σ txs SUCCESSFUL signées
-  driftCents              BigInt   @map("drift_cents") // total − expected (doit être 0)
-  cashInCents             BigInt   @map("cash_in_cents")
-  cashOutCents            BigInt   @map("cash_out_cents")
-  payCents                BigInt   @map("pay_cents")
-  floatExposureCents      BigInt   @map("float_exposure_cents") // cash-in − cash-out
-  inconsistentWalletCount Int      @default(0) @map("inconsistent_wallet_count")
-  alert                   Boolean  @default(false)
-  reportJson              Json     @map("report_json")
-  createdAt               DateTime @default(now()) @map("created_at")
-
-  @@index([runDate])
-  @@map("wallet_reconciliation_runs")
-}
-
-// Grand livre comptable en partie double. Source de vérité financière :
-// immutable et auditable via chaînage cryptographique (cf. LedgerService).
-model LedgerAccount {
-  id         String                  @id @default(uuid())
-  merchantId String?                 @map("merchant_id")
-  name       String
-  type       AccountType
-  createdAt  DateTime                @default(now()) @map("created_at")
-  entries    JournalEntry[]
-  snapshots  LedgerBalanceSnapshot[]
-
-  @@unique([merchantId, name])
-  @@map("ledger_accounts")
-}
-
-// Lignes d'écriture immuables. Aucune opération UPDATE/DELETE n'est exposée
-// par LedgerService sur ce modèle — toute correction se fait par contre-écriture.
-model JournalEntry {
-  id            String         @id @default(uuid())
-  sequence      BigInt         @default(autoincrement())
-  transactionId String         @map("transaction_id")
-  accountId     String         @map("account_id")
-  account       LedgerAccount  @relation(fields: [accountId], references: [id])
-  direction     EntryDirection
-  amount        BigInt
-  currency      String
-  description   String?
-  prevHash      String         @map("prev_hash")
-  hash          String
-  createdAt     DateTime       @default(now()) @map("created_at")
-
-  @@index([accountId])
-  @@index([transactionId])
-  @@index([sequence])
-  @@map("journal_entries")
-}
-
-model LedgerBalanceSnapshot {
-  id           String        @id @default(uuid())
-  accountId    String        @map("account_id")
-  account      LedgerAccount @relation(fields: [accountId], references: [id])
-  balance      BigInt
-  asOfSequence BigInt        @map("as_of_sequence")
-  createdAt    DateTime      @default(now()) @map("created_at")
-
-  @@index([accountId, asOfSequence])
-  @@map("ledger_balance_snapshots")
-}
-
 // Tokens push Expo pour notifications marchands (ALP-150).
 model PushToken {
   id         String   @id @default(uuid())
@@ -797,21 +471,6 @@ model PushToken {
   @@unique([merchantId, token])
   @@index([merchantId])
   @@map("push_tokens")
-}
-
-// Taux de change (ALP-151) : 1 unité de `base` = `rate` unités de `quote`.
-// Alimentés en interne (configurable / seed) — pas d'API externe requise.
-model CurrencyRate {
-  id        String   @id @default(uuid())
-  base      String
-  quote     String
-  rate      Decimal  @db.Decimal(20, 10)
-  source    String   @default("manual")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@unique([base, quote])
-  @@map("currency_rates")
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -934,130 +593,3 @@ model MerchantMemberEvent {
 // détenir les fonds. Les entités ci-dessous sont des règles/instructions/miroirs,
 // aucun compte ne « détient » de la valeur.
 // ─────────────────────────────────────────────────────────────────────────────
-
-enum PartnerType {
-  BANK
-  MOBILE_OPERATOR
-  CARD_SCHEME
-  CARD_ISSUER // émetteur/BIN sponsor (l'émetteur LÉGAL des cartes, pas nous)
-  PSP
-}
-
-enum PartnerStatus {
-  TEST
-  ACTIVE
-  INACTIVE
-}
-
-enum PaymentMethodType {
-  CARD
-  MOBILE_MONEY
-  BANK_TRANSFER
-}
-
-// Partenaire financier. Un partenaire = un adapter côté code (port/adapter).
-model Partner {
-  id             String              @id @default(uuid())
-  code           String              @unique // ex "MTN_CG", "SPONSOR_BANK", "VISA"
-  name           String
-  type           PartnerType
-  country        String // ISO-3166 alpha-2
-  currency       String // devise principale
-  status         PartnerStatus       @default(TEST)
-  sandboxBaseUrl String?             @map("sandbox_base_url")
-  prodBaseUrl    String?             @map("prod_base_url")
-  timeoutMs      Int                 @default(15000) @map("timeout_ms")
-  maxRetries     Int                 @default(2) @map("max_retries")
-  credentials    PartnerCredential[]
-  routingRules   RoutingRule[]
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
-
-  @@map("partners")
-}
-
-// Credentials partenaires — chiffrés au repos (AES-256-GCM, common/security/pii-crypto).
-model PartnerCredential {
-  id             String   @id @default(uuid())
-  partnerId      String   @map("partner_id")
-  partner        Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  environment    String // "sandbox" | "production"
-  keyName        String   @map("key_name")
-  valueEncrypted Bytes    @map("value_encrypted")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@unique([partnerId, environment, keyName])
-  @@map("partner_credentials")
-}
-
-// Règle de routage : conditions à NULL = wildcard. Évaluées par priorité croissante.
-model RoutingRule {
-  id              String             @id @default(uuid())
-  name            String
-  priority        Int                @default(100)
-  enabled         Boolean            @default(true)
-  country         String?
-  currency        String?
-  method          PaymentMethodType?
-  minAmountCents  BigInt?            @map("min_amount_cents")
-  maxAmountCents  BigInt?            @map("max_amount_cents")
-  merchantSegment String?            @map("merchant_segment")
-  binPrefix       String?            @map("bin_prefix")
-  partnerId       String             @map("partner_id")
-  partner         Partner            @relation(fields: [partnerId], references: [id])
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-
-  @@index([enabled, priority])
-  @@map("routing_rules")
-}
-
-// Commission TECHNOLOGIQUE facturée par AlphaPay (pas les flux de fonds bruts).
-model FeeProfile {
-  id          String     @id @default(uuid())
-  name        String
-  description String?
-  isDefault   Boolean    @default(false) @map("is_default")
-  rules       FeeRule[]
-  merchants   Merchant[]
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
-
-  @@map("fee_profiles")
-}
-
-model FeeRule {
-  id             String             @id @default(uuid())
-  feeProfileId   String             @map("fee_profile_id")
-  feeProfile     FeeProfile         @relation(fields: [feeProfileId], references: [id], onDelete: Cascade)
-  method         PaymentMethodType? // NULL = toutes méthodes
-  partnerId      String?            @map("partner_id")
-  minAmountCents BigInt?            @map("min_amount_cents")
-  maxAmountCents BigInt?            @map("max_amount_cents")
-  percentBps     Int                @default(0) @map("percent_bps")
-  fixedCents     BigInt             @default(0) @map("fixed_cents")
-  currency       String             @default("XAF")
-
-  @@index([feeProfileId])
-  @@map("fee_rules")
-}
-
-// MIROIR des reversements effectués par les partenaires vers les marchands.
-// AlphaPay n'exécute pas le virement : on garde une trace pour réconciliation/reporting.
-model SettlementRecord {
-  id          String    @id @default(uuid())
-  partnerId   String    @map("partner_id")
-  merchantId  String    @map("merchant_id")
-  externalRef String?   @map("external_ref") // référence du settlement chez le partenaire
-  grossCents  BigInt    @map("gross_cents")
-  feeCents    BigInt    @map("fee_cents") // notre commission techno
-  netCents    BigInt    @map("net_cents") // net reversé par le partenaire
-  currency    String
-  settledAt   DateTime? @map("settled_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-
-  @@index([merchantId])
-  @@index([partnerId])
-  @@map("settlement_records")
-}

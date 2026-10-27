@@ -23,7 +23,7 @@ export async function createTestApp(
   if (configure) builder = configure(builder);
   const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication();
-  // Requis : WalletModule déclare des @WebSocketGateway(). Sans adapter
+  // Requis : WebhooksModule déclare un @WebSocketGateway(). Sans adapter
   // explicite, Nest tente le driver socket.io par défaut (absent) et
   // `process.exit(1)` au lieu de lever une exception — même config que main.ts.
   app.useWebSocketAdapter(new WsAdapter(app));

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Card, Button, Badge, Table, td } from '../ui';
+import { Card, Button, Badge } from '../ui';
 
-// Recherche marchand : agrège le dossier KYC et les batchs settlement à partir
-// des endpoints internes existants (filtrage par merchantId).
+// Recherche marchand : retrouve le dossier KYC à partir de l'endpoint interne
+// existant (filtrage par merchantId). Fiche marchand complète : T-91.
 export default function Search() {
   const [q, setQ] = useState('');
   const [result, setResult] = useState(null);
@@ -14,11 +14,8 @@ export default function Search() {
     if (!q.trim()) return;
     setBusy(true);
     try {
-      const [kyc, settlements] = await Promise.all([
-        api.get('/internal/kyc/cases').then((r) => r.data.filter((c) => c.merchantId === q.trim())),
-        api.get('/internal/settlements').then((r) => r.data.filter((b) => b.merchantId === q.trim())),
-      ]);
-      setResult({ kyc, settlements });
+      const kyc = await api.get('/internal/kyc/cases').then((r) => r.data.filter((c) => c.merchantId === q.trim()));
+      setResult({ kyc });
     } finally { setBusy(false); }
   };
 
@@ -40,16 +37,6 @@ export default function Search() {
               result.kyc.map((c) => (
                 <div key={c.id} style={{ fontSize: 13 }}>Statut <Badge value={c.status} /> · score {c.smileScore ?? '—'} · screening {c.screeningHit ? 'HIT' : 'clean'}</div>
               ))}
-          </Card>
-          <Card title="Settlements">
-            <Table columns={['Batch', 'Net (centimes)', 'Statut']} rows={result.settlements} empty="Aucun batch"
-              renderRow={(b) => (
-                <tr key={b.id}>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }}>{b.batchNumber}</td>
-                  <td style={td}>{(Number(b.netCents) / 100).toLocaleString('fr-FR')}</td>
-                  <td style={td}><Badge value={b.status} /></td>
-                </tr>
-              )} />
           </Card>
         </>
       )}

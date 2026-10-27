@@ -56,7 +56,7 @@ async function bootstrap() {
   app.use(
     bodyGuard({
       maxBytes: MAX_BODY_BYTES,
-      formUrlencodedPaths: ["/webhooks/notifications/africastalking", "/ussd"],
+      formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
       // Upload de pièce d'identité (onboarding développeur) : multipart borné à 6 MiB.
       multipartPaths: ["/v1/onboarding/developer"],
     }),
@@ -151,44 +151,6 @@ async function bootstrap() {
       legacyHeaders: false,
       store: createRateLimitStore('onboarding'),
       message: { message: 'Trop de tentatives d\'inscription, réessayez plus tard.' },
-    }),
-  );
-
-  // /v1/wallet/auth : auth PIN — brute-force protection renforcée
-  app.use(
-    "/v1/wallet/auth",
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      limit: 10,
-      standardHeaders: true,
-      legacyHeaders: false,
-      store: createRateLimitStore("wallet-auth"),
-      message: { message: "Trop de tentatives, réessayez dans 15 minutes." },
-    }),
-  );
-
-  // /v1/checkout : paiement wallet sans session (phone + PIN) — anti brute-force PIN
-  app.use(
-    "/v1/checkout",
-    rateLimit({
-      windowMs: 15 * 60 * 1000,
-      limit: 20,
-      standardHeaders: true,
-      legacyHeaders: false,
-      store: createRateLimitStore("checkout"),
-      message: { message: "Trop de tentatives de paiement, réessayez dans 15 minutes." },
-    }),
-  );
-
-  // /v1/wallet/callbacks : trafic opérateur uniquement, pas de rate-limit strict
-  app.use(
-    "/v1/wallet/callbacks",
-    rateLimit({
-      windowMs: 60 * 1000,
-      limit: 120,
-      standardHeaders: true,
-      legacyHeaders: false,
-      store: createRateLimitStore("wallet-callbacks"),
     }),
   );
 
