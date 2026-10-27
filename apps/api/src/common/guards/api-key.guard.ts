@@ -9,9 +9,11 @@ export class ApiKeyGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const apiKey: string | undefined = request.headers['x-api-key'];
+    // §7 : « Authorization: Bearer <clé> » ; X-API-Key reste accepté.
+    const bearer = /^Bearer\s+(\S+)$/i.exec(request.headers['authorization'] ?? '')?.[1];
+    const apiKey: string | undefined = bearer ?? request.headers['x-api-key'];
 
-    if (!apiKey) throw new UnauthorizedException('X-API-Key manquant');
+    if (!apiKey) throw new UnauthorizedException('Clé API manquante (Authorization: Bearer …)');
 
     // 1. Nouvelle clé hachée (pk_<mode>_<prefix>_<secret>) : lookup par prefix.
     const parsed = parseApiKey(apiKey);

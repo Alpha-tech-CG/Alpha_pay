@@ -1,14 +1,12 @@
 import { Controller, ForbiddenException, Get, Inject, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { PrismaClient, TransactionStatus } from '@paybrain/database';
-import { PUBLIC_PAYMENT_STATUS } from '@paybrain/shared';
 import { afterCursor, decodeCursor, page, parseLimit } from '../../common/pagination/cursor';
 import { SessionGuard } from '../auth/session.guard';
 import { StoresService } from '../stores/stores.service';
 import { RequireMemberGuard } from '../team/auth/require-member.guard';
 import { presentPayment } from './payment.presenter';
-
-const STATUS_BY_LABEL = Object.fromEntries(Object.entries(PUBLIC_PAYMENT_STATUS).map(([k, v]) => [v, k])) as Record<string, TransactionStatus>;
+import { STATUS_BY_LABEL } from './payments.controller';
 
 /**
  * Paiements vus depuis le tableau de bord (§M1, §M6). Le périmètre dépend du
@@ -46,7 +44,7 @@ export class MerchantPaymentsController {
         merchantId,
         livemode: mode === 'live',
         ...(tillId ? { tillId } : visible === 'all' ? {} : { tillId: { in: visible } }),
-        ...(status ? { status: STATUS_BY_LABEL[status] ?? (status as TransactionStatus) } : {}),
+        ...(status ? { status: STATUS_BY_LABEL[status] ?? (status.toUpperCase() as TransactionStatus) } : {}),
         ...afterCursor(decodeCursor(startingAfter)),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],

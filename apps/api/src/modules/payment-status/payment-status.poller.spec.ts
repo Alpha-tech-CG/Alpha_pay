@@ -33,6 +33,7 @@ describe('PaymentStatusPoller', () => {
         update: jest.fn(async ({ where, data }) => Object.assign(txs.get(where.id), data)),
         findFirst: jest.fn(async () => null),
         findUnique: jest.fn(async ({ where }) => txs.get(where.id) ?? null),
+        findUniqueOrThrow: jest.fn(async ({ where }) => txs.get(where.id)),
       },
       outboxEvent: { create: jest.fn() },
     };
@@ -54,10 +55,10 @@ describe('PaymentStatusPoller', () => {
   });
 
   const pay = (phone: string) =>
-    payments.initiatePayment({ amount: 1000, currency: 'XAF', phone, externalId: `e-${phone}`, operator: 'MTN' } as any, 'm');
+    payments.initiatePayment({ amount: 1000, currency: 'XAF', phone, reference: `e-${phone}`, operator: 'MTN' } as any, 'm');
 
   it('relance à intervalles croissants puis applique le statut réussi confirmé', async () => {
-    const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.slow); // réussit après 15 s
+    const { id: transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.slow); // réussit après 15 s
 
     now += 5_000;
     await queue.drainOnce('payment-status'); // relance 0 : toujours en attente
@@ -71,7 +72,7 @@ describe('PaymentStatusPoller', () => {
 
   it('déclare expiré un paiement resté sans réponse au-delà du délai', async () => {
     process.env.PAYMENT_EXPIRY_SECONDS = '20';
-    const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.expire); // l'opérateur ne répond qu'à 30 s
+    const { id: transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.expire); // l'opérateur ne répond qu'à 30 s
     now += 25_000;
     await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'EXPIRED', 'delai_depasse', 'relance : expiration');
@@ -79,7 +80,7 @@ describe('PaymentStatusPoller', () => {
   });
 
   it('ne fait rien pour un paiement déjà final (callback arrivé avant la relance)', async () => {
-    const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.success);
+    const { id: transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.success);
     txs.get(transactionId).status = 'SUCCEEDED';
     await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).not.toHaveBeenCalled();

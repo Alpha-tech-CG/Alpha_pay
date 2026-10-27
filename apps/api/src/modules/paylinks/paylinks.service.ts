@@ -77,7 +77,7 @@ export class PaylinksService {
         amount: link.amount,
         currency: link.currency,
         phone,
-        externalId: `paylink-${link.id}`,
+        reference: `paylink-${link.id}`,
         description: link.description,
       },
       link.merchantId,

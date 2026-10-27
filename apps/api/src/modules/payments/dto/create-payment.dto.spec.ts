@@ -10,7 +10,7 @@ describe('CreatePaymentDto (validation stricte ALP-152)', () => {
     amount: 100,
     currency: 'XAF',
     phone: '+242066000000',
-    externalId: 'order_123-abc',
+    reference: 'order_123-abc',
     description: 'Paiement test',
   };
 
@@ -46,8 +46,8 @@ describe('CreatePaymentDto (validation stricte ALP-152)', () => {
     await expectReject({ ...valid, currency: 'BTC' });
   });
 
-  it('rejette un externalId hors charset', async () => {
-    await expectReject({ ...valid, externalId: 'bad id!' });
+  it('rejette un reference hors charset', async () => {
+    await expectReject({ ...valid, reference: 'bad id!' });
   });
 
   it('rejette une description > 200 caractères', async () => {

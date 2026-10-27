@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nest
 import { PrismaClient } from '@paybrain/database';
 import { generateApiKey, hashApiKeySecret } from '../../common/security/api-key';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
+import { ApiError } from '../../common/errors/api-error';
 
 @Injectable()
 export class ApiKeysService {
@@ -23,6 +24,13 @@ export class ApiKeysService {
   /** Crée une clé et renvoie le secret EN CLAIR une seule fois. */
   async create(merchantId: string, dto: CreateApiKeyDto) {
     const mode = dto.mode ?? 'test';
+    // T-61 : pas de clé live sans KYB approuvé (§4.6).
+    if (mode === 'live') {
+      const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { onboardingStatus: true } });
+      if (merchant?.onboardingStatus !== 'APPROVED') {
+        throw new ApiError(403, 'kyb_non_valide', 'Les clés live sont disponibles après validation de votre dossier (KYB).');
+      }
+    }
     const { full, prefix, secret } = generateApiKey(mode);
     const record = await this.prisma.apiKey.create({
       data: {

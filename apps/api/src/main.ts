@@ -106,20 +106,20 @@ async function bootstrap() {
     }),
   );
 
-  // /payments est plus coûteux (déclenche un appel MTN/Airtel par requête) :
+  // POST /v1/payments est plus coûteux (déclenche un appel MTN/Airtel par requête) :
   // limite plus stricte pour empêcher l'abus ou l'épuisement de quota opérateur.
-  app.use(
-    "/payments",
-    rateLimit({
-      windowMs: 60 * 1000,
-      limit: 20,
-      standardHeaders: true,
-      legacyHeaders: false,
-      store: createRateLimitStore("payments"),
-      message: {
-        error: { code: "trop_de_requetes", message: "Trop de paiements initiés, réessayez dans une minute." },
-      },
-    }),
+  const paymentsLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: createRateLimitStore("payments"),
+    message: {
+      error: { code: "trop_de_requetes", message: "Trop de paiements initiés, réessayez dans une minute." },
+    },
+  });
+  app.use("/v1/payments", (req: any, res: any, next: any) =>
+    req.method === "POST" ? paymentsLimiter(req, res, next) : next(),
   );
 
   // /webhooks reçoit du trafic serveur-à-serveur (MTN/Airtel) pouvant venir
@@ -178,7 +178,7 @@ async function bootstrap() {
     )
     .setVersion("1.0")
     .setOpenAPIVersion("3.1.0")
-    .addApiKey({ type: "apiKey", name: "X-API-Key", in: "header" }, "ApiKey")
+    .addBearerAuth({ type: "http", scheme: "bearer", description: "Clé API ap_test_… ou ap_live_…" }, "ApiKey")
     .addBearerAuth({ type: "http", scheme: "bearer" }, "Bearer")
     .addTag("Paiements", "Initier et suivre les paiements mobile money")
     .addTag(

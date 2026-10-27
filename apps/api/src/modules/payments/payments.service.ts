@@ -1,11 +1,10 @@
-import { BadRequestException, Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
-import { PrismaClient, TransactionStatus } from '@paybrain/database';
-import { detectOperator, publicPaymentStatus, toE164 } from '@paybrain/shared';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { PrismaClient, Transaction, TransactionStatus } from '@paybrain/database';
+import { detectOperator, toE164 } from '@paybrain/shared';
 import { PaymentStatusResult, ProviderError } from '@paybrain/providers';
-import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ApiError } from '../../common/errors/api-error';
 import { decryptField, deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
-import { toMajorAmount, toMinor } from '../../common/money';
+import { toMinor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
 
@@ -23,6 +22,17 @@ export function toStoredStatus(result: PaymentStatusResult): { status: Transacti
   return result.failureReason ? { status, failureReason: result.failureReason } : { status };
 }
 
+/** Demande de paiement normalisée (API publique, liens, page hébergée). */
+export interface InitiatePaymentInput {
+  amount: number;
+  currency: string;
+  phone: string;
+  reference: string;
+  operator?: MobileMoneyOperator;
+  description?: string | null;
+  tillId?: string;
+}
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -33,28 +43,32 @@ export class PaymentsService {
     @Inject(JobQueue) private readonly queue: JobQueue,
   ) {}
 
-  async initiatePayment(dto: CreatePaymentDto, merchantId: string, livemode = false) {
-    const existing = await this.prisma.transaction.findFirst({
-      where: { merchantId, livemode, externalId: dto.externalId },
-    });
-    if (existing) {
-      return {
-        referenceId: existing.mtnReferenceId,
-        transactionId: existing.id,
-        operator: existing.operator,
-        status: existing.status,
-        idempotent: true,
-      };
-    }
+  /**
+   * Crée un paiement et le demande à l'opérateur. Renvoie la transaction à
+   * jour. Une même référence (par marchand et par mode) renvoie le paiement
+   * existant sans nouvel appel opérateur.
+   */
+  async initiatePayment(input: InitiatePaymentInput, merchantId: string, livemode = false): Promise<Transaction> {
+    const existing = await this.prisma.transaction.findFirst({ where: { merchantId, livemode, externalId: input.reference } });
+    if (existing) return existing;
+
+    if (livemode) await this.assertLiveAllowed(merchantId);
 
     let phone: string;
     let operator: MobileMoneyOperator;
     try {
-      phone = toE164(dto.phone);
+      phone = toE164(input.phone);
       // L'opérateur est déduit du préfixe (configuration), toujours modifiable par l'appelant (§4.2).
-      operator = dto.operator ?? detectOperator(phone);
+      operator = input.operator ?? detectOperator(phone);
     } catch (err: any) {
       throw new ApiError(400, 'telephone_invalide', err.message, 'phone');
+    }
+
+    let storeId: string | undefined;
+    if (input.tillId) {
+      const till = await this.prisma.till.findFirst({ where: { id: input.tillId, merchantId, active: true }, select: { storeId: true } });
+      if (!till) throw new ApiError(404, 'caisse_introuvable', 'Caisse introuvable ou désactivée', 'till_id');
+      storeId = till.storeId;
     }
 
     const transaction = await this.prisma.transaction.create({
@@ -62,28 +76,38 @@ export class PaymentsService {
         merchantId,
         operator,
         livemode,
-        externalId: dto.externalId,
-        amount: toMinor(dto.amount, dto.currency),
-        currency: dto.currency,
+        storeId,
+        tillId: input.tillId,
+        externalId: input.reference,
+        amount: toMinor(input.amount, input.currency),
+        currency: input.currency,
         // PII chiffrée (ALP-164) : le clair ne sert qu'à l'appel opérateur ci-dessous.
         payerPhoneEnc: new Uint8Array(encryptField(phone)),
         payerPhoneHash: new Uint8Array(deterministicHash(phone)),
         payerPhoneMask: maskPhone(phone),
         status: 'PENDING',
-        payerMessage: dto.description,
+        payerMessage: input.description,
       },
     });
 
     try {
-      const providerRef = await this.requestToProvider(transaction.id, merchantId, operator, livemode, {
+      await this.requestToProvider(transaction.id, merchantId, operator, livemode, {
         amountMinor: transaction.amount,
-        currency: dto.currency,
+        currency: input.currency,
         phone,
-        description: dto.description,
+        description: input.description,
       });
-      return { referenceId: providerRef, transactionId: transaction.id, operator, status: 'PENDING' };
     } catch (err) {
-      return this.handleRequestFailure(transaction.id, operator, livemode, err);
+      await this.handleRequestFailure(transaction.id, operator, livemode, err);
+    }
+    return this.prisma.transaction.findUniqueOrThrow({ where: { id: transaction.id } });
+  }
+
+  /** Mode live : KYB approuvé obligatoire (§4.6, T-61). */
+  async assertLiveAllowed(merchantId: string): Promise<void> {
+    const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { onboardingStatus: true } });
+    if (merchant?.onboardingStatus !== 'APPROVED') {
+      throw new ApiError(403, 'kyb_non_valide', 'Le mode live est disponible après validation de votre dossier (KYB).');
     }
   }
 
@@ -124,10 +148,10 @@ export class PaymentsService {
    * Erreur réessayable (réseau, 5xx, 429) : la transaction reste en attente et
    * l'outbox rejoue la demande. Erreur définitive : la transaction échoue.
    */
-  private async handleRequestFailure(transactionId: string, operator: MobileMoneyOperator, livemode: boolean, err: unknown) {
+  private async handleRequestFailure(transactionId: string, operator: MobileMoneyOperator, livemode: boolean, err: unknown): Promise<void> {
     if (err instanceof ProviderError && err.code === 'not_configured') {
       await this.prisma.transaction.update({ where: { id: transactionId }, data: { status: 'FAILED', failureReason: err.code } });
-      throw new UnprocessableEntityException({ code: 'operateur_non_connecte', message: err.message });
+      throw new ApiError(422, 'operateur_non_connecte', err.message);
     }
     const reason = err instanceof ProviderError ? `${err.code}: ${err.message}` : (err as Error)?.message ?? 'Erreur opérateur';
     this.logger.warn(`Échec de la demande opérateur pour la transaction ${transactionId}: ${reason}`);
@@ -136,11 +160,10 @@ export class PaymentsService {
       await this.prisma.outboxEvent.create({
         data: { transactionId, type: 'payment.request', payload: { operator, livemode }, status: 'PENDING', lastError: reason },
       });
-      return { referenceId: null, transactionId, operator, status: 'PENDING', retrying: true };
+      return;
     }
 
     await this.prisma.transaction.update({ where: { id: transactionId }, data: { status: 'FAILED', failureReason: reason } });
-    return { referenceId: null, transactionId, operator, status: 'FAILED', error: reason };
   }
 
   /** Rejoue une demande opérateur depuis l'outbox (numéro déchiffré à la volée). */
@@ -161,16 +184,9 @@ export class PaymentsService {
     return toStoredStatus(await provider.getPaymentStatus(tx.mtnReferenceId));
   }
 
-  async getStatus(referenceId: string, merchantId: string, livemode = false) {
-    const transaction = await this.prisma.transaction.findFirst({
-      where: { mtnReferenceId: referenceId, merchantId, livemode },
-    });
-    if (!transaction) throw new BadRequestException('Transaction introuvable');
-    // Montant en unités majeures (unités mineures en interne, D-007), statut en libellé public (D-016).
-    return {
-      ...transaction,
-      amount: toMajorAmount(transaction.amount, transaction.currency),
-      status: publicPaymentStatus(transaction.status),
-    };
+  async findOne(id: string, merchantId: string, livemode: boolean): Promise<Transaction> {
+    const transaction = await this.prisma.transaction.findFirst({ where: { id, merchantId, livemode } });
+    if (!transaction) throw new ApiError(404, 'paiement_introuvable', 'Paiement introuvable', 'id');
+    return transaction;
   }
 }

@@ -9,19 +9,41 @@ export interface PayBrainOptions {
 }
 
 export interface CreatePaymentInput {
+  /** Unités majeures (XAF : francs entiers). */
   amount: number;
-  currency: 'XAF' | 'EUR' | 'USD';
+  currency?: 'XAF' | 'EUR' | 'USD';
   phone: string;
-  externalId: string;
+  /** Référence du marchand, unique par mode. */
+  reference: string;
+  operator?: 'mtn' | 'airtel';
   description?: string;
+  till_id?: string;
 }
 
-export interface PaymentResult {
-  referenceId: string | null;
-  transactionId: string;
-  operator: 'MTN' | 'AIRTEL';
-  status: 'PENDING' | 'SUCCESSFUL' | 'FAILED' | 'REJECTED';
-  error?: string;
+/** Paiement tel que renvoyé par /v1/payments. */
+export interface Payment {
+  id: string;
+  object: 'payment';
+  livemode: boolean;
+  status: 'en_attente' | 'réussi' | 'échoué' | 'expiré' | 'annulé';
+  amount: number;
+  currency: string;
+  operator: 'mtn' | 'airtel';
+  payer_phone: string | null;
+  reference: string;
+  description: string | null;
+  failure_reason: string | null;
+  store_id: string | null;
+  till_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface List<T> {
+  object: 'list';
+  data: T[];
+  has_more: boolean;
+  next_cursor: string | null;
 }
 
 export class PayBrainError extends Error {
@@ -41,7 +63,7 @@ export class PayBrainError extends Error {
  * ```ts
  * const pb = new PayBrain({ apiKey: process.env.PAYBRAIN_KEY! });
  * const payment = await pb.createPayment({
- *   amount: 1000, currency: 'XAF', phone: '+242066123456', externalId: 'cmd-1',
+ *   amount: 1000, phone: '+242066123456', reference: 'cmd-1',
  * });
  * ```
  */
@@ -58,12 +80,17 @@ export class PayBrain {
   }
 
   /** Initie un paiement. Une `Idempotency-Key` est générée si non fournie. */
-  createPayment(input: CreatePaymentInput, idempotencyKey: string = randomUUID()): Promise<PaymentResult> {
-    return this.request('POST', '/payments', input, { 'Idempotency-Key': idempotencyKey });
+  createPayment(input: CreatePaymentInput, idempotencyKey: string = randomUUID()): Promise<Payment> {
+    return this.request('POST', '/v1/payments', input, { 'Idempotency-Key': idempotencyKey });
   }
 
-  getPayment(referenceId: string): Promise<PaymentResult> {
-    return this.request('GET', `/payments/${encodeURIComponent(referenceId)}`);
+  getPayment(id: string): Promise<Payment> {
+    return this.request('GET', `/v1/payments/${encodeURIComponent(id)}`);
+  }
+
+  listPayments(params: { limit?: number; starting_after?: string; status?: Payment['status'] } = {}): Promise<List<Payment>> {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]));
+    return this.request('GET', `/v1/payments${qs.size ? `?${qs}` : ''}`);
   }
 
   createPaylink(input: { amount: number; currency: string; description: string; expiresInMinutes?: number }) {
@@ -84,7 +111,7 @@ export class PayBrain {
     body?: unknown,
     extraHeaders: Record<string, string> = {},
   ): Promise<T> {
-    const headers: Record<string, string> = { 'X-API-Key': this.apiKey, ...extraHeaders };
+    const headers: Record<string, string> = { Authorization: `Bearer ${this.apiKey}`, ...extraHeaders };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
 
     const res = await this.fetchImpl(`${this.baseUrl}${path}`, {

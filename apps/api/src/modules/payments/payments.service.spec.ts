@@ -1,4 +1,3 @@
-import { UnprocessableEntityException } from '@nestjs/common';
 import { MOCK_MOBILE_MONEY_NUMBERS, MockMobileMoneyProvider, ProviderError } from '@paybrain/providers';
 import { PaymentsService, toStoredStatus } from './payments.service';
 import { InMemoryJobQueue } from '../../common/queue/in-memory-job-queue';
@@ -9,11 +8,26 @@ describe('PaymentsService', () => {
   let provider: { requestPayment: jest.Mock; getPaymentStatus: jest.Mock };
   let service: PaymentsService;
   let queue: InMemoryJobQueue;
+  let rows: Map<string, any>;
+  /** create() qui conserve la ligne pour la relecture finale. */
+  const created = (id: string) => async ({ data }: any) => {
+    const row = { id, ...data };
+    rows.set(id, row);
+    return row;
+  };
 
   beforeEach(() => {
+    rows = new Map();
     prisma = {
-      transaction: { create: jest.fn(), update: jest.fn(), findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
+      transaction: {
+        create: jest.fn(),
+        update: jest.fn(async ({ where, data }: any) => Object.assign(rows.get(where.id) ?? {}, data)),
+        findFirst: jest.fn(),
+        findUniqueOrThrow: jest.fn(async ({ where }: any) => rows.get(where.id)),
+      },
       outboxEvent: { create: jest.fn() },
+      merchant: { findUnique: jest.fn().mockResolvedValue({ onboardingStatus: 'APPROVED' }) },
+      till: { findFirst: jest.fn() },
     };
     provider = { requestPayment: jest.fn(), getPaymentStatus: jest.fn() };
     registry = { forMerchant: jest.fn().mockResolvedValue(provider) };
@@ -23,10 +37,10 @@ describe('PaymentsService', () => {
 
   it('résout l’opérateur depuis le préfixe et envoie la demande avec l’id de transaction comme référence', async () => {
     provider.requestPayment.mockResolvedValue({ providerRef: 'ref-mtn', status: 'pending' });
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-1', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-1'));
 
     const result = await service.initiatePayment(
-      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-1' } as any,
+      { amount: 100, currency: 'EUR', phone: '46733123450', reference: 'ext-1' } as any,
       'merchant-1',
     );
 
@@ -42,7 +56,7 @@ describe('PaymentsService', () => {
       data: expect.objectContaining({ operator: 'MTN', merchantId: 'merchant-1', livemode: false }),
     });
     expect(prisma.transaction.update).toHaveBeenCalledWith({ where: { id: 'tx-1' }, data: { mtnReferenceId: 'ref-mtn' } });
-    expect(result).toEqual({ referenceId: 'ref-mtn', transactionId: 'tx-1', operator: 'MTN', status: 'PENDING' });
+    expect(result).toMatchObject({ id: 'tx-1', mtnReferenceId: 'ref-mtn', operator: 'MTN', status: 'PENDING' });
     expect(queue.jobs).toEqual([
       expect.objectContaining({ queue: 'payment-status', data: { transactionId: 'tx-1', attempt: 0 }, opts: { delayMs: 5000, jobId: 'poll-tx-1-0' } }),
     ]);
@@ -50,10 +64,10 @@ describe('PaymentsService', () => {
 
   it('transmet le mode live au registre et convertit le XAF sans décimale', async () => {
     provider.requestPayment.mockResolvedValue({ providerRef: 'r', status: 'pending' });
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-live', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-live'));
 
     await service.initiatePayment(
-      { amount: 15000, currency: 'XAF', phone: '+242060000001', externalId: 'e', operator: 'MTN' } as any,
+      { amount: 15000, currency: 'XAF', phone: '+242060000001', reference: 'e', operator: 'MTN' } as any,
       'm',
       true,
     );
@@ -65,10 +79,10 @@ describe('PaymentsService', () => {
 
   it('respecte l’opérateur choisi par l’appelant', async () => {
     provider.requestPayment.mockResolvedValue({ providerRef: 'r', status: 'pending' });
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-2', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-2'));
 
     await service.initiatePayment(
-      { amount: 50, currency: 'XAF', phone: '+242060000001', externalId: 'ext-2', operator: 'AIRTEL' } as any,
+      { amount: 50, currency: 'XAF', phone: '+242060000001', reference: 'ext-2', operator: 'AIRTEL' } as any,
       'merchant-1',
     );
 
@@ -77,7 +91,7 @@ describe('PaymentsService', () => {
 
   it('refuse un numéro sans préfixe opérateur reconnu', async () => {
     await expect(
-      service.initiatePayment({ amount: 10, currency: 'EUR', phone: '242099999999', externalId: 'ext-3' } as any, 'merchant-1'),
+      service.initiatePayment({ amount: 10, currency: 'EUR', phone: '242099999999', reference: 'ext-3' } as any, 'merchant-1'),
     ).rejects.toMatchObject({ status: 400, response: expect.objectContaining({ code: 'telephone_invalide', param: 'phone' }) });
     expect(prisma.transaction.create).not.toHaveBeenCalled();
   });
@@ -86,21 +100,21 @@ describe('PaymentsService', () => {
     prisma.transaction.findFirst.mockResolvedValue({ id: 'tx-existing', mtnReferenceId: 'ref-existing', operator: 'MTN', status: 'PENDING' });
 
     const result = await service.initiatePayment(
-      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-dup' } as any,
+      { amount: 100, currency: 'EUR', phone: '46733123450', reference: 'ext-dup' } as any,
       'merchant-1',
     );
 
     expect(prisma.transaction.create).not.toHaveBeenCalled();
     expect(provider.requestPayment).not.toHaveBeenCalled();
-    expect(result).toEqual({ referenceId: 'ref-existing', transactionId: 'tx-existing', operator: 'MTN', status: 'PENDING', idempotent: true });
+    expect(result).toMatchObject({ id: 'tx-existing', mtnReferenceId: 'ref-existing' });
   });
 
   it('erreur réseau : la transaction reste en attente et l’outbox rejouera la demande', async () => {
     provider.requestPayment.mockRejectedValue(new ProviderError('network', 'coupure', { provider: 'mtn' }));
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-net', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-net'));
 
     const result = await service.initiatePayment(
-      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-net' } as any,
+      { amount: 100, currency: 'EUR', phone: '46733123450', reference: 'ext-net' } as any,
       'merchant-1',
     );
 
@@ -110,15 +124,15 @@ describe('PaymentsService', () => {
     });
     // Aucune donnée personnelle dans l'outbox.
     expect(JSON.stringify(prisma.outboxEvent.create.mock.calls)).not.toContain('46733123450');
-    expect(result).toEqual(expect.objectContaining({ status: 'PENDING', retrying: true }));
+    expect(result).toMatchObject({ id: 'tx-net', status: 'PENDING' });
   });
 
   it('erreur définitive : la transaction passe en échec sans nouvelle tentative', async () => {
     provider.requestPayment.mockRejectedValue(new ProviderError('invalid_request', 'HTTP 400', { provider: 'mtn' }));
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-fail', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-fail'));
 
     const result = await service.initiatePayment(
-      { amount: 100, currency: 'EUR', phone: '46733123450', externalId: 'ext-fail' } as any,
+      { amount: 100, currency: 'EUR', phone: '46733123450', reference: 'ext-fail' } as any,
       'merchant-1',
     );
 
@@ -127,30 +141,53 @@ describe('PaymentsService', () => {
       data: { status: 'FAILED', failureReason: 'invalid_request: HTTP 400' },
     });
     expect(prisma.outboxEvent.create).not.toHaveBeenCalled();
-    expect(result).toEqual(expect.objectContaining({ status: 'FAILED' }));
+    expect(result).toMatchObject({ status: 'FAILED', failureReason: 'invalid_request: HTTP 400' });
   });
 
   it('compte opérateur non connecté en live : 422 operateur_non_connecte', async () => {
     registry.forMerchant.mockRejectedValue(new ProviderError('not_configured', 'Compte MTN du marchand non connecté', { provider: 'mtn' }));
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-nc', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-nc'));
 
     await expect(
-      service.initiatePayment({ amount: 100, currency: 'XAF', phone: '+242060000001', externalId: 'x', operator: 'MTN' } as any, 'm', true),
-    ).rejects.toThrow(UnprocessableEntityException);
+      service.initiatePayment({ amount: 100, currency: 'XAF', phone: '+242060000001', reference: 'x', operator: 'MTN' } as any, 'm', true),
+    ).rejects.toMatchObject({ status: 422, response: expect.objectContaining({ code: 'operateur_non_connecte' }) });
+  });
+
+  it('mode live sans KYB approuvé : 403 kyb_non_valide, aucune transaction créée (T-61)', async () => {
+    prisma.merchant.findUnique.mockResolvedValue({ onboardingStatus: 'PENDING' });
+    await expect(
+      service.initiatePayment({ amount: 100, currency: 'XAF', phone: '+242060000001', reference: 'x', operator: 'MTN' }, 'm', true),
+    ).rejects.toMatchObject({ status: 403, response: expect.objectContaining({ code: 'kyb_non_valide' }) });
+    expect(prisma.transaction.create).not.toHaveBeenCalled();
+    expect(registry.forMerchant).not.toHaveBeenCalled();
+  });
+
+  it('rattache le paiement à la caisse et à sa boutique ; caisse inconnue refusée', async () => {
+    provider.requestPayment.mockResolvedValue({ providerRef: 'r', status: 'pending' });
+    prisma.transaction.create.mockImplementation(created('tx-till'));
+    prisma.till.findFirst.mockResolvedValueOnce({ storeId: 's1' }).mockResolvedValueOnce(null);
+
+    const tx = await service.initiatePayment({ amount: 100, currency: 'XAF', phone: '+242060000001', reference: 'c1', tillId: 't1' }, 'm');
+    expect(tx).toMatchObject({ storeId: 's1', tillId: 't1' });
+    expect(prisma.till.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 't1', merchantId: 'm', active: true } }));
+
+    await expect(
+      service.initiatePayment({ amount: 100, currency: 'XAF', phone: '+242060000001', reference: 'c2', tillId: 'autre' }, 'm'),
+    ).rejects.toMatchObject({ status: 404, response: expect.objectContaining({ code: 'caisse_introuvable', param: 'till_id' }) });
   });
 
   it('de bout en bout avec l’opérateur factice : demande puis statut réussi', async () => {
     let now = 0;
     const mock = new MockMobileMoneyProvider({ now: () => now });
     registry.forMerchant.mockResolvedValue(mock);
-    prisma.transaction.create.mockImplementation(async ({ data }: any) => ({ id: 'tx-mock', ...data }));
+    prisma.transaction.create.mockImplementation(created('tx-mock'));
 
     const res = await service.initiatePayment(
-      { amount: 2500, currency: 'XAF', phone: MOCK_MOBILE_MONEY_NUMBERS.success, externalId: 'e2e', operator: 'MTN' } as any,
+      { amount: 2500, currency: 'XAF', phone: MOCK_MOBILE_MONEY_NUMBERS.success, reference: 'e2e', operator: 'MTN' } as any,
       'm',
     );
     now += 1_000;
-    const status = await service.fetchProviderStatus({ merchantId: 'm', operator: 'MTN', livemode: false, mtnReferenceId: res.referenceId! });
+    const status = await service.fetchProviderStatus({ merchantId: 'm', operator: 'MTN', livemode: false, mtnReferenceId: res.mtnReferenceId! });
     expect(status).toEqual({ status: 'SUCCEEDED' });
   });
 });
