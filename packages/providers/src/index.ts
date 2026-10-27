@@ -15,6 +15,7 @@ export { MockKycProvider } from './kyc/mock.adapter';
 
 export * from './messaging/types';
 export { MockOutbox, MockSmsProvider, MockWhatsAppProvider, MockEmailProvider } from './messaging/mock.adapters';
+export type { MockSentMessage } from './messaging/mock.adapters';
 export { InfobipSmsProvider } from './messaging/infobip.adapter';
 export type { InfobipConfig } from './messaging/infobip.adapter';
 export { MetaWhatsAppProvider } from './messaging/meta-whatsapp.adapter';
