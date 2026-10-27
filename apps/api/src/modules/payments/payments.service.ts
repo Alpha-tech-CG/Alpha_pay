@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaClient, TransactionStatus } from '@paybrain/database';
-import { detectOperator, toE164 } from '@paybrain/shared';
+import { detectOperator, publicPaymentStatus, toE164 } from '@paybrain/shared';
 import { PaymentStatusResult, ProviderError } from '@paybrain/providers';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ApiError } from '../../common/errors/api-error';
@@ -9,19 +9,18 @@ import { toMajorAmount, toMinor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
 
-/** Statut unifié fournisseur → statut stocké (en attendant l'enum de T-44). */
+/** Statut unifié fournisseur → statut stocké (correspondance 1 pour 1, §M3). */
 const STORED_STATUS: Record<PaymentStatusResult['status'], TransactionStatus> = {
   pending: 'PENDING',
-  succeeded: 'SUCCESSFUL',
+  succeeded: 'SUCCEEDED',
   failed: 'FAILED',
-  expired: 'FAILED',
-  canceled: 'REJECTED',
+  expired: 'EXPIRED',
+  canceled: 'CANCELED',
 };
 
 export function toStoredStatus(result: PaymentStatusResult): { status: TransactionStatus; failureReason?: string } {
   const status = STORED_STATUS[result.status];
-  const failureReason = result.status === 'expired' ? result.failureReason ?? 'EXPIRED' : result.failureReason;
-  return failureReason ? { status, failureReason } : { status };
+  return result.failureReason ? { status, failureReason: result.failureReason } : { status };
 }
 
 @Injectable()
@@ -167,7 +166,11 @@ export class PaymentsService {
       where: { mtnReferenceId: referenceId, merchantId, livemode },
     });
     if (!transaction) throw new BadRequestException('Transaction introuvable');
-    // Expose le montant en unités majeures (unités mineures en interne, D-007).
-    return { ...transaction, amount: toMajorAmount(transaction.amount, transaction.currency) };
+    // Montant en unités majeures (unités mineures en interne, D-007), statut en libellé public (D-016).
+    return {
+      ...transaction,
+      amount: toMajorAmount(transaction.amount, transaction.currency),
+      status: publicPaymentStatus(transaction.status),
+    };
   }
 }

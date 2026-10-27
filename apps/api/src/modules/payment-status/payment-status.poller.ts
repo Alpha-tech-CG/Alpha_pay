@@ -54,7 +54,7 @@ export class PaymentStatusPoller {
     if (!tx || tx.status !== 'PENDING' || !tx.mtnReferenceId) return;
 
     if (Date.now() - tx.createdAt.getTime() >= paymentExpiryMs()) {
-      await this.webhooks.applyVerifiedStatus(tx, 'FAILED', 'EXPIRED', 'relance : expiration');
+      await this.webhooks.applyVerifiedStatus(tx, 'EXPIRED', 'delai_depasse', 'relance : expiration');
       return;
     }
 

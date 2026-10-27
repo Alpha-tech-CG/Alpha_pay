@@ -151,16 +151,16 @@ describe('PaymentsService', () => {
     );
     now += 1_000;
     const status = await service.fetchProviderStatus({ merchantId: 'm', operator: 'MTN', livemode: false, mtnReferenceId: res.referenceId! });
-    expect(status).toEqual({ status: 'SUCCESSFUL' });
+    expect(status).toEqual({ status: 'SUCCEEDED' });
   });
 });
 
 describe('toStoredStatus', () => {
   it.each([
-    [{ status: 'succeeded' }, { status: 'SUCCESSFUL' }],
+    [{ status: 'succeeded' }, { status: 'SUCCEEDED' }],
     [{ status: 'failed', failureReason: 'X' }, { status: 'FAILED', failureReason: 'X' }],
-    [{ status: 'expired' }, { status: 'FAILED', failureReason: 'EXPIRED' }],
-    [{ status: 'canceled' }, { status: 'REJECTED' }],
+    [{ status: 'expired' }, { status: 'EXPIRED' }],
+    [{ status: 'canceled' }, { status: 'CANCELED' }],
     [{ status: 'pending' }, { status: 'PENDING' }],
   ] as const)('%j → %j', (input, expected) => {
     expect(toStoredStatus(input as any)).toEqual(expected);

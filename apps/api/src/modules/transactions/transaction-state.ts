@@ -4,13 +4,14 @@ import { PrismaClient, TransactionStatus } from '@paybrain/database';
  * Machine d'état stricte des transactions (ALP-167).
  *
  * PENDING peut aller vers un état terminal ; les états terminaux sont définitifs.
- * Empêche le scénario « SUCCESSFUL puis re-PENDING » (le dernier écrivain gagne).
+ * Empêche le scénario « réussi puis de nouveau en attente » (le dernier écrivain gagne).
  */
 export const ALLOWED_TRANSITIONS: Record<TransactionStatus, TransactionStatus[]> = {
-  PENDING: ['SUCCESSFUL', 'FAILED', 'REJECTED'],
-  SUCCESSFUL: [],
+  PENDING: ['SUCCEEDED', 'FAILED', 'EXPIRED', 'CANCELED'],
+  SUCCEEDED: [],
   FAILED: [],
-  REJECTED: [],
+  EXPIRED: [],
+  CANCELED: [],
 };
 
 export class IllegalTransitionError extends Error {

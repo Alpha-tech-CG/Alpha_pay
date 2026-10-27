@@ -65,7 +65,7 @@ describe('PaymentStatusPoller', () => {
 
     now += 10_000;
     await queue.drainOnce('payment-status'); // relance 1 : réussi
-    expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'SUCCESSFUL', undefined, 'relance de statut');
+    expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'SUCCEEDED', undefined, 'relance de statut');
     expect(queue.jobs).toHaveLength(0);
   });
 
@@ -74,13 +74,13 @@ describe('PaymentStatusPoller', () => {
     const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.expire); // l'opérateur ne répond qu'à 30 s
     now += 25_000;
     await queue.drainOnce('payment-status');
-    expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'FAILED', 'EXPIRED', 'relance : expiration');
+    expect(webhooks.applyVerifiedStatus).toHaveBeenCalledWith(expect.objectContaining({ id: transactionId }), 'EXPIRED', 'delai_depasse', 'relance : expiration');
     delete process.env.PAYMENT_EXPIRY_SECONDS;
   });
 
   it('ne fait rien pour un paiement déjà final (callback arrivé avant la relance)', async () => {
     const { transactionId } = await pay(MOCK_MOBILE_MONEY_NUMBERS.success);
-    txs.get(transactionId).status = 'SUCCESSFUL';
+    txs.get(transactionId).status = 'SUCCEEDED';
     await queue.drainOnce('payment-status');
     expect(webhooks.applyVerifiedStatus).not.toHaveBeenCalled();
     expect(queue.jobs).toHaveLength(0);

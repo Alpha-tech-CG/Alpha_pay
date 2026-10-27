@@ -14,10 +14,10 @@ export class StatsService {
         _count: { id: true },
         _sum: { amount: true },
       }),
-      // Volume encaissé (SUCCESSFUL) ventilé par opérateur — alimente la hero card.
+      // Volume encaissé (réussi) ventilé par opérateur.
       this.prisma.transaction.groupBy({
         by: ['operator'],
-        where: { merchantId, livemode, status: 'SUCCESSFUL' },
+        where: { merchantId, livemode, status: 'SUCCEEDED' },
         _count: { id: true },
         _sum: { amount: true },
       }),

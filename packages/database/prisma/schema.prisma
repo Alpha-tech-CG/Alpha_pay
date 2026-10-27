@@ -7,11 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Statuts unifiés AlphaPay (§M3, D-016). Libellés publics : en_attente,
+// réussi, échoué, expiré, annulé.
 enum TransactionStatus {
   PENDING
-  SUCCESSFUL
+  SUCCEEDED
   FAILED
-  REJECTED
+  EXPIRED
+  CANCELED
 }
 
 enum Operator {

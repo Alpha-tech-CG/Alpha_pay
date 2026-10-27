@@ -49,13 +49,13 @@ export class ReconciliationService {
     );
     const dayEnd = new Date(dayStart.getTime() + 24 * 3600 * 1000);
 
-    // Transactions encaissées (SUCCESSFUL) de l'opérateur pour la journée.
+    // Paiements réussis de l'opérateur pour la journée.
     const txns = await this.prisma.transaction.findMany({
       where: {
         operator,
         // Un relevé opérateur ne porte que sur de vrais paiements (mode live, §4.6).
         livemode: true,
-        status: "SUCCESSFUL",
+        status: "SUCCEEDED",
         createdAt: { gte: dayStart, lt: dayEnd },
       },
       select: {

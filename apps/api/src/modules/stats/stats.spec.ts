@@ -32,7 +32,7 @@ describe('Stats (isolation multi-tenant)', () => {
         findMany: jest.fn().mockResolvedValue([
           {
             id: 't-1',
-            status: 'SUCCESSFUL',
+            status: 'SUCCEEDED',
             amount: 10000n,
             currency: 'XAF',
             payerPhoneEnc: 'enc',

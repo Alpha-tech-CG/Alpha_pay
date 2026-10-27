@@ -1,16 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ANY_MODE, PrismaClient, TransactionStatus } from '@paybrain/database';
-import { Operator, WebhookPayload } from '@paybrain/shared';
+import { Operator, publicPaymentStatus, WebhookPayload } from '@paybrain/shared';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 import { PaymentsService } from '../payments/payments.service';
 import { ConcurrentModificationError, IllegalTransitionError, transitionStatus } from '../transactions/transaction-state';
 
+// Événements de webhook marchand (§7). Un paiement annulé est notifié comme échoué.
 const STATUS_EVENT: Record<string, string> = {
-  SUCCESSFUL: 'payment.succeeded',
+  SUCCEEDED: 'payment.succeeded',
   FAILED: 'payment.failed',
-  REJECTED: 'payment.failed',
-  PENDING: 'payment.pending',
+  CANCELED: 'payment.failed',
+  EXPIRED: 'payment.expired',
 };
 
 @Injectable()
@@ -140,7 +141,7 @@ export class WebhooksService {
         type: event,
         externalId: transaction.externalId,
         referenceId: transaction.mtnReferenceId,
-        status: verifiedStatus,
+        status: publicPaymentStatus(verifiedStatus),
         amount: transaction.amount,
         currency: transaction.currency,
         reason,

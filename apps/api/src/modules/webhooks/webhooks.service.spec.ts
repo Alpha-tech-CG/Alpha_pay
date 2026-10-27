@@ -144,7 +144,7 @@ describe('WebhooksService', () => {
       operator: 'AIRTEL',
       status: 'PENDING',
     });
-    fetchProviderStatus.mockResolvedValue({ status: 'SUCCESSFUL' });
+    fetchProviderStatus.mockResolvedValue({ status: 'SUCCEEDED' });
 
     await service.handleWebhook('AIRTEL', {
       transaction: { id: 'ref-4', status_code: 'TS', airtel_money_id: 'am-4' },
