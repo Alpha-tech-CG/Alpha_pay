@@ -48,11 +48,11 @@
 ### M3 Connecteurs opérateurs
 | ID | Tâche | Charge |
 |---|---|---|
-| T-40 | Table `provider_connections` (identifiants **du marchand**, AES-256-GCM, clé maîtresse en env), statut « en attente de connexion », guide pas à pas dans le dashboard | M |
-| T-41 | Adaptateur **MTN** conforme à l'interface (sandbox EUR / prod XAF, URL, identifiants par marchand), jetons en cache Redis | M |
-| T-42 | Adaptateur **Airtel** conforme à l'interface | M |
-| T-43 | Adaptateur **mock** : succès / échec / délai / expiration selon numéros de test documentés | S |
-| T-44 | Statuts unifiés + machine d'état ; tâche de relance à intervalles croissants jusqu'à statut final ou expiration ; callbacks idempotents ; anti-doublon (coupure réseau) | M |
+| T-40 | Table `provider_connections` (identifiants **du marchand**, AES-256-GCM, clé maîtresse en env), statut « en attente de connexion », guide pas à pas dans le dashboard | M ✅ |
+| T-41 | Adaptateur **MTN** conforme à l'interface (sandbox EUR / prod XAF, URL, identifiants par marchand), jetons en cache Redis | M ✅ |
+| T-42 | Adaptateur **Airtel** conforme à l'interface | M ✅ |
+| T-43 | Adaptateur **mock** : succès / échec / délai / expiration selon numéros de test documentés | S ✅ |
+| T-44 | Statuts unifiés + machine d'état ; tâche de relance à intervalles croissants jusqu'à statut final ou expiration ; callbacks idempotents ; anti-doublon (coupure réseau) | M ✅ |
 
 ## S4–S5 — M4 Encaisser, M5 Vérif, M10 Développeurs, M2 KYB/KYC (17 → 30 nov.)
 

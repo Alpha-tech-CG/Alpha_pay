@@ -2,6 +2,24 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 27 octobre 2026 (6) — M3 Connecteurs (S3 terminé)
+
+### Fait
+- **T-44** Statuts unifiés (migration 24, réversible) : en_attente, réussi, échoué, expiré, annulé ; machine d'état ; relance qui expire les paiements sans réponse (`payment.expired`) ; libellés publics dans l'API et les webhooks.
+- **T-44** Callbacks opérateur par URL secrète propre à chaque connexion marchand (D-041).
+- **T-40** API des comptes opérateur (connexion, vérification réelle, déconnexion, URL de notification) + page « Comptes opérateur » du tableau de bord avec guide pas à pas.
+- **T-41 à T-43** déjà livrés avec T-05/T-06 (adaptateurs MTN, Airtel, mock) ; `verifyCredentials` ajouté à la suite de contrat.
+- Décisions D-041 à D-043.
+
+### Vérifié
+- Unitaires 308, intégration 38, providers 105 — verts.
+- Navigateur : session restaurée par le cookie après rechargement ; connexion MTN avec identifiants factices refusée par le vrai sandbox MTN → « En attente de connexion », motif clair, URL de notification.
+
+### Critères d'acceptation M3
+- « Paiement test MTN et Airtel de bout en bout en sandbox avec webhook reçu » : prêt côté code (connexion sandbox + `MOBILE_MONEY_TEST_PROVIDER=sandbox`), **à exécuter avec de vrais identifiants sandbox** (MTN disponible, Airtel en attente d'accès).
+- « Couper le réseau ne crée ni doublon ni paiement bloqué » : couvert (identifiant dérivé de la référence, 409 = déjà acceptée, outbox, relance jusqu'à expiration).
+- « Un troisième opérateur = un nouvel adaptateur » : couvert (fabrique + valeur d'enum).
+
 ## Session du 27 octobre 2026 (5) — M1 Comptes
 
 ### Fait
@@ -92,7 +110,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 | Jalon | Échéance | État |
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
-| S3 M1, M9, M3 | 16 nov. | En cours — M9 et M1 faits ; M3 à faire |
+| S3 M1, M9, M3 | 16 nov. | **Fait** (sauf essais sandbox réels MTN/Airtel) |
 | S5 M4, M5, M10, M2 | 30 nov. | À faire |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |
