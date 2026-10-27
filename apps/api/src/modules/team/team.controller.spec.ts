@@ -32,8 +32,8 @@ describe('TeamController (mutations équipe, dashboard web)', () => {
 
   it("changeRole() transmet l'acteur construit depuis req.appUser/req.membership", async () => {
     const { controller, members } = makeController();
-    await controller.changeRole('m1', 'mem1', { role: 'MANAGER' }, REQ as any);
-    expect(members.changeRole).toHaveBeenCalledWith('m1', 'mem1', 'MANAGER', { userId: 'u1', role: 'ADMIN' });
+    await controller.changeRole('m1', 'mem1', { role: 'ACCOUNTANT' }, REQ as any);
+    expect(members.changeRole).toHaveBeenCalledWith('m1', 'mem1', 'ACCOUNTANT', { userId: 'u1', role: 'ADMIN' });
   });
 
   it('suspend()/reactivate()/remove() délèguent avec le bon acteur', async () => {

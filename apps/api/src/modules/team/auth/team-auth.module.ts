@@ -1,19 +1,14 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from '../../users/users.module';
-import { ClerkSessionGuard } from './clerk-session.guard';
 import { RequireMemberGuard } from './require-member.guard';
 import { RequireActionGuard } from './require-action.guard';
 
 /**
- * Guards d'auth team (étape A du handoff), à consommer par `TeamModule`
- * (étape C, controllers) via :
- *   @UseGuards(ClerkSessionGuard, RequireMemberGuard, RequireActionGuard)
- * Pas encore importé dans AppModule : aucun controller ne les utilise avant
- * l'étape C (`docs/TEAM_MEMBERS_HANDOFF.md`).
+ * Gardes de l'équipe marchand, à enchaîner sur chaque route :
+ *   @UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard)
+ * SessionGuard est fourni par AuthModule (global).
  */
 @Module({
-  imports: [UsersModule],
-  providers: [ClerkSessionGuard, RequireMemberGuard, RequireActionGuard],
-  exports: [ClerkSessionGuard, RequireMemberGuard, RequireActionGuard],
+  providers: [RequireMemberGuard, RequireActionGuard],
+  exports: [RequireMemberGuard, RequireActionGuard],
 })
 export class TeamAuthModule {}

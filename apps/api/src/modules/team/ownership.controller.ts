@@ -1,6 +1,6 @@
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ClerkSessionGuard } from './auth/clerk-session.guard';
+import { SessionGuard } from '../auth/session.guard';
 import { RequireMemberGuard } from './auth/require-member.guard';
 import { RequireActionGuard } from './auth/require-action.guard';
 import { RequireAction } from './auth/require-action.decorator';
@@ -11,7 +11,7 @@ import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 @ApiTags('Équipe marchand — propriété')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/ownership')
-@UseGuards(ClerkSessionGuard, RequireMemberGuard, RequireActionGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard)
 export class OwnershipController {
   constructor(private readonly ownership: OwnershipService) {}
 

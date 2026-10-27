@@ -17,12 +17,12 @@ describe('InvitationsPublicController (routes /invite — pas de RequireMemberGu
     expect(invitations.preview).toHaveBeenCalledWith('tok123');
   });
 
-  it('accept() transmet le token du DTO et req.appUser (posé par ClerkSessionGuard)', async () => {
+  it("accept() transmet le token du DTO et l'id de l'utilisateur connecté (SessionGuard)", async () => {
     const { controller, invitations } = makeController();
-    const req = { appUser: { id: 'u1', clerkUserId: 'c1', email: 'jean@example.com' } };
+    const req = { appUser: { id: 'u1', sessionId: 's1' } };
 
     await controller.accept({ token: 'tok123' }, req as any);
 
-    expect(invitations.accept).toHaveBeenCalledWith('tok123', req.appUser);
+    expect(invitations.accept).toHaveBeenCalledWith('tok123', 'u1');
   });
 });

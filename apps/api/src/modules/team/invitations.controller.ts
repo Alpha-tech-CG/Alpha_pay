@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ClerkSessionGuard } from './auth/clerk-session.guard';
+import { SessionGuard } from '../auth/session.guard';
 import { RequireMemberGuard } from './auth/require-member.guard';
 import { RequireActionGuard } from './auth/require-action.guard';
 import { RequireAction } from './auth/require-action.decorator';
@@ -9,14 +9,14 @@ import { InvitationsService } from './services/invitations.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 
 /**
- * Gate MANAGER minimum au niveau route (`team:invite`). Le contrôle plus fin
+ * Réservé au propriétaire et aux administrateurs (`team:invite`). Le contrôle plus fin
  * (inviter un ADMIN nécessite `team:invite_admin`) est appliqué DANS
  * `InvitationsService.create` selon le rôle demandé — défense en profondeur.
  */
 @ApiTags('Équipe marchand — invitations')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/members/invitations')
-@UseGuards(ClerkSessionGuard, RequireMemberGuard, RequireActionGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard)
 @RequireAction('team:invite')
 export class InvitationsController {
   constructor(private readonly invitations: InvitationsService) {}

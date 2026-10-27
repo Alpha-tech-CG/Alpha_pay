@@ -3,6 +3,8 @@ import { Prisma, PrismaClient } from '@paybrain/database';
 import { decryptField, maskEmail } from '../../../common/security/pii-crypto';
 import { can, canActOn, canAssignRole, MemberRole } from '../permissions/permissions';
 import { MemberEventsService } from './member-events.service';
+import { AuditService } from '../../../common/audit/audit.service';
+import { SessionService } from '../../auth/session.service';
 
 export interface TeamActor {
   userId: string;
@@ -15,6 +17,7 @@ export interface MemberSummary {
   role: MemberRole;
   status: string;
   email: string | null;
+  phone: string | null;
   fullName: string | null;
   invitedAt: Date | null;
   joinedAt: Date | null;
@@ -32,13 +35,32 @@ export class MembersService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly events: MemberEventsService,
+    private readonly sessions: SessionService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
-   * `viewerRole` détermine si l'email est renvoyé en clair ou masqué
-   * (durcissement étape F) : seuls les rôles habilités à gérer l'équipe
-   * (`team:invite` → MANAGER+) voient l'email complet des membres, les
-   * autres (MEMBER/VIEWER) ne voient qu'un email masqué (`je***@ex.com`).
+   * Un membre suspendu ou retiré perd l'accès IMMÉDIATEMENT, sessions
+   * comprises (§M1) : toutes ses sessions sont révoquées. S'il appartient à
+   * d'autres marchands, il devra simplement se reconnecter.
+   */
+  private async afterAccessLoss(merchantId: string, userId: string, memberId: string, actor: TeamActor, action: string) {
+    const revoked = await this.sessions.revokeAll(userId, action);
+    await this.audit.record({
+      actorType: 'user',
+      actorId: actor.userId,
+      merchantId,
+      action,
+      targetType: 'merchant_member',
+      targetId: memberId,
+      metadata: { sessionsRevoked: revoked },
+    });
+  }
+
+  /**
+   * `viewerRole` détermine si l'email est renvoyé en clair ou masqué :
+   * seuls les rôles habilités à gérer l'équipe (`team:invite`) voient l'email
+   * complet ; le téléphone est toujours masqué.
    */
   async list(merchantId: string, viewerRole: MemberRole): Promise<MemberSummary[]> {
     const members = await this.prisma.merchantMember.findMany({
@@ -55,6 +77,7 @@ export class MembersService {
         role: m.role as MemberRole,
         status: m.status,
         email: email && !revealEmail ? maskEmail(email) : email,
+        phone: m.user.phoneMasked,
         fullName: m.user.fullName,
         invitedAt: m.invitedAt,
         joinedAt: m.joinedAt,
@@ -99,6 +122,17 @@ export class MembersService {
         metadata: { from: target.role, to: newRole },
       });
       return updated;
+    }).then(async (updated) => {
+      await this.audit.record({
+        actorType: 'user',
+        actorId: actor.userId,
+        merchantId,
+        action: 'team.role_changed',
+        targetType: 'merchant_member',
+        targetId: memberId,
+        metadata: { to: newRole },
+      });
+      return updated;
     });
   }
 
@@ -118,6 +152,9 @@ export class MembersService {
         actorUserId: actor.userId,
         eventType: 'MEMBER_SUSPENDED',
       });
+      return updated;
+    }).then(async (updated) => {
+      await this.afterAccessLoss(merchantId, updated.userId, memberId, actor, 'team.member_suspended');
       return updated;
     });
   }
@@ -157,6 +194,9 @@ export class MembersService {
         actorUserId: actor.userId,
         eventType: 'MEMBER_REMOVED',
       });
+      return updated;
+    }).then(async (updated) => {
+      await this.afterAccessLoss(merchantId, updated.userId, memberId, actor, 'team.member_removed');
       return updated;
     });
   }

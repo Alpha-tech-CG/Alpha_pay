@@ -89,6 +89,32 @@ export const TEMPLATE_CATALOG: CatalogTemplate[] = [
     variables: ['amount', 'payer', 'operator', 'reference'],
   },
 
+  // ── Équipe : invitation (§M1) ──
+  {
+    key: 'equipe.invitation',
+    channel: 'SMS',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: '{{merchantName}} vous invite sur AlphaPay comme {{role}}. Acceptez (7 jours) : {{link}}',
+  },
+  {
+    key: 'equipe.invitation',
+    channel: 'WHATSAPP',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    body: '{{merchantName}} vous invite sur AlphaPay comme {{role}}. Acceptez (7 jours) : {{link}}',
+    whatsappTemplateName: 'alphapay_invitation_equipe',
+    variables: ['merchantName', 'role', 'link'],
+  },
+  {
+    key: 'equipe.invitation',
+    channel: 'EMAIL',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    subject: '{{merchantName}} vous invite sur AlphaPay',
+    body: 'Bonjour,\n\n{{merchantName}} vous invite à rejoindre son équipe sur AlphaPay avec le rôle {{role}}.\n\nAcceptez l’invitation (valable 7 jours) :\n{{link}}\n\nSi vous n’attendiez pas cette invitation, ignorez ce message.\n\nL’équipe AlphaPay',
+  },
+
   // ── Notification d'un marchand via l'API Messages (seul format WhatsApp autorisé hors fenêtre de 24 h) ──
   { key: 'message.notification', channel: 'SMS', version: 1, category: 'TRANSACTIONAL', body: '{{merchantName}} : {{text}}' },
   {

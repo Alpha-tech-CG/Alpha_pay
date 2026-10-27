@@ -115,7 +115,6 @@ model Merchant {
   onboardingStatus    OnboardingStatus      @default(PENDING) @map("onboarding_status")
   rejectionReason     String?               @map("rejection_reason")
   isActive            Boolean               @default(false) @map("is_active")
-  clerkUserId         String?               @unique @map("clerk_user_id")
   ownerUserId         String?               @map("owner_user_id")
   createdAt           DateTime              @default(now()) @map("created_at")
   updatedAt           DateTime              @updatedAt @map("updated_at")
@@ -491,11 +490,11 @@ model PushToken {
 // ─────────────────────────────────────────────────────────────────────────
 
 enum MerchantMemberRole {
-  OWNER
-  ADMIN
-  MANAGER
-  MEMBER
-  VIEWER
+  OWNER // Propriétaire : tout, y compris facturation, opérateurs, suppression
+  ADMIN // Administrateur : tout sauf facturation et suppression du compte
+  ACCOUNTANT // Comptable : transactions, rapprochement, exports, factures (lecture)
+  CASHIER // Caissier : encaisse, ne voit que sa caisse, reçoit Vérif
+  DEVELOPER // Développeur : clés API, webhooks, journaux d'API
 }
 
 enum MerchantMemberStatus {
@@ -518,18 +517,29 @@ enum MerchantMemberEventType {
 
 /// Utilisateur local (miroir Clerk). PII chiffrée comme Merchant.
 model AppUser {
-  id             String   @id @default(uuid())
-  clerkUserId    String?  @unique @map("clerk_user_id")
-  emailEncrypted Bytes    @map("email_encrypted")
-  emailHash      Bytes    @unique @map("email_hash")
-  fullName       String?  @map("full_name")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid())
+  emailEncrypted      Bytes          @map("email_encrypted")
+  emailHash           Bytes          @unique @map("email_hash")
+  fullName            String?        @map("full_name")
+  // Téléphone E.164 chiffré + haché (recherche) + masqué (affichage).
+  phoneEncrypted      Bytes?         @map("phone_encrypted")
+  phoneHash           Bytes?         @unique @map("phone_hash")
+  phoneMasked         String?        @map("phone_masked")
+  // Mot de passe haché Argon2id (§M1) ; jamais en clair, jamais journalisé.
+  passwordHash        String?        @map("password_hash")
+  emailVerifiedAt     DateTime?      @map("email_verified_at")
+  phoneVerifiedAt     DateTime?      @map("phone_verified_at")
+  preferredOtpChannel MessageChannel @default(SMS) @map("preferred_otp_channel")
+  status              UserStatus     @default(ACTIVE)
+  lastLoginAt         DateTime?      @map("last_login_at")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   memberships     MerchantMember[]
   invitationsSent MerchantInvitation[]  @relation("InvitedBy")
   memberEvents    MerchantMemberEvent[] @relation("Actor")
   ownedMerchants  Merchant[]            @relation("MerchantOwner")
+  sessions        Session[]
 
   @@map("app_users")
 }
@@ -539,7 +549,7 @@ model MerchantMember {
   id          String               @id @default(uuid())
   merchantId  String               @map("merchant_id")
   userId      String               @map("user_id")
-  role        MerchantMemberRole   @default(MEMBER)
+  role        MerchantMemberRole   @default(CASHIER)
   status      MerchantMemberStatus @default(INVITED)
   invitedAt   DateTime?            @map("invited_at")
   joinedAt    DateTime?            @map("joined_at")
@@ -563,9 +573,12 @@ model MerchantMember {
 model MerchantInvitation {
   id             String             @id @default(uuid())
   merchantId     String             @map("merchant_id")
-  emailHash      Bytes              @map("email_hash")
-  emailEncrypted Bytes              @map("email_encrypted")
-  role           MerchantMemberRole @default(MEMBER)
+  // Invitation par email ou par téléphone (au moins l'un des deux).
+  emailHash      Bytes?             @map("email_hash")
+  emailEncrypted Bytes?             @map("email_encrypted")
+  phoneHash      Bytes?             @map("phone_hash")
+  phoneEncrypted Bytes?             @map("phone_encrypted")
+  role           MerchantMemberRole @default(CASHIER)
   tokenHash      String             @unique @map("token_hash")
   invitedById    String             @map("invited_by")
   expiresAt      DateTime           @map("expires_at")
@@ -786,4 +799,53 @@ model CreditLedger {
   @@index([merchantId, livemode, createdAt])
   @@index([messageId])
   @@map("credit_ledger")
+}
+
+// ─── M1 Comptes (T-30) ───────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+// Session de connexion (§M1) : jeton d'accès court (JWT) + jeton de
+// rafraîchissement opaque, stocké haché et renouvelé à chaque usage. Rejouer
+// un ancien jeton révoque la session (vol présumé).
+model Session {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  user              AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash  String    @unique @map("refresh_token_hash")
+  previousTokenHash String?   @unique @map("previous_token_hash")
+  userAgent         String?   @map("user_agent")
+  ipHash            Bytes?    @map("ip_hash")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastUsedAt        DateTime  @default(now()) @map("last_used_at")
+  expiresAt         DateTime  @map("expires_at")
+  revokedAt         DateTime? @map("revoked_at")
+  revokedReason     String?   @map("revoked_reason")
+
+  @@index([userId, revokedAt])
+  @@map("sessions")
+}
+
+// Journal d'audit non modifiable (§M12) : qui a fait quoi, quand, depuis
+// quelle adresse IP. Ajout seul (triggers Postgres). Complété par T-94.
+model AuditLog {
+  id         String   @id @default(uuid())
+  // user | staff | api_key | system
+  actorType  String   @map("actor_type")
+  actorId    String?  @map("actor_id")
+  merchantId String?  @map("merchant_id")
+  action     String // ex. "auth.login_succeeded", "team.member_removed"
+  targetType String?  @map("target_type")
+  targetId   String?  @map("target_id")
+  ipHash     Bytes?   @map("ip_hash")
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([merchantId, createdAt])
+  @@index([actorType, actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }

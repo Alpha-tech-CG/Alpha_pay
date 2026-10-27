@@ -19,7 +19,7 @@ function makeGuard(action: string | undefined) {
 describe('RequireActionGuard (RBAC route-level, TEAM_ACTION_KEY)', () => {
   it("laisse passer une route sans @RequireAction (métadonnée absente)", () => {
     const guard = makeGuard(undefined);
-    const req = { membership: { merchantId: 'm1', role: 'VIEWER' } };
+    const req = { membership: { merchantId: 'm1', role: 'CASHIER' } };
     expect(guard.canActivate(makeContext(req, undefined))).toBe(true);
   });
 
@@ -36,7 +36,7 @@ describe('RequireActionGuard (RBAC route-level, TEAM_ACTION_KEY)', () => {
 
   it('autorise si le rôle a la capacité requise', () => {
     const guard = makeGuard('team:invite');
-    const req = { membership: { merchantId: 'm1', role: 'MANAGER' } };
+    const req = { membership: { merchantId: 'm1', role: 'ADMIN' } };
     expect(guard.canActivate(makeContext(req, 'team:invite'))).toBe(true);
   });
 

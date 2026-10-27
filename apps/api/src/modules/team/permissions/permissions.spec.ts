@@ -1,67 +1,74 @@
-import { can, canActOn, canAssignRole, rank, type MemberRole } from './permissions';
+import { can, canActOn, canAssignRole, MEMBER_ROLES, MemberAction, MemberRole } from './permissions';
 
-describe('RBAC équipe marchand', () => {
-  it('hiérarchie des rangs OWNER > ADMIN > MANAGER > MEMBER > VIEWER', () => {
-    expect(rank('OWNER')).toBeGreaterThan(rank('ADMIN'));
-    expect(rank('ADMIN')).toBeGreaterThan(rank('MANAGER'));
-    expect(rank('MANAGER')).toBeGreaterThan(rank('MEMBER'));
-    expect(rank('MEMBER')).toBeGreaterThan(rank('VIEWER'));
+/** Matrice attendue, reprise mot pour mot du cahier des charges (§M1). */
+describe('rôles marchand (§M1)', () => {
+  const allowed = (action: MemberAction) => MEMBER_ROLES.filter((r) => can(r, action));
+
+  it('Propriétaire : tout, y compris facturation, opérateurs et suppression', () => {
+    for (const action of ['billing:manage', 'account:delete', 'providers:manage', 'ownership:transfer', 'team:invite', 'apikeys:write'] as MemberAction[]) {
+      expect(can('OWNER', action)).toBe(true);
+    }
   });
 
-  it('tous les rôles peuvent voir l\'équipe et les paiements', () => {
-    (['OWNER', 'ADMIN', 'MANAGER', 'MEMBER', 'VIEWER'] as MemberRole[]).forEach((r) => {
-      expect(can(r, 'team:view')).toBe(true);
-      expect(can(r, 'payments:view')).toBe(true);
-    });
-  });
-
-  it('seuls OWNER/ADMIN gèrent les membres (change_role/suspend/remove/audit)', () => {
-    (['team:change_role', 'team:suspend', 'team:remove', 'team:audit'] as const).forEach((a) => {
-      expect(can('OWNER', a)).toBe(true);
-      expect(can('ADMIN', a)).toBe(true);
-      expect(can('MANAGER', a)).toBe(false);
-      expect(can('MEMBER', a)).toBe(false);
-      expect(can('VIEWER', a)).toBe(false);
-    });
-  });
-
-  it('MANAGER peut inviter (<= manager) mais pas un ADMIN', () => {
-    expect(can('MANAGER', 'team:invite')).toBe(true);
-    expect(can('MANAGER', 'team:invite_admin')).toBe(false);
-    expect(can('ADMIN', 'team:invite_admin')).toBe(true);
-    expect(can('MEMBER', 'team:invite')).toBe(false);
-  });
-
-  it('seul OWNER transfère la propriété et demande un payout est OWNER/ADMIN', () => {
-    expect(can('OWNER', 'ownership:transfer')).toBe(true);
+  it('Administrateur : tout sauf facturation et suppression du compte', () => {
+    expect(can('ADMIN', 'billing:manage')).toBe(false);
+    expect(can('ADMIN', 'account:delete')).toBe(false);
     expect(can('ADMIN', 'ownership:transfer')).toBe(false);
-    expect(can('OWNER', 'payouts:request')).toBe(true);
-    expect(can('ADMIN', 'payouts:request')).toBe(true);
-    expect(can('MANAGER', 'payouts:request')).toBe(false);
+    for (const action of ['providers:manage', 'team:invite', 'payments:view', 'invoices:write', 'apikeys:write', 'kyb:manage'] as MemberAction[]) {
+      expect(can('ADMIN', action)).toBe(true);
+    }
   });
 
-  it('MANAGER peut créer paylinks/apikeys/webhooks, MEMBER non', () => {
-    (['paylinks:write', 'apikeys:write', 'webhooks:write'] as const).forEach((a) => {
-      expect(can('MANAGER', a)).toBe(true);
-      expect(can('MEMBER', a)).toBe(false);
-      expect(can('VIEWER', a)).toBe(false);
-    });
+  it('Comptable : lecture des transactions, rapprochement, exports, factures — rien d’autre', () => {
+    const own = ['payments:view', 'reconciliation:view', 'reconciliation:write', 'exports:create', 'invoices:view'];
+    for (const action of own as MemberAction[]) expect(can('ACCOUNTANT', action)).toBe(true);
+    for (const action of ['team:view', 'apikeys:write', 'payments:collect', 'invoices:write', 'providers:manage'] as MemberAction[]) {
+      expect(can('ACCOUNTANT', action)).toBe(false);
+    }
   });
 
-  it('anti-escalade : on n\'agit que sur un rôle strictement inférieur', () => {
-    expect(canActOn('ADMIN', 'MANAGER')).toBe(true);
-    expect(canActOn('ADMIN', 'ADMIN')).toBe(false); // pas sur un pair
-    expect(canActOn('ADMIN', 'OWNER')).toBe(false); // pas au-dessus
-    expect(canActOn('OWNER', 'ADMIN')).toBe(true);
-    expect(canActOn('MANAGER', 'MEMBER')).toBe(true);
+  it('Caissier : encaisse, ne voit que sa caisse, reçoit Vérif', () => {
+    expect(can('CASHIER', 'payments:collect')).toBe(true);
+    expect(can('CASHIER', 'cash:declare')).toBe(true);
+    expect(can('CASHIER', 'verif:receive')).toBe(true);
+    expect(can('CASHIER', 'payments:view_own_till')).toBe(true);
+    expect(can('CASHIER', 'payments:view')).toBe(false);
+    expect(can('CASHIER', 'exports:create')).toBe(false);
+    expect(can('CASHIER', 'team:view')).toBe(false);
   });
 
-  it('attribution de rôle : jamais >= au sien, jamais OWNER (réservé transfert)', () => {
-    expect(canAssignRole('ADMIN', 'MANAGER')).toBe(true);
-    expect(canAssignRole('ADMIN', 'ADMIN')).toBe(false);
-    expect(canAssignRole('ADMIN', 'OWNER')).toBe(false);
-    expect(canAssignRole('OWNER', 'ADMIN')).toBe(true);
-    expect(canAssignRole('OWNER', 'OWNER')).toBe(false); // transfert dédié
-    expect(canAssignRole('MANAGER', 'ADMIN')).toBe(false);
+  it('Développeur : clés API, webhooks, journaux d’API — pas les paiements', () => {
+    expect(allowed('apikeys:write')).toEqual(['OWNER', 'ADMIN', 'DEVELOPER']);
+    expect(allowed('webhooks:write')).toEqual(['OWNER', 'ADMIN', 'DEVELOPER']);
+    expect(allowed('apilogs:view')).toEqual(['OWNER', 'ADMIN', 'DEVELOPER']);
+    expect(can('DEVELOPER', 'payments:view')).toBe(false);
+    expect(can('DEVELOPER', 'team:invite')).toBe(false);
+  });
+
+  it('seuls propriétaire et administrateur gèrent l’équipe', () => {
+    expect(allowed('team:invite')).toEqual(['OWNER', 'ADMIN']);
+    expect(allowed('team:remove')).toEqual(['OWNER', 'ADMIN']);
+  });
+});
+
+describe('anti-escalade', () => {
+  it.each<[MemberRole, MemberRole, boolean]>([
+    ['OWNER', 'ADMIN', true],
+    ['ADMIN', 'CASHIER', true],
+    ['ADMIN', 'ADMIN', false],
+    ['ADMIN', 'OWNER', false],
+    ['CASHIER', 'ACCOUNTANT', false],
+  ])('%s agit sur %s : %s', (actor, target, expected) => {
+    expect(canActOn(actor, target)).toBe(expected);
+  });
+
+  it.each<[MemberRole, MemberRole, boolean]>([
+    ['OWNER', 'ADMIN', true],
+    ['OWNER', 'OWNER', false],
+    ['ADMIN', 'ADMIN', false],
+    ['ADMIN', 'DEVELOPER', true],
+    ['ADMIN', 'CASHIER', true],
+  ])('%s attribue %s : %s', (actor, role, expected) => {
+    expect(canAssignRole(actor, role)).toBe(expected);
   });
 });

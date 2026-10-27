@@ -127,6 +127,7 @@ describe('M9 OTP (intégration, Postgres réel)', () => {
   });
 
   it('plafond par adresse IP (fraude par SMS)', async () => {
+    const previous = process.env.OTP_MAX_PER_IP_PER_HOUR;
     process.env.OTP_MAX_PER_IP_PER_HOUR = '3';
     try {
       for (let i = 0; i < 3; i++) await send({ destination: `+24206000010${i}`, ip: '198.51.100.7' });
@@ -134,7 +135,7 @@ describe('M9 OTP (intégration, Postgres réel)', () => {
         response: expect.objectContaining({ code: 'otp_limite_atteinte' }),
       });
     } finally {
-      delete process.env.OTP_MAX_PER_IP_PER_HOUR;
+      process.env.OTP_MAX_PER_IP_PER_HOUR = previous;
     }
   });
 

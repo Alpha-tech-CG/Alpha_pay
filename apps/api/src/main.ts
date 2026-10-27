@@ -67,8 +67,6 @@ async function bootstrap() {
     bodyGuard({
       maxBytes: MAX_BODY_BYTES,
       formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
-      // Upload de pièce d'identité (onboarding développeur) : multipart borné à 6 MiB.
-      multipartPaths: ["/v1/onboarding/developer"],
     }),
   );
 
@@ -153,16 +151,17 @@ async function bootstrap() {
     }),
   );
 
-  // /v1/onboarding : formulaire public — limite anti-spam (5 inscriptions / 15 min / IP)
+  // /v1/auth : inscription, connexion, codes, réinitialisation — limite par IP
+  // (en plus des limites propres aux OTP et aux échecs de connexion).
   app.use(
-    '/v1/onboarding',
+    '/v1/auth',
     rateLimit({
       windowMs: 15 * 60 * 1000,
-      limit: 5,
+      limit: 60,
       standardHeaders: true,
       legacyHeaders: false,
-      store: createRateLimitStore('onboarding'),
-      message: { error: { code: 'trop_de_requetes', message: 'Trop de tentatives d\'inscription, réessayez plus tard.' } },
+      store: createRateLimitStore('auth'),
+      message: { error: { code: 'trop_de_requetes', message: 'Trop de tentatives, réessayez dans quelques minutes.' } },
     }),
   );
 

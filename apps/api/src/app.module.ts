@@ -12,7 +12,6 @@ import { ReconciliationModule } from './modules/reconciliation/reconciliation.mo
 import { NotificationModule } from './modules/notifications/notification.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
-import { ClerkModule } from './modules/clerk/clerk.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { TeamModule } from './modules/team/team.module';
@@ -22,6 +21,8 @@ import { QueueModule } from './common/queue/queue.module';
 import { HealthModule } from './modules/health/health.module';
 import { KvModule } from './common/kv/kv.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { AuditModule } from './common/audit/audit.service';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
 
@@ -35,6 +36,8 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     HealthModule,
     KvModule,
     MessagingModule,
+    AuditModule,
+    AuthModule,
     PaymentStatusModule,
     SchedulingModule,
     PaymentsModule,
@@ -48,7 +51,6 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     NotificationModule,
     KycModule,
     MetricsModule,
-    ClerkModule,
     OnboardingModule,
     MerchantModule,
     TeamModule,

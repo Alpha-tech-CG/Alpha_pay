@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
-import { ClerkSessionGuard } from './auth/clerk-session.guard';
+import { SessionGuard } from '../auth/session.guard';
 import { RequireMemberGuard } from './auth/require-member.guard';
 import { RequireActionGuard } from './auth/require-action.guard';
 import { RequireAction } from './auth/require-action.decorator';
@@ -16,7 +16,7 @@ import { ChangeRoleDto } from './dto/change-role.dto';
 @ApiTags('Équipe marchand')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/members')
-@UseGuards(ClerkSessionGuard, RequireMemberGuard, RequireActionGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard)
 export class TeamController {
   constructor(
     private readonly members: MembersService,

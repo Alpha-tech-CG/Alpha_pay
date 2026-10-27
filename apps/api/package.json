@@ -9,7 +9,6 @@
     "migrate:deploy": "node dist/scripts/migrate",
     "lint": "tsc --noEmit",
     "test": "jest --maxWorkers=4",
-    "test:e2e": "jest --config test/jest-e2e.json",
     "worker": "node dist/worker",
     "dev:worker": "nest start --watch --entryFile worker",
     "test:integration": "jest --config test/jest-integration.json"
@@ -18,7 +17,6 @@
     "@aws-sdk/client-s3": "^3.1071.0",
     "@aws-sdk/client-secrets-manager": "^3.1069.0",
     "@aws-sdk/s3-request-presigner": "^3.1072.0",
-    "@clerk/backend": "^3.16.6",
     "@nestjs/common": "^11.1.3",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.3",
@@ -52,7 +50,6 @@
     "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "svix": "^1.96.1",
     "ws": "^8.18.2"
   },
   "devDependencies": {

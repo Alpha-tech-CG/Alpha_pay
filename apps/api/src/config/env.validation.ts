@@ -37,6 +37,7 @@ const REQUIRED_IN_PRODUCTION = [
   'INTERNAL_API_TOKEN',
   'ALLOWED_ORIGINS',
   'OTP_HMAC_SECRET',
+  'JWT_SECRET',
 ];
 
 export function validateEnv(env: Env = process.env): void {
@@ -57,6 +58,7 @@ export function validateEnv(env: Env = process.env): void {
   minLength(env, 'API_KEY_PEPPER', 32, problems);
   minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
   minLength(env, 'OTP_HMAC_SECRET', 32, problems);
+  minLength(env, 'JWT_SECRET', 32, problems);
   positiveInt(env, 'OTP_MAX_PER_DESTINATION_PER_HOUR', problems);
   positiveInt(env, 'OTP_MAX_PER_IP_PER_HOUR', problems);
 

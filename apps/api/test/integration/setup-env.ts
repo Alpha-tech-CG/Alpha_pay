@@ -5,8 +5,14 @@ export const TEST_DATABASE_URL =
 
 process.env.DATABASE_URL = TEST_DATABASE_URL;
 process.env.NODE_ENV = 'test';
-delete process.env.REDIS_URL;
-delete process.env.SMS_PROVIDER;
-delete process.env.WHATSAPP_PROVIDER;
-delete process.env.EMAIL_PROVIDER;
+
+// Valeurs VIDES plutôt que supprimées : ConfigModule charge le .env local via
+// dotenv, qui n'écrase jamais une variable définie (même vide). Sans cela, un
+// REDIS_URL du .env ferait persister compteurs OTP et files d'un essai à l'autre.
+for (const name of ['REDIS_URL', 'SMS_PROVIDER', 'WHATSAPP_PROVIDER', 'EMAIL_PROVIDER', 'SECRETS_FILE', 'AWS_SECRETS_MANAGER_SECRET_ID']) {
+  process.env[name] = '';
+}
 process.env.DEV_OUTBOX_ENABLED = 'false';
+// Toutes les requêtes de test viennent de 127.0.0.1 : plafond par IP relevé
+// (il garde son propre test dans otp.int-spec.ts).
+process.env.OTP_MAX_PER_IP_PER_HOUR = '100000';

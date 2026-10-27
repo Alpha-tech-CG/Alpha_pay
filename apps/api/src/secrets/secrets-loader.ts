@@ -3,7 +3,7 @@ import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-sec
 
 /**
  * Charge les secrets applicatifs (credentials DB, JWT pepper, secrets HMAC
- * connecteurs, clés Clerk, clés SMS/email) et les injecte dans process.env
+ * connecteurs, clés SMS/email, secrets JWT et OTP) et les injecte dans process.env
  * avant que ConfigModule ne soit initialisé. Deux sources possibles :
  *
  * - SECRETS_FILE : fichier JSON clé/valeur monté dans le conteneur (secret

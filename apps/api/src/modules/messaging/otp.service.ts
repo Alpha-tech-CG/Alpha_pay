@@ -48,6 +48,8 @@ export interface VerifyOtpInput extends OtpScope {
   purpose: string;
   code: string;
   ip?: string;
+  /** Appelé une seule fois, au moment où le code se bloque (audit de l'appelant). */
+  onLocked?: () => Promise<void>;
 }
 
 const PURPOSE = /^[a-z0-9_.-]{1,40}$/;
@@ -218,5 +220,6 @@ export class OtpService {
     await this.kv.del(k.code);
     await this.kv.del(k.attempts);
     await this.audit(scope, scope.purpose, scope.channel, destination, 'locked', scope.ip);
+    await scope.onLocked?.();
   }
 }

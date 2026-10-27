@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
-import { AuthenticatedAppUser } from './clerk-session.guard';
+import { AuthenticatedAppUser } from '../../auth/session.guard';
 import { MemberRole } from '../permissions/permissions';
 
 export interface AuthenticatedMembership {
@@ -9,7 +9,7 @@ export interface AuthenticatedMembership {
 }
 
 /**
- * Doit s'exécuter APRÈS ClerkSessionGuard. Charge le membership ACTIVE de
+ * Doit s'exécuter APRÈS SessionGuard. Charge le membership ACTIVE de
  * req.appUser sur le `:merchantId` du path et pose `req.membership`.
  *
  * ⚠️ Le merchantId n'est JAMAIS lu depuis le body/query — uniquement le path.

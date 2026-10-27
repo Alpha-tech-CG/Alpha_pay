@@ -43,7 +43,8 @@ describe('buildCorsOptions (ALP-155)', () => {
     expect(check(undefined)).toBe(true);
   });
 
-  it('n\'active pas credentials (réduction surface CSRF)', () => {
-    expect(buildCorsOptions(env).credentials).toBeUndefined();
+  it('active credentials (cookie de session) et autorise l’en-tête anti-CSRF', () => {
+    expect(buildCorsOptions(env).credentials).toBe(true);
+    expect(buildCorsOptions(env).allowedHeaders).toContain('X-AlphaPay-CSRF');
   });
 });

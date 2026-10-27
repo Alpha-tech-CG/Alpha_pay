@@ -11,16 +11,16 @@ function makeController() {
   return { controller, invitations };
 }
 
-const REQ = { appUser: { id: 'u1' }, membership: { merchantId: 'm1', role: 'MANAGER' } };
+const REQ = { appUser: { id: 'u1' }, membership: { merchantId: 'm1', role: 'ADMIN' } };
 
 describe('InvitationsController (dashboard web)', () => {
   it("create() transmet l'acteur et le DTO au service", async () => {
     const { controller, invitations } = makeController();
-    await controller.create('m1', { email: 'a@b.com', role: 'MEMBER' }, REQ as any);
+    await controller.create('m1', { email: 'a@b.com', role: 'CASHIER' }, REQ as any);
     expect(invitations.create).toHaveBeenCalledWith(
       'm1',
-      { email: 'a@b.com', role: 'MEMBER' },
-      { userId: 'u1', role: 'MANAGER' },
+      { email: 'a@b.com', role: 'CASHIER' },
+      { userId: 'u1', role: 'ADMIN' },
     );
   });
 
@@ -33,6 +33,6 @@ describe('InvitationsController (dashboard web)', () => {
   it("revoke() transmet l'acteur", async () => {
     const { controller, invitations } = makeController();
     await controller.revoke('m1', 'inv1', REQ as any);
-    expect(invitations.revoke).toHaveBeenCalledWith('m1', 'inv1', { userId: 'u1', role: 'MANAGER' });
+    expect(invitations.revoke).toHaveBeenCalledWith('m1', 'inv1', { userId: 'u1', role: 'ADMIN' });
   });
 });

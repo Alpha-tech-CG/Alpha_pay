@@ -14,7 +14,7 @@ function makeGuard() {
 }
 
 describe('RequireMemberGuard (isolation multi-tenant Team Members)', () => {
-  it("rejette si req.appUser n'est pas posé (ClerkSessionGuard absent/échoué)", async () => {
+  it("rejette si req.appUser n'est pas posé (SessionGuard absent/échoué)", async () => {
     const { guard } = makeGuard();
     const req = { params: { merchantId: 'm1' } };
     await expect(guard.canActivate(makeContext(req))).rejects.toThrow(ForbiddenException);

@@ -24,8 +24,10 @@ export function parseAllowedOrigins(env: NodeJS.ProcessEnv = process.env): strin
  *   ne protège que les navigateurs, et nos clients API n'envoient pas d'Origin.
  * - Une origine présente mais hors allowlist → refus (pas d'en-tête ACAO, donc
  *   le navigateur bloque). Jamais de wildcard.
- * - credentials non activé : l'auth se fait par X-API-Key/Authorization, pas par
- *   cookie ; éviter credentials:true réduit la surface CSRF.
+ * - credentials activé pour les seules origines de l'allowlist : le tableau de
+ *   bord envoie le cookie de session (HttpOnly, SameSite=Strict, limité à
+ *   /v1/auth). Les routes qui le lisent exigent l'en-tête X-AlphaPay-CSRF, qu'un
+ *   site tiers ne peut pas poser sans passer cette même allowlist (§8.1).
  */
 export function buildCorsOptions(env: NodeJS.ProcessEnv = process.env): CorsOptions {
   const allowlist = new Set(parseAllowedOrigins(env));
@@ -37,8 +39,10 @@ export function buildCorsOptions(env: NodeJS.ProcessEnv = process.env): CorsOpti
       }
       callback(null, false);
     },
-    allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization', 'Idempotency-Key'],
-    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization', 'Idempotency-Key', 'X-AlphaPay-CSRF', 'X-Request-Id'],
+    exposedHeaders: ['X-Request-Id', 'Idempotency-Replayed', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
     maxAge: 600,
   };
 }
