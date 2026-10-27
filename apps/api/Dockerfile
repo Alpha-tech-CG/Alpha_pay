@@ -51,7 +51,12 @@ RUN pnpm --filter @paybrain/shared build \
 # --legacy : déploie depuis le node_modules déjà installé (les paquets workspace
 # sont bâtis, dist présent). Évite `injectWorkspacePackages` qui, en global,
 # copierait les paquets internes au lieu de les symlinker (régression en dev local).
-RUN pnpm --filter=@paybrain/api deploy --prod --legacy /prod
+# La quarantaine supply-chain (minimumReleaseAge) a déjà filtré les versions
+# figées dans pnpm-lock.yaml ; `deploy` relit les métadonnées du registre et
+# échoue sur celles qui n'exposent pas de date (ERR_PNPM_MISSING_TIME). On la
+# neutralise pour cette seule étape (autorisé par Miche le 2026-10-27) : aucune
+# nouvelle version n'y est résolue.
+RUN pnpm --config.minimum-release-age=0 --filter=@paybrain/api deploy --prod --legacy /prod
 # `deploy` ne transporte PAS le client Prisma généré (.prisma/client) — seulement
 # le stub. On le régénère DANS le déploiement, où @prisma/client et le schéma
 # (inliné avec @paybrain/database) sont résolus, sinon `new PrismaClient()` jette

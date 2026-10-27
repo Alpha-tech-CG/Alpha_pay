@@ -24,9 +24,12 @@
 - Tests : `apps/api` 336, `providers` 86, `shared` 23 — verts.
 
 ### Bloqué / en attente de Miche
-- **Image Docker de l'API** : l'étape `pnpm deploy` échoue (`ERR_PNPM_MISSING_TIME` sur `magic-string`, dépendance de `@nestjs/cli`) à cause de la quarantaine `minimumReleaseAge`. Correctif proposé : la neutraliser pour cette seule étape (`--config.minimum-release-age=0`), le lockfile étant déjà vérifié. Modification refusée par le garde-fou de sécurité de la session : **décision de Miche requise**. En attendant, `docker compose up` ne démarre pas `migrate`, `api` ni `worker`.
 - D-006 : modèle d'accès API par marchand, à confirmer avec MTN et Airtel.
 - D-022 : chemins Airtel et environnement de production MTN Congo, à valider dès réception des accès.
+
+### Image Docker et `docker compose up` (résolu le 27 oct., autorisé par Miche)
+- La quarantaine `minimumReleaseAge` est neutralisée pour la seule étape `pnpm deploy` du Dockerfile (lockfile déjà vérifié).
+- `docker compose up` sur volumes neufs : migrations appliquées, API saine, worker sain, `/ready` vert, tableau de bord et back-office joignables (proxy vers l'API), paiement factice Airtel de bout en bout `PENDING` → `SUCCESSFUL`.
 
 ### Points connus, traités plus tard
 - Les callbacks MTN réels ne sont pas signés : le garde HMAC actuel les refuse. Sans conséquence grâce aux relances (D-021) ; à revoir avec T-44 (URL de callback avec jeton par marchand).
@@ -44,7 +47,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 
 | Jalon | Échéance | État |
 |---|---|---|
-| S1 Socle | 2 nov. | **Fait** (T-01 à T-14), sauf image Docker de l'API (en attente de décision) |
+| S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
 | S3 M1, M9, M3 | 16 nov. | À faire |
 | S5 M4, M5, M10, M2 | 30 nov. | À faire |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
