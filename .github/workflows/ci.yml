@@ -1,109 +1,118 @@
 name: CI
 
+# Vérification du code, tests et construction à chaque commit (§9, §10.4).
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, v1]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '11.1.1'
+
 jobs:
   secrets-scan:
-    name: Gitleaks
+    name: Secrets (Gitleaks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Scan for leaked secrets
-        uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   lint-and-build:
-    name: Lint & Build
+    name: Vérification et construction
     runs-on: ubuntu-latest
     needs: secrets-scan
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.1.1
-
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma client
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Client Prisma
         run: pnpm run db:generate
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Build all packages
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      - name: Construction (paquets puis applications)
         run: pnpm run build
+      - name: Vérification des types
+        run: pnpm run lint
 
   test:
     name: Tests
     runs-on: ubuntu-latest
     needs: secrets-scan
-
     services:
       postgres:
         image: postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: paybrain_test
+          POSTGRES_DB: alphapay_test
         ports:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
+          --health-interval 5s
           --health-timeout 5s
-          --health-retries 5
-
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/alphapay_test
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.1.1
-
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma client
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Client Prisma
         run: pnpm run db:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain_test
-
-      - name: Run migrations
-        run: pnpm run db:push
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain_test
-
-      - name: Run tests
+      # Les migrations versionnées doivent s'appliquer sur une base vierge
+      # (aucune modification manuelle de la base, §6).
+      - name: Migrations
+        run: pnpm --filter @paybrain/database exec prisma migrate deploy
+      - name: Tests unitaires et de contrat
         run: pnpm run test
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/paybrain_test
-          MTN_SUBSCRIPTION_KEY: ${{ secrets.MTN_SUBSCRIPTION_KEY }}
-          MTN_API_USER_ID: ${{ secrets.MTN_API_USER_ID }}
-          MTN_API_KEY: ${{ secrets.MTN_API_KEY }}
-          MTN_BASE_URL: https://sandbox.momodeveloper.mtn.com
-          MTN_ENVIRONMENT: sandbox
-          MTN_CURRENCY: EUR
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+  audit:
+    name: Audit des dépendances
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    # Non bloquant pendant la construction ; bloquant avant la livraison (T-105, §8.1).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: pnpm audit (critique et haute)
+        run: pnpm audit --prod --audit-level=high
