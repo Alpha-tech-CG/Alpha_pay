@@ -16,14 +16,14 @@ export class PaylinksController {
   @UseGuards(ApiKeyGuard, ScopesGuard)
   @RequiredScopes('paylinks:write')
   create(@Body() dto: CreatePaylinkDto, @Req() req: any) {
-    return this.paylinksService.create(dto, req.merchant.id);
+    return this.paylinksService.create(dto, req.merchant.id, req.livemode === true);
   }
 
   @Get()
   @UseGuards(ApiKeyGuard, ScopesGuard)
   @RequiredScopes('paylinks:read')
   list(@Req() req: any) {
-    return this.paylinksService.list(req.merchant.id);
+    return this.paylinksService.list(req.merchant.id, req.livemode === true);
   }
 
   @Get(':id')

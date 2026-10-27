@@ -16,36 +16,36 @@ export class WebhooksOutController {
   @Get()
   @RequiredScopes('webhooks:read')
   list(@Req() req: any) {
-    return this.endpoints.list(req.merchant.id);
+    return this.endpoints.list(req.merchant.id, req.livemode === true);
   }
 
   @Post()
   @RequiredScopes('webhooks:write')
   create(@Body() dto: CreateWebhookEndpointDto, @Req() req: any) {
-    return this.endpoints.create(req.merchant.id, dto);
+    return this.endpoints.create(req.merchant.id, req.livemode === true, dto);
   }
 
   @Patch(':id')
   @RequiredScopes('webhooks:write')
   update(@Param('id') id: string, @Body() dto: UpdateWebhookEndpointDto, @Req() req: any) {
-    return this.endpoints.update(req.merchant.id, id, dto);
+    return this.endpoints.update(req.merchant.id, req.livemode === true, id, dto);
   }
 
   @Delete(':id')
   @RequiredScopes('webhooks:write')
   remove(@Param('id') id: string, @Req() req: any) {
-    return this.endpoints.remove(req.merchant.id, id);
+    return this.endpoints.remove(req.merchant.id, req.livemode === true, id);
   }
 
   @Get(':id/deliveries')
   @RequiredScopes('webhooks:read')
   deliveries(@Param('id') id: string, @Req() req: any) {
-    return this.endpoints.deliveries(req.merchant.id, id);
+    return this.endpoints.deliveries(req.merchant.id, req.livemode === true, id);
   }
 
   @Post(':id/test')
   @RequiredScopes('webhooks:write')
   test(@Param('id') id: string, @Req() req: any) {
-    return this.endpoints.test(req.merchant.id, id);
+    return this.endpoints.test(req.merchant.id, req.livemode === true, id);
   }
 }

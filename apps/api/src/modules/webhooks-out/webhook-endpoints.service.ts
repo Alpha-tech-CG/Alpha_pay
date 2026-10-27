@@ -11,18 +11,19 @@ export class WebhookEndpointsService {
     private readonly delivery: WebhookDeliveryService,
   ) {}
 
-  list(merchantId: string) {
+  list(merchantId: string, livemode: boolean) {
     return this.prisma.webhookEndpoint.findMany({
-      where: { merchantId },
+      where: { merchantId, livemode },
       orderBy: { createdAt: 'desc' },
       select: { id: true, url: true, events: true, status: true, secret: true, createdAt: true },
     });
   }
 
-  create(merchantId: string, dto: CreateWebhookEndpointDto) {
+  create(merchantId: string, livemode: boolean, dto: CreateWebhookEndpointDto) {
     return this.prisma.webhookEndpoint.create({
       data: {
         merchantId,
+        livemode,
         url: dto.url,
         events: dto.events ?? [],
         // Secret de signature propre à l'endpoint (le marchand le voit pour vérifier).
@@ -33,8 +34,8 @@ export class WebhookEndpointsService {
     });
   }
 
-  async update(merchantId: string, id: string, dto: Partial<CreateWebhookEndpointDto> & { status?: 'ACTIVE' | 'DISABLED' }) {
-    await this.assertOwned(merchantId, id);
+  async update(merchantId: string, livemode: boolean, id: string, dto: Partial<CreateWebhookEndpointDto> & { status?: 'ACTIVE' | 'DISABLED' }) {
+    await this.assertOwned(merchantId, livemode, id);
     return this.prisma.webhookEndpoint.update({
       where: { id },
       data: {
@@ -46,15 +47,15 @@ export class WebhookEndpointsService {
     });
   }
 
-  async remove(merchantId: string, id: string) {
-    await this.assertOwned(merchantId, id);
+  async remove(merchantId: string, livemode: boolean, id: string) {
+    await this.assertOwned(merchantId, livemode, id);
     await this.prisma.webhookDelivery.deleteMany({ where: { endpointId: id } });
     await this.prisma.webhookEndpoint.delete({ where: { id } });
     return { id, deleted: true };
   }
 
-  async deliveries(merchantId: string, id: string) {
-    await this.assertOwned(merchantId, id);
+  async deliveries(merchantId: string, livemode: boolean, id: string) {
+    await this.assertOwned(merchantId, livemode, id);
     return this.prisma.webhookDelivery.findMany({
       where: { endpointId: id },
       orderBy: { createdAt: 'desc' },
@@ -66,14 +67,15 @@ export class WebhookEndpointsService {
     });
   }
 
-  async test(merchantId: string, id: string) {
-    const endpoint = await this.assertOwned(merchantId, id);
+  async test(merchantId: string, livemode: boolean, id: string) {
+    const endpoint = await this.assertOwned(merchantId, livemode, id);
     return this.delivery.sendTest({ id: endpoint.id, url: endpoint.url, secret: endpoint.secret });
   }
 
-  private async assertOwned(merchantId: string, id: string) {
+  private async assertOwned(merchantId: string, livemode: boolean, id: string) {
     const endpoint = await this.prisma.webhookEndpoint.findUnique({ where: { id } });
-    if (!endpoint) throw new NotFoundException('Endpoint introuvable');
+    // Une clé test ne voit pas les endpoints live, et inversement (§4.6).
+    if (!endpoint || endpoint.livemode !== livemode) throw new NotFoundException('Endpoint introuvable');
     if (endpoint.merchantId !== merchantId) throw new ForbiddenException();
     return endpoint;
   }

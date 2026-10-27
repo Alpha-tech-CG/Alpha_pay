@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaClient, TransactionStatus } from '@paybrain/database';
+import { ANY_MODE, PrismaClient, TransactionStatus } from '@paybrain/database';
 import { Operator, WebhookPayload } from '@paybrain/shared';
 import { WebhooksGateway } from './webhooks.gateway';
 import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
@@ -62,6 +62,7 @@ export class WebhooksService {
       ? await this.prisma.transaction.findFirst({
           where: {
             operator,
+            livemode: ANY_MODE,
             OR: candidates.flatMap((c) => [{ id: c }, { mtnReferenceId: c }]),
           },
         })
@@ -102,7 +103,7 @@ export class WebhooksService {
    * renvoie false si rien n'a changé (déjà final, conflit concurrent).
    */
   async applyVerifiedStatus(
-    transaction: { id: string; merchantId: string; externalId: string; mtnReferenceId: string | null; amount: bigint; currency: string },
+    transaction: { id: string; merchantId: string; livemode: boolean; externalId: string; mtnReferenceId: string | null; amount: bigint; currency: string },
     verifiedStatus: TransactionStatus,
     reason: string | undefined,
     source: string,
@@ -135,7 +136,7 @@ export class WebhooksService {
     // Notifie le marchand via ses webhooks sortants (ALP-132).
     const event = STATUS_EVENT[verifiedStatus];
     if (event) {
-      await this.webhookDelivery.dispatch(transaction.merchantId, event, {
+      await this.webhookDelivery.dispatch(transaction.merchantId, transaction.livemode, event, {
         type: event,
         externalId: transaction.externalId,
         referenceId: transaction.mtnReferenceId,

@@ -157,6 +157,8 @@ model ApiKey {
 model WebhookEndpoint {
   id         String                @id @default(uuid())
   merchantId String                @map("merchant_id")
+  // Mode test ou live (§4.6) : jamais mélangés.
+  livemode   Boolean               @default(false)
   merchant   Merchant              @relation(fields: [merchantId], references: [id])
   url        String
   events     String[]              @default([])
@@ -165,7 +167,7 @@ model WebhookEndpoint {
   createdAt  DateTime              @default(now()) @map("created_at")
   deliveries WebhookDelivery[]
 
-  @@index([merchantId])
+  @@index([merchantId, livemode])
   @@map("webhook_endpoints")
 }
 
@@ -218,7 +220,7 @@ model Transaction {
   outboxEvents   OutboxEvent[]
   audits         TransactionAudit[]
 
-  @@unique([merchantId, externalId])
+  @@unique([merchantId, livemode, externalId])
   @@index([status])
   @@index([merchantId])
   @@index([externalId])
@@ -275,6 +277,8 @@ model WebhookLog {
 model PaymentLink {
   id          String    @id @default(uuid())
   merchantId  String    @map("merchant_id")
+  // Mode test ou live (§4.6) : jamais mélangés.
+  livemode    Boolean   @default(false)
   merchant    Merchant  @relation(fields: [merchantId], references: [id])
   amount      BigInt // unités mineures de la devise (D-007)
   currency    String    @default("XAF")
@@ -284,6 +288,7 @@ model PaymentLink {
   usedAt      DateTime? @map("used_at")
   createdAt   DateTime  @default(now()) @map("created_at")
 
+  @@index([merchantId, livemode, createdAt])
   @@map("payment_links")
 }
 
@@ -308,6 +313,8 @@ model WebhookInboundEvent {
 model IdempotencyRecord {
   id             String    @id @default(uuid())
   merchantId     String    @map("merchant_id")
+  // Mode test ou live (§4.6) : jamais mélangés.
+  livemode       Boolean   @default(false)
   idempotencyKey String    @map("idempotency_key")
   endpoint       String
   requestHash    Bytes     @map("request_hash")
@@ -317,7 +324,7 @@ model IdempotencyRecord {
   createdAt      DateTime  @default(now()) @map("created_at")
   expiresAt      DateTime  @map("expires_at")
 
-  @@unique([merchantId, idempotencyKey, endpoint])
+  @@unique([merchantId, livemode, idempotencyKey, endpoint])
   @@index([expiresAt])
   @@map("idempotency_records")
 }

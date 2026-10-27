@@ -8,13 +8,13 @@ const VALID_KEY = '11111111-1111-4111-8111-111111111111';
 function createFakePrisma() {
   const rows = new Map<string, any>();
   const keyOf = (w: any) =>
-    `${w.merchantId}|${w.idempotencyKey}|${w.endpoint}`;
+    `${w.merchantId}|${w.livemode}|${w.idempotencyKey}|${w.endpoint}`;
 
   return {
     rows,
     idempotencyRecord: {
       create: jest.fn(async ({ data }: any) => {
-        const k = `${data.merchantId}|${data.idempotencyKey}|${data.endpoint}`;
+        const k = `${data.merchantId}|${data.livemode}|${data.idempotencyKey}|${data.endpoint}`;
         if (rows.has(k)) {
           const err: any = new Error('unique');
           err.code = 'P2002';
@@ -25,17 +25,17 @@ function createFakePrisma() {
         return row;
       }),
       findUnique: jest.fn(async ({ where }: any) => {
-        const row = rows.get(keyOf(where.merchantId_idempotencyKey_endpoint));
+        const row = rows.get(keyOf(where.merchantId_livemode_idempotencyKey_endpoint));
         return row ?? null;
       }),
       update: jest.fn(async ({ where, data }: any) => {
-        const k = keyOf(where.merchantId_idempotencyKey_endpoint);
+        const k = keyOf(where.merchantId_livemode_idempotencyKey_endpoint);
         const row = rows.get(k);
         Object.assign(row, data);
         return row;
       }),
       delete: jest.fn(async ({ where }: any) => {
-        const k = keyOf(where.merchantId_idempotencyKey_endpoint);
+        const k = keyOf(where.merchantId_livemode_idempotencyKey_endpoint);
         const row = rows.get(k);
         if (!row) {
           const err: any = new Error('not found');

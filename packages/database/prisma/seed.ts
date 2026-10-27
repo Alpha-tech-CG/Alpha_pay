@@ -79,7 +79,7 @@ async function seedDemo(demoMerchantId: string) {
   console.log(`  Marchand démo : ${demoMerchantId}`);
   for (const [amount, description] of links) {
     const link = await prisma.paymentLink.create({
-      data: { amount, currency: 'XAF', description, merchantId: demoMerchantId },
+      data: { amount, currency: 'XAF', description, merchantId: demoMerchantId, livemode: false },
     });
     console.log(`  Lien de paiement : http://localhost:5174/pay/${link.id}`);
   }

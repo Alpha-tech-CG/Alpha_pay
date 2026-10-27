@@ -53,6 +53,8 @@ export class ReconciliationService {
     const txns = await this.prisma.transaction.findMany({
       where: {
         operator,
+        // Un relevé opérateur ne porte que sur de vrais paiements (mode live, §4.6).
+        livemode: true,
         status: "SUCCESSFUL",
         createdAt: { gte: dayStart, lt: dayEnd },
       },

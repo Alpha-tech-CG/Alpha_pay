@@ -13,6 +13,10 @@ import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { PrismaClient } from '@paybrain/database';
 
+type IdempotencyUniqueKey = {
+  merchantId_livemode_idempotencyKey_endpoint: { merchantId: string; livemode: boolean; idempotencyKey: string; endpoint: string };
+};
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LOCK_MS = 30_000;
 const TTL_HOURS = 24;
@@ -67,7 +71,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
       throw new BadRequestException({ code: 'merchant_context_missing' });
     }
 
+    const livemode = req.livemode === true;
     const endpoint = `${req.method} ${req.route?.path ?? req.path}`;
+    const uniqueKey = { merchantId_livemode_idempotencyKey_endpoint: { merchantId, livemode, idempotencyKey: key, endpoint } };
     const requestHash = hashCanonical(req.body);
     const now = Date.now();
 
@@ -76,6 +82,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
       await this.prisma.idempotencyRecord.create({
         data: {
           merchantId,
+          livemode,
           idempotencyKey: key,
           endpoint,
           requestHash: new Uint8Array(requestHash),
@@ -88,11 +95,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
       if (err?.code !== 'P2002') throw err;
 
       // Conflit : un enregistrement existe déjà pour cette clé.
-      const existing = await this.prisma.idempotencyRecord.findUnique({
-        where: {
-          merchantId_idempotencyKey_endpoint: { merchantId, idempotencyKey: key, endpoint },
-        },
-      });
+      const existing = await this.prisma.idempotencyRecord.findUnique({ where: uniqueKey });
 
       if (!existing) {
         // Course extrêmement rare (TTL purge entre create et read) : on retente net.
@@ -125,9 +128,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
       // Verrou expiré sans réponse (crash applicatif au milieu) : on reprend la
       // main en re-verrouillant, ce qui satisfait « le verrou expire après 30s ».
       await this.prisma.idempotencyRecord.update({
-        where: {
-          merchantId_idempotencyKey_endpoint: { merchantId, idempotencyKey: key, endpoint },
-        },
+        where: uniqueKey,
         data: { lockedUntil: new Date(now + LOCK_MS) },
       });
       isFirstAttempt = true;
@@ -141,38 +142,30 @@ export class IdempotencyInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: async (body) => {
-          await this.persistResponse(merchantId, key, endpoint, res.statusCode ?? 201, body);
+          await this.persistResponse(uniqueKey, res.statusCode ?? 201, body);
         },
         error: async () => {
           // Échec (validation 400, exception métier…) : rien de durable n'a eu lieu.
           // On SUPPRIME l'enregistrement pour ne pas « brûler » la clé — un retry,
           // y compris avec un body corrigé, ne doit pas tomber en collision 422.
-          await this.deleteRecord(merchantId, key, endpoint);
+          await this.deleteRecord(uniqueKey);
         },
       }),
     );
   }
 
-  private async persistResponse(
-    merchantId: string,
-    key: string,
-    endpoint: string,
-    status: number,
-    body: unknown,
-  ): Promise<void> {
+  private async persistResponse(where: IdempotencyUniqueKey, status: number, body: unknown): Promise<void> {
     await this.prisma.idempotencyRecord
       .update({
-        where: { merchantId_idempotencyKey_endpoint: { merchantId, idempotencyKey: key, endpoint } },
+        where,
         data: { responseStatus: status, responseBody: body as any, lockedUntil: null },
       })
       .catch(() => undefined);
   }
 
-  private async deleteRecord(merchantId: string, key: string, endpoint: string): Promise<void> {
+  private async deleteRecord(where: IdempotencyUniqueKey): Promise<void> {
     await this.prisma.idempotencyRecord
-      .delete({
-        where: { merchantId_idempotencyKey_endpoint: { merchantId, idempotencyKey: key, endpoint } },
-      })
+      .delete({ where })
       .catch(() => undefined);
   }
 }

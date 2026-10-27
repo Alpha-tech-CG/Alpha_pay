@@ -17,6 +17,6 @@ export class StatsController {
   @UseGuards(ApiKeyGuard, ScopesGuard)
   @RequiredScopes('payments:read')
   getStats(@Req() req: any) {
-    return this.statsService.getStats(req.merchant.id);
+    return this.statsService.getStats(req.merchant.id, req.livemode === true);
   }
 }

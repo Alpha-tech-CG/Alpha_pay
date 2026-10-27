@@ -36,7 +36,7 @@ export class PaymentsService {
 
   async initiatePayment(dto: CreatePaymentDto, merchantId: string, livemode = false) {
     const existing = await this.prisma.transaction.findFirst({
-      where: { merchantId, externalId: dto.externalId },
+      where: { merchantId, livemode, externalId: dto.externalId },
     });
     if (existing) {
       return {
@@ -162,9 +162,9 @@ export class PaymentsService {
     return toStoredStatus(await provider.getPaymentStatus(tx.mtnReferenceId));
   }
 
-  async getStatus(referenceId: string, merchantId: string) {
+  async getStatus(referenceId: string, merchantId: string, livemode = false) {
     const transaction = await this.prisma.transaction.findFirst({
-      where: { mtnReferenceId: referenceId, merchantId },
+      where: { mtnReferenceId: referenceId, merchantId, livemode },
     });
     if (!transaction) throw new BadRequestException('Transaction introuvable');
     // Expose le montant en unités majeures (unités mineures en interne, D-007).

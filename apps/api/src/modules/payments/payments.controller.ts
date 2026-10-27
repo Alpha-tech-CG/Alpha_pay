@@ -24,6 +24,6 @@ export class PaymentsController {
   @Get(':referenceId')
   @RequiredScopes('payments:read')
   getStatus(@Param('referenceId') referenceId: string, @Req() req: any) {
-    return this.paymentsService.getStatus(referenceId, req.merchant.id);
+    return this.paymentsService.getStatus(referenceId, req.merchant.id, req.livemode === true);
   }
 }

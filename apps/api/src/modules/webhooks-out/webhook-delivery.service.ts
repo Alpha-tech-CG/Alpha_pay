@@ -22,9 +22,9 @@ export class WebhookDeliveryService {
    * Crée une livraison PENDING par endpoint actif du marchand abonné à l'event.
    * Le worker cron la prendra en charge.
    */
-  async dispatch(merchantId: string, event: string, payload: Record<string, unknown>): Promise<number> {
+  async dispatch(merchantId: string, livemode: boolean, event: string, payload: Record<string, unknown>): Promise<number> {
     const endpoints = await this.prisma.webhookEndpoint.findMany({
-      where: { merchantId, status: 'ACTIVE', events: { has: event } },
+      where: { merchantId, livemode, status: 'ACTIVE', events: { has: event } },
     });
 
     for (const endpoint of endpoints) {

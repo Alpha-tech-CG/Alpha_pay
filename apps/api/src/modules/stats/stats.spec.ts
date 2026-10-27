@@ -22,7 +22,7 @@ describe('Stats (isolation multi-tenant)', () => {
     const service = { getStats: jest.fn().mockResolvedValue('ok') };
     const controller = new StatsController(service as unknown as StatsService);
     await controller.getStats({ merchant: { id: 'm-1' } });
-    expect(service.getStats).toHaveBeenCalledWith('m-1');
+    expect(service.getStats).toHaveBeenCalledWith('m-1', false);
   });
 
   it('filtre chaque requête sur le marchand et ne fuit pas les champs chiffrés', async () => {

@@ -3,6 +3,7 @@ import { NotificationChannel, PrismaClient } from "@paybrain/database";
 import { createHash, randomUUID } from "crypto";
 import { sendEmail, sendSms, SendResult } from "./providers";
 import { renderTemplate } from "./templates";
+import { ANY_MODE } from "@paybrain/database";
 
 export interface SendParams {
   channel: NotificationChannel;
@@ -112,7 +113,7 @@ export class NotificationService {
 
     const event = `notification.${category}`;
     const endpoints = await this.prisma.webhookEndpoint.findMany({
-      where: { merchantId, status: "ACTIVE", events: { has: event } },
+      where: { merchantId, livemode: ANY_MODE, status: "ACTIVE", events: { has: event } },
     });
     if (endpoints.length === 0)
       return { ok: false, error: "aucun endpoint abonne" };

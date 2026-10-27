@@ -11,13 +11,13 @@ export class PaylinksService {
     private readonly paymentsService: PaymentsService,
   ) {}
 
-  async create(dto: CreatePaylinkDto, merchantId: string) {
+  async create(dto: CreatePaylinkDto, merchantId: string, livemode = false) {
     const expiresAt = dto.expiresInMinutes
       ? new Date(Date.now() + dto.expiresInMinutes * 60 * 1000)
       : null;
 
     const link = await this.prisma.paymentLink.create({
-      data: { merchantId, amount: toMinor(dto.amount, dto.currency), currency: dto.currency, description: dto.description, expiresAt },
+      data: { merchantId, livemode, amount: toMinor(dto.amount, dto.currency), currency: dto.currency, description: dto.description, expiresAt },
     });
 
     const baseUrl = process.env.CHECKOUT_URL ?? 'http://localhost:5174';
@@ -29,9 +29,9 @@ export class PaylinksService {
   }
 
   /** Liste les liens de paiement d'un marchand (back-office). */
-  async list(merchantId: string) {
+  async list(merchantId: string, livemode = false) {
     const links = await this.prisma.paymentLink.findMany({
-      where: { merchantId },
+      where: { merchantId, livemode },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
@@ -70,7 +70,7 @@ export class PaylinksService {
     const link = await this.findById(id);
     if (link.usedAt) throw new BadRequestException('Ce lien de paiement a déjà été utilisé');
 
-    // Liens en mode test jusqu'à l'ajout de livemode sur les liens (T-11/T-52).
+    // Le paiement hérite du mode du lien (§4.6).
     const result = await this.paymentsService.initiatePayment(
       {
         // findById renvoie déjà le montant en unités majeures.
@@ -81,6 +81,7 @@ export class PaylinksService {
         description: link.description,
       },
       link.merchantId,
+      link.livemode,
     );
 
     await this.prisma.paymentLink.update({ where: { id: link.id }, data: { usedAt: new Date() } });

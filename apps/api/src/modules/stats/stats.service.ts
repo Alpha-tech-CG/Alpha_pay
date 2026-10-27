@@ -6,23 +6,23 @@ import { toMajorAmount } from '../../common/money';
 export class StatsService {
   constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
 
-  async getStats(merchantId: string) {
+  async getStats(merchantId: string, livemode = false) {
     const [totals, byOperator, recent] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['status'],
-        where: { merchantId },
+        where: { merchantId, livemode },
         _count: { id: true },
         _sum: { amount: true },
       }),
       // Volume encaissé (SUCCESSFUL) ventilé par opérateur — alimente la hero card.
       this.prisma.transaction.groupBy({
         by: ['operator'],
-        where: { merchantId, status: 'SUCCESSFUL' },
+        where: { merchantId, livemode, status: 'SUCCESSFUL' },
         _count: { id: true },
         _sum: { amount: true },
       }),
       this.prisma.transaction.findMany({
-        where: { merchantId },
+        where: { merchantId, livemode },
         orderBy: { createdAt: 'desc' },
         take: 20,
         include: { merchant: { select: { name: true } } },
