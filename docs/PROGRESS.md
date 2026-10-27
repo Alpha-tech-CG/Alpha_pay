@@ -2,6 +2,25 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 27 octobre 2026 (5) — M1 Comptes
+
+### Fait
+- **T-30** Migration 23 (testée dans les deux sens) : comptes maison, sessions, rôles du cahier des charges, invitations par téléphone, `audit_logs` en ajout seul ; colonnes Clerk supprimées.
+- **T-31** `/v1/auth` : inscription, connexion mot de passe puis code (SMS, WhatsApp, email), refresh par cookie + anti-CSRF, déconnexion (une/toutes), sessions, mot de passe oublié sans énumération, `me`.
+- **T-32/T-33** Matrice des rôles §M1, anti-escalade, invitations via M9, révocation immédiate des sessions d'un membre suspendu ou retiré, audit des actions sensibles.
+- **Retrait de Clerk** de l'API (modules clerk/users, inscription héritée) et du tableau de bord (écrans maison, i18n FR/EN).
+- **T-34** 13 tests d'intégration HTTP sur Postgres réel.
+- Décisions D-036 à D-040.
+
+### Vérifié
+- Unitaires 304, intégration 33 — verts.
+- Navigateur : inscription, connexion avec code WhatsApp, accès au tableau de bord.
+
+### Reste
+- Isolement du caissier par caisse : testé avec T-50 (caisses).
+- Back-office encore sous Clerk jusqu'à T-90 (D-039).
+- Pages Paiements et Développeurs du tableau de bord encore sur la clé API du proxy (M4, M6, M10).
+
 ## Session du 27 octobre 2026 (4) — M9 Messages et OTP
 
 ### Fait
@@ -73,7 +92,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 | Jalon | Échéance | État |
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
-| S3 M1, M9, M3 | 16 nov. | En cours — M9 fait (T-20 à T-24) ; M1 et M3 à faire |
+| S3 M1, M9, M3 | 16 nov. | En cours — M9 et M1 faits ; M3 à faire |
 | S5 M4, M5, M10, M2 | 30 nov. | À faire |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |

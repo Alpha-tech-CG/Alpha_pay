@@ -39,11 +39,11 @@
 ### M1 Comptes, authentification, rôles
 | ID | Tâche | Charge |
 |---|---|---|
-| T-30 | Retrait de Clerk (backend + dashboard + admin) ; `users` (Argon2id), `sessions` (refresh haché, révocable) | M |
-| T-31 | Inscription, connexion mot de passe → OTP (canal au choix), refresh, déconnexion, déconnexion de toutes les sessions, réinitialisation par OTP | L |
-| T-32 | Rôles marchand Propriétaire/Administrateur/Comptable/Caissier/Développeur ; migration de l'enum existant ; matrice de permissions ; invitations par téléphone ou email | M |
-| T-33 | Retrait d'un membre = révocation immédiate des sessions (vérification de l'appartenance à chaque requête) | S |
-| T-34 | Tests d'intégration du contrôle d'accès par rôle | M |
+| T-30 | Retrait de Clerk (backend + dashboard + admin) ; `users` (Argon2id), `sessions` (refresh haché, révocable) | M ✅ |
+| T-31 | Inscription, connexion mot de passe → OTP (canal au choix), refresh, déconnexion, déconnexion de toutes les sessions, réinitialisation par OTP | L ✅ |
+| T-32 | Rôles marchand Propriétaire/Administrateur/Comptable/Caissier/Développeur ; migration de l'enum existant ; matrice de permissions ; invitations par téléphone ou email | M ✅ |
+| T-33 | Retrait d'un membre = révocation immédiate des sessions (vérification de l'appartenance à chaque requête) | S ✅ |
+| T-34 | Tests d'intégration du contrôle d'accès par rôle | M ✅ |
 
 ### M3 Connecteurs opérateurs
 | ID | Tâche | Charge |
