@@ -30,11 +30,11 @@
 ### M9 Messages et OTP (en premier : M1 en dépend)
 | ID | Tâche | Charge |
 |---|---|---|
-| T-20 | Tables `message_templates` (versionnés), `messages`, `message_preferences`, `opt_outs`, `otp_audit` | M |
-| T-21 | Service d'envoi : rendu de modèle, envoi via file, retries (réseau/5xx/429), **bascule de canal**, journal masqué, coût | L |
-| T-22 | Adaptateurs réels : SMS **Infobip**, WhatsApp **Meta Cloud API**, email **SMTP** (nodemailer) ; webhooks de statut (envoyé/livré/lu/échoué) idempotents ; STOP | L |
-| T-23 | Service OTP : 6 chiffres CSPRNG, HMAC-SHA256 dans Redis TTL 5 min, lié à (destination, usage), temps constant, usage unique, 5 essais → 15 min, 60 s entre envois, plafonds par destination et IP, jamais journalisé | M |
-| T-24 | Tests : unitaires OTP, bascule WhatsApp→SMS, aucun code dans les logs | M |
+| T-20 | Tables `message_templates` (versionnés), `messages`, `message_preferences`, `opt_outs`, `otp_audit` | M ✅ |
+| T-21 | Service d'envoi : rendu de modèle, envoi via file, retries (réseau/5xx/429), **bascule de canal**, journal masqué, coût | L ✅ |
+| T-22 | Adaptateurs réels : SMS **Infobip**, WhatsApp **Meta Cloud API**, email **SMTP** (nodemailer) ; webhooks de statut (envoyé/livré/lu/échoué) idempotents ; STOP | L ✅ |
+| T-23 | Service OTP : 6 chiffres CSPRNG, HMAC-SHA256 dans Redis TTL 5 min, lié à (destination, usage), temps constant, usage unique, 5 essais → 15 min, 60 s entre envois, plafonds par destination et IP, jamais journalisé | M ✅ |
+| T-24 | Tests : unitaires OTP, bascule WhatsApp→SMS, aucun code dans les logs | M ✅ |
 
 ### M1 Comptes, authentification, rôles
 | ID | Tâche | Charge |

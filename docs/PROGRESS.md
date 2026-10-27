@@ -2,6 +2,31 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 27 octobre 2026 (4) — M9 Messages et OTP
+
+### Fait
+- **Image Docker** constructible (quarantaine pnpm neutralisée pour la seule étape `deploy`, autorisé par Miche) ; `docker compose up` vérifié de bout en bout sur volumes neufs.
+- **T-20** Schéma : modèles versionnés, messages (destination hachée/masquée, contact et variables chiffrés puis effacés), préférences, désabonnements, audit OTP, registre de crédits en ajout seul (triggers Postgres). Migration 22 testée (triggers, aller-retour).
+- **T-21** Service d'envoi : file BullMQ, nouvelles tentatives, bascule de canal (y compris sur accusé d'échec tardif), accusés de livraison, STOP, crédits (402 avant tout envoi, débit sérialisé, remboursement), boîte d'envoi de dev `GET /dev/outbox`.
+- **T-22** Adaptateurs réels Infobip, Meta WhatsApp Cloud API (modèle Authentification), SMTP ; MailHog branché dans le compose.
+- **T-23** OTP conforme §M9 + API revendue `/v1/messages`, `/v1/otp/send`, `/v1/otp/verify`, `/v1/credits`.
+- **T-24** Tests d'intégration sur Postgres réel (ajoutés à la CI) : les deux critères d'acceptation de M9 et celui des 5 OTP faux de M1 sont couverts.
+- Décisions D-030 à D-035.
+
+### Vérifié
+- Unitaires `apps/api` 342, `providers` 100, `shared` 23 ; intégration 20 — verts.
+- Smoke test sur la pile locale (worker BullMQ réel) : OTP WhatsApp avec bascule SMS, délai de 60 s, code lié à l'usage, usage unique, `/v1/messages` puis statut, `/v1/credits`, aucun code dans les journaux.
+- Même smoke test dans les conteneurs (`docker compose`, image reconstruite avec M9) ; OTP par email reçu dans MailHog via l'adaptateur SMTP réel.
+- Deux défauts trouvés par les tests et corrigés : lecture d'un statut de message sans marchand (exposait les messages internes), contenu OTP chiffré conservé au-delà de son expiration.
+
+### Reste / points connus
+- L'ancien module `notifications` (Africa's Talking, Postmark) sert encore l'onboarding, Clerk et le rapprochement : ses appelants passeront sur M9 avec leur réécriture (M1, M2, M6), puis il sera supprimé.
+- Les modèles WhatsApp (`alphapay_otp`, `alphapay_paiement_recu`, `alphapay_notification`) doivent être soumis et approuvés chez Meta (dépendance §13).
+- Infobip et Meta : formats à valider sur comptes réels (D-032).
+
+### Prochaine étape
+M1 Comptes (T-30 à T-34) : authentification maison mot de passe + OTP (s'appuie sur `OtpService`), sessions révocables, rôles marchand, retrait de Clerk.
+
 ## Session du 27 octobre 2026 (3) — fin du socle S1
 
 ### Fait
@@ -48,7 +73,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 | Jalon | Échéance | État |
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
-| S3 M1, M9, M3 | 16 nov. | À faire |
+| S3 M1, M9, M3 | 16 nov. | En cours — M9 fait (T-20 à T-24) ; M1 et M3 à faire |
 | S5 M4, M5, M10, M2 | 30 nov. | À faire |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |
