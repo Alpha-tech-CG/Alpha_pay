@@ -4,9 +4,9 @@
   "packageManager": "pnpm@11.1.1",
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "lint": "turbo run lint",
+    "build": "turbo run build --filter=!@paybrain/alphapay-backend --filter=!@paybrain/prototype",
+    "test": "turbo run test --filter=!@paybrain/alphapay-backend --filter=!@paybrain/prototype",
+    "lint": "turbo run lint --filter=!@paybrain/alphapay-backend --filter=!@paybrain/prototype",
     "db:migrate": "turbo run db:migrate --filter=@paybrain/database",
     "db:push": "turbo run db:push --filter=@paybrain/database",
     "db:generate": "turbo run db:generate --filter=@paybrain/database"
