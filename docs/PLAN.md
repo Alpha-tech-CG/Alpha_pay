@@ -11,11 +11,11 @@
 | ID | Tâche | Charge |
 |---|---|---|
 | T-01 | `AUDIT.md`, `PLAN.md`, `DECISIONS.md`, `PROGRESS.md` | S ✅ |
-| T-02 | Nettoyage racine : archives `.zip`, logs, `plan.out`, résidus (`src/`, `tmp/`, `paybrain/`) ; archiver les anciennes docs dans `docs/archive/` | S |
-| T-03 | Retirer de `apps/api` les modules hors périmètre : `wallet`, `ledger`, `settlement`, `fees`, `partners`, `routing`, `currency`, `ussd` ; supprimer `disburse` des connecteurs ; migration de suppression des tables | M |
-| T-04 | Geler `apps/alphapay-backend`, `apps/prototype`, `mobile/` (exclus du build/CI turbo) | S |
-| T-05 | Arborescence fournisseurs : `packages/providers` avec interfaces `MobileMoneyProvider`, `KycProvider`, `SmsProvider`, `WhatsAppProvider`, `EmailProvider`, `CardAcquirer` + **adaptateurs mock** + **suite de tests de contrat** commune | L |
-| T-06 | Registre de fournisseurs (injection Nest) piloté par configuration (`*_PROVIDER=mock|mtn|…`) | M |
+| T-02 | Nettoyage racine : archives `.zip`, logs, `plan.out`, résidus (`src/`, `tmp/`, `paybrain/`) ; archiver les anciennes docs dans `docs/archive/` | S ✅ |
+| T-03 | Retirer de `apps/api` les modules hors périmètre : `wallet`, `ledger`, `settlement`, `fees`, `partners`, `routing`, `currency`, `ussd` ; supprimer `disburse` des connecteurs ; migration de suppression des tables | M ✅ |
+| T-04 | Geler `apps/alphapay-backend`, `apps/prototype`, `mobile/` (exclus du build/CI turbo) | S ✅ |
+| T-05 | Arborescence fournisseurs : `packages/providers` avec interfaces `MobileMoneyProvider`, `KycProvider`, `SmsProvider`, `WhatsAppProvider`, `EmailProvider`, `CardAcquirer` + **adaptateurs mock** + **suite de tests de contrat** commune | L ✅ |
+| T-06 | Registre de fournisseurs (injection Nest) piloté par configuration (`*_PROVIDER=mock|mtn|…`) ; brancher paiements, webhooks entrants et outbox dessus ; supprimer `packages/connectors` (D-024) | M |
 | T-07 | File de tâches **BullMQ** (Redis) : module `queue`, retries exponentiels, file des échecs, métriques de durée ; worker lancé comme process séparé (`apps/api` en mode `worker`) | M |
 | T-08 | Socle transversal : format d'erreur §7, codes métiers, validation par schéma sur chaque route, journaux JSON (pino) avec `request_id` propagé et masquage PII, `/health` + `/ready` | M |
 | T-09 | Montants : `money.ts` par exposant ISO 4217 (XAF=0, EUR=2), formatage `15 000 XAF`, migration des montants existants | S |
