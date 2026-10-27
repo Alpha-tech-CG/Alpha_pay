@@ -11,7 +11,16 @@ import type { PrismaClient } from '@prisma/client';
  * - `ANY_MODE`, à utiliser délibérément quand les deux modes sont voulus
  *   (ex. callback opérateur qui retrouve une transaction par sa référence).
  */
-export const LIVEMODE_MODELS = new Set(['Transaction', 'PaymentLink', 'WebhookEndpoint', 'ProviderConnection', 'IdempotencyRecord']);
+export const LIVEMODE_MODELS = new Set([
+  'Transaction',
+  'PaymentLink',
+  'WebhookEndpoint',
+  'ProviderConnection',
+  'IdempotencyRecord',
+  'Message',
+  'OtpAudit',
+  'CreditLedger',
+]);
 
 /**
  * Filtre explicite « les deux modes » : la clé `livemode` est présente (le

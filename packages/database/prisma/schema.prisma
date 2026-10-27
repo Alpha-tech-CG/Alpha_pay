@@ -630,3 +630,160 @@ model ProviderConnection {
   @@unique([merchantId, operator, livemode])
   @@map("provider_connections")
 }
+
+// ─── M9 Messages et OTP (T-20) ───────────────────────────────────────────────
+
+enum MessageChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum MessageStatus {
+  QUEUED // en file, pas encore remis au fournisseur
+  SENT // accepté par le fournisseur
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED // non envoyé (désabonnement, préférence)
+}
+
+enum MessageCategory {
+  TRANSACTIONAL // reçus, confirmations, relances de paiement
+  OTP
+  MARKETING // soumis au désabonnement (STOP)
+}
+
+// Modèle de message versionné (§M9) : une nouvelle version = une nouvelle
+// ligne, l'ancienne reste pour l'historique des messages envoyés.
+model MessageTemplate {
+  id                   String          @id @default(uuid())
+  key                  String // ex. "otp.connexion", "verif.paiement_recu"
+  channel              MessageChannel
+  locale               String          @default("fr")
+  version              Int
+  category             MessageCategory
+  subject              String? // email
+  body                 String // texte avec variables {{nom}}
+  // WhatsApp : nom et langue du modèle pré-approuvé chez Meta ; les variables
+  // sont passées dans l'ordre de `variables`.
+  whatsappTemplateName String?         @map("whatsapp_template_name")
+  variables            String[]        @default([])
+  active               Boolean         @default(true)
+  createdAt            DateTime        @default(now()) @map("created_at")
+
+  @@unique([key, channel, locale, version])
+  @@index([key, channel, locale, active])
+  @@map("message_templates")
+}
+
+// Journal de chaque message (§M9) : destination masquée et hachée, jamais en
+// clair ; contact et variables ne sont conservés que chiffrés, le temps de
+// l'envoi, puis effacés (un OTP n'apparaît jamais dans les journaux ni en clair).
+model Message {
+  id                String           @id @default(uuid())
+  // null = message interne d'AlphaPay (OTP de connexion, alertes).
+  merchantId        String?          @map("merchant_id")
+  livemode          Boolean          @default(false)
+  channel           MessageChannel
+  category          MessageCategory
+  templateKey       String?          @map("template_key")
+  templateVersion   Int?             @map("template_version")
+  destinationHash   Bytes            @map("destination_hash")
+  destinationMasked String           @map("destination_masked")
+  // Contact chiffré { phone?, email? } : permet la bascule vers un autre canal.
+  contactEnc        Bytes?           @map("contact_enc")
+  subject           String?
+  // Variables du modèle, chiffrées, rendues au moment de l'envoi ; effacées
+  // dès que le message est livré ou définitivement en échec.
+  variablesEnc      Bytes?           @map("variables_enc")
+  status            MessageStatus    @default(QUEUED)
+  provider          String?
+  providerMessageId String?          @map("provider_message_id")
+  attempts          Int              @default(0)
+  maxAttempts       Int              @default(5) @map("max_attempts")
+  lastError         String?          @map("last_error")
+  costMinor         BigInt?          @map("cost_minor")
+  costCurrency      String?          @map("cost_currency")
+  creditsCharged    Int              @default(0) @map("credits_charged")
+  // Bascule de canal : canaux restant à essayer, et message d'origine.
+  fallbackChannels  MessageChannel[] @default([]) @map("fallback_channels")
+  fallbackOfId      String?          @map("fallback_of_id")
+  // Groupe de bascule : tous les essais d'un même envoi logique.
+  groupId           String           @map("group_id")
+  sentAt            DateTime?        @map("sent_at")
+  deliveredAt       DateTime?        @map("delivered_at")
+  readAt            DateTime?        @map("read_at")
+  failedAt          DateTime?        @map("failed_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  @@index([merchantId, livemode, createdAt])
+  @@index([provider, providerMessageId])
+  @@index([status, createdAt])
+  @@index([groupId])
+  @@map("messages")
+}
+
+// Préférences de canal d'un destinataire, par marchand (ordre d'essai).
+model MessagePreference {
+  id                String           @id @default(uuid())
+  merchantId        String?          @map("merchant_id")
+  destinationHash   Bytes            @map("destination_hash")
+  preferredChannels MessageChannel[] @map("preferred_channels")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  @@unique([merchantId, destinationHash])
+  @@map("message_preferences")
+}
+
+// Désabonnement (réponse STOP) : bloque les messages MARKETING vers ce
+// destinataire, jamais les messages transactionnels ni les OTP.
+model OptOut {
+  id              String         @id @default(uuid())
+  merchantId      String?        @map("merchant_id")
+  channel         MessageChannel
+  destinationHash Bytes          @map("destination_hash")
+  source          String // "STOP" | "manuel"
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@unique([merchantId, channel, destinationHash])
+  @@map("opt_outs")
+}
+
+// Audit des OTP : jamais le code, seulement les événements.
+model OtpAudit {
+  id                String          @id @default(uuid())
+  merchantId        String?         @map("merchant_id")
+  livemode          Boolean         @default(false)
+  purpose           String
+  channel           MessageChannel?
+  destinationHash   Bytes           @map("destination_hash")
+  destinationMasked String          @map("destination_masked")
+  // sent | verified | invalid | expired | locked | rate_limited | cooldown
+  event             String
+  ipHash            Bytes?          @map("ip_hash")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  @@index([destinationHash, createdAt])
+  @@index([merchantId, livemode, createdAt])
+  @@map("otp_audit")
+}
+
+// Registre des crédits de messages (§6, M11) : en ajout seul, jamais modifié ;
+// le solde est la somme des mouvements. Achat de packs : M11 (T-82).
+model CreditLedger {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  livemode   Boolean  @default(false)
+  // Positif = crédit (achat, remboursement), négatif = consommation.
+  delta      Int
+  reason     String // "achat" | "message" | "remboursement" | "ajustement"
+  messageId  String?  @map("message_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([merchantId, livemode, createdAt])
+  @@index([messageId])
+  @@map("credit_ledger")
+}
