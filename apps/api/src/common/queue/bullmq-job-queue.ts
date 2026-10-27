@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions } from 'bullmq';
+import { runWithRequestId } from '../logging/request-context';
 import { DEFAULT_ATTEMPTS, DEFAULT_BACKOFF_MS, EnqueueOptions, JobHandler, JobQueue, QueueName } from './job-queue';
 
 /** Options de connexion BullMQ dérivées de REDIS_URL (redis:// ou rediss://). */
@@ -62,7 +63,10 @@ export class BullMqJobQueue extends JobQueue {
       async (job) => {
         const started = process.hrtime.bigint();
         try {
-          await handler(job.data as T, { id: job.id ?? '', attemptsMade: job.attemptsMade });
+          // L'id de la tâche sert d'identifiant de corrélation dans les journaux.
+          await runWithRequestId(`job-${job.id ?? ''}`, () =>
+            handler(job.data as T, { id: job.id ?? '', attemptsMade: job.attemptsMade }),
+          );
           this.onJobDone?.(queue, 'completed', Number(process.hrtime.bigint() - started) / 1e9);
         } catch (err) {
           this.onJobDone?.(queue, 'failed', Number(process.hrtime.bigint() - started) / 1e9);

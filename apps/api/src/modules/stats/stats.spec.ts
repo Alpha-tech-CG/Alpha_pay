@@ -14,8 +14,7 @@ describe('Stats (isolation multi-tenant)', () => {
     expect(Reflect.getMetadata(SCOPES_KEY, handler)).toEqual(['payments:read']);
   });
 
-  it('laisse /health public (healthcheck)', () => {
-    expect(Reflect.getMetadata(GUARDS_METADATA, StatsController.prototype.health)).toBeUndefined();
+  it('ne pose pas de garde au niveau du contrôleur (routes publiques possibles)', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, StatsController)).toBeUndefined();
   });
 

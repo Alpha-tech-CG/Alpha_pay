@@ -61,7 +61,7 @@ describe("bodyGuard (ALP-153)", () => {
     });
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(415);
-    expect(res.body).toMatchObject({ code: "unsupported_media_type" });
+    expect(res.body).toMatchObject({ error: { code: "type_de_contenu_non_supporte" } });
   });
 
   it("rejette un Content-Type absent en 415", () => {
@@ -76,7 +76,7 @@ describe("bodyGuard (ALP-153)", () => {
     });
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(413);
-    expect(res.body).toMatchObject({ code: "payload_too_large" });
+    expect(res.body).toMatchObject({ error: { code: "requete_trop_volumineuse" } });
   });
 
   it("accepte pile à la limite (8192 octets)", () => {

@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModuleBuilder } from '@nestjs/testing';
 import { WsAdapter } from '@nestjs/platform-ws';
 import { AppModule } from '../../src/app.module';
+import { validationExceptionFactory } from '../../src/common/errors/api-error';
 
 /**
  * Boote l'application réelle (AppModule complet) pour les tests e2e — c'est
@@ -27,7 +28,9 @@ export async function createTestApp(
   // explicite, Nest tente le driver socket.io par défaut (absent) et
   // `process.exit(1)` au lieu de lever une exception — même config que main.ts.
   app.useWebSocketAdapter(new WsAdapter(app));
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, exceptionFactory: validationExceptionFactory }),
+  );
   await app.init();
   return app;
 }

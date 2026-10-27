@@ -31,6 +31,9 @@ import { bodyGuard } from "./common/security/body-guard";
 import { createRateLimitStore } from "./common/security/redis-rate-limit.store";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { buildCorsOptions } from "./common/security/cors";
+import { JsonNestLogger } from "./common/logging/logger";
+import { requestLogger } from "./common/logging/request-logger.middleware";
+import { validationExceptionFactory } from "./common/errors/api-error";
 
 const MAX_BODY_BYTES = 8 * 1024;
 
@@ -41,11 +44,15 @@ async function bootstrap() {
   // pour vérifier la signature HMAC des webhooks sur les octets exacts reçus (ALP-158).
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
+    logger: new JsonNestLogger(),
   });
 
   // Derrière un unique LB/proxy (ALB/Cloudflare) : faire confiance au 1er hop
   // pour que req.ip reflète l'IP client réelle (allowlist webhooks, ALP-160).
   app.set("trust proxy", 1);
+
+  // request_id propagé + ligne d'accès JSON, avant tout autre middleware (§8.4).
+  app.use(requestLogger());
 
   // Borne le parser JSON à 8 KiB : un body plus gros → 413 automatique (ALP-153).
   app.useBodyParser("json", { limit: MAX_BODY_BYTES, strict: true });
@@ -78,6 +85,8 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      // Erreur au format §7 : { error: { code: "validation_echouee", message, param } }.
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 
@@ -92,7 +101,7 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       store: createRateLimitStore("global"),
-      message: { message: "Trop de requêtes, réessayez plus tard." },
+      message: { error: { code: 'trop_de_requetes', message: "Trop de requêtes, réessayez plus tard." } },
     }),
   );
 
@@ -107,7 +116,7 @@ async function bootstrap() {
       legacyHeaders: false,
       store: createRateLimitStore("payments"),
       message: {
-        message: "Trop de paiements initiés, réessayez dans une minute.",
+        error: { code: "trop_de_requetes", message: "Trop de paiements initiés, réessayez dans une minute." },
       },
     }),
   );
@@ -137,7 +146,7 @@ async function bootstrap() {
       legacyHeaders: false,
       skip: (req) => req.method !== "POST",
       store: createRateLimitStore("invitations"),
-      message: { message: "Trop d'invitations envoyées, réessayez plus tard." },
+      message: { error: { code: 'trop_de_requetes', message: "Trop d'invitations envoyées, réessayez plus tard." } },
     }),
   );
 
@@ -150,7 +159,7 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       store: createRateLimitStore('onboarding'),
-      message: { message: 'Trop de tentatives d\'inscription, réessayez plus tard.' },
+      message: { error: { code: 'trop_de_requetes', message: 'Trop de tentatives d\'inscription, réessayez plus tard.' } },
     }),
   );
 

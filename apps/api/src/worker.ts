@@ -14,11 +14,11 @@ if (process.env.SENTRY_DSN) {
   return (this as unknown as bigint).toString();
 };
 
-import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { loadSecrets } from "./secrets/secrets-loader";
 import { PaymentStatusPoller } from "./modules/payment-status/payment-status.poller";
+import { JsonNestLogger, logger } from "./common/logging/logger";
 
 /**
  * Process worker (D-008) : même code que l'API, sans serveur HTTP. Consomme
@@ -28,16 +28,15 @@ async function bootstrap() {
   await loadSecrets();
   if (!process.env.REDIS_URL) throw new Error("REDIS_URL requis pour le worker");
 
-  const app = await NestFactory.createApplicationContext(AppModule);
+  const app = await NestFactory.createApplicationContext(AppModule, { logger: new JsonNestLogger() });
   app.enableShutdownHooks();
 
   app.get(PaymentStatusPoller).register();
 
-  new Logger("Worker").log("Worker démarré : files payment-status");
+  logger.info({ queues: ["payment-status"] }, "Worker démarré");
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err);
+  logger.fatal({ err: err instanceof Error ? { message: err.message, stack: err.stack } : String(err) }, "Échec du démarrage du worker");
   process.exit(1);
 });

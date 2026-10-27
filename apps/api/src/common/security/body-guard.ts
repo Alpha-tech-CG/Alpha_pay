@@ -58,8 +58,10 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
     ) {
       if (Number.isFinite(len) && len > multipartMaxBytes) {
         return res.status(413).json({
-          code: "payload_too_large",
-          message: `Corps limité à ${multipartMaxBytes} octets.`,
+          error: {
+            code: "requete_trop_volumineuse",
+            message: `Corps limité à ${multipartMaxBytes} octets.`,
+          },
         });
       }
       return next();
@@ -73,8 +75,10 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
     ) {
       if (Number.isFinite(len) && len > largeJsonMaxBytes) {
         return res.status(413).json({
-          code: "payload_too_large",
-          message: `Corps limité à ${largeJsonMaxBytes} octets.`,
+          error: {
+            code: "requete_trop_volumineuse",
+            message: `Corps limité à ${largeJsonMaxBytes} octets.`,
+          },
         });
       }
       return next();
@@ -82,14 +86,18 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
 
     if (contentType !== "application/json" && !formAllowed) {
       return res.status(415).json({
-        code: "unsupported_media_type",
-        message: "Content-Type application/json requis.",
+        error: {
+          code: "type_de_contenu_non_supporte",
+          message: "Content-Type application/json requis.",
+        },
       });
     }
     if (Number.isFinite(len) && len > maxBytes) {
       return res.status(413).json({
-        code: "payload_too_large",
-        message: `Corps limité à ${maxBytes} octets.`,
+        error: {
+          code: "requete_trop_volumineuse",
+          message: `Corps limité à ${maxBytes} octets.`,
+        },
       });
     }
     next();

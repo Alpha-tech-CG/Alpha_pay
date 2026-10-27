@@ -19,10 +19,4 @@ export class StatsController {
   getStats(@Req() req: any) {
     return this.statsService.getStats(req.merchant.id);
   }
-
-  // Public : sonde de vie (healthcheck Docker / reverse proxy).
-  @Get('health')
-  health() {
-    return { status: 'ok', service: 'PayBrain API', version: '2.0.0', stack: 'NestJS' };
-  }
 }
