@@ -3,11 +3,23 @@
   "testEnvironment": "node",
   "testRegex": "integration/.*\\.int-spec\\.ts$",
   "transform": {
-    "^.+\\.ts$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.e2e.json" }]
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/tsconfig.e2e.json"
+      }
+    ]
   },
-  "moduleFileExtensions": ["js", "json", "ts"],
-  "setupFiles": ["<rootDir>/integration/setup-env.ts"],
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "setupFiles": [
+    "<rootDir>/integration/setup-env.ts"
+  ],
   "globalSetup": "<rootDir>/integration/global-setup.ts",
   "testTimeout": 30000,
-  "maxWorkers": 1
+  "maxWorkers": 1,
+  "workerIdleMemoryLimit": "800MB"
 }

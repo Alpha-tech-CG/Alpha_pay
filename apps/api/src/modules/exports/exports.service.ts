@@ -51,7 +51,7 @@ export class ExportsService implements OnModuleInit {
 
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
-    @Inject('JOB_QUEUE') private readonly queue: JobQueue,
+    @Inject(JobQueue) private readonly queue: JobQueue,
   ) {}
 
   onModuleInit() {

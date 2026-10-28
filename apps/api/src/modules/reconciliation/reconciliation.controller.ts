@@ -9,13 +9,13 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { PrismaClient } from "@paybrain/database";
-import { InternalGuard } from "../../common/guards/internal.guard";
+import { RequireStaffRole, STAFF_WRITE, StaffGuard } from "../staff/staff.guard";
 import { ReconciliationService } from "./reconciliation.service";
 import { parseStatementCsv } from "./statement-parser";
 import { RunReconciliationDto } from "./dto/run-reconciliation.dto";
 
 @Controller("internal/reconciliation")
-@UseGuards(InternalGuard)
+@UseGuards(StaffGuard)
 export class ReconciliationController {
   constructor(
     private readonly reconciliation: ReconciliationService,
@@ -24,6 +24,7 @@ export class ReconciliationController {
 
   /** Relance manuelle de la réconciliation à partir d'un relevé CSV. */
   @Post("run")
+  @RequireStaffRole(...STAFF_WRITE.admin)
   run(@Body() dto: RunReconciliationDto) {
     const lines = parseStatementCsv(dto.csv);
     return this.reconciliation.reconcile(

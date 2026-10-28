@@ -51,8 +51,11 @@ export class AuditService {
 @Module({
   providers: [
     AuditService,
-    Reflector,
-    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (audit: AuditService, reflector: Reflector) => new AuditInterceptor(audit, reflector),
+      inject: [AuditService, Reflector],
+    },
   ],
   exports: [AuditService],
 })

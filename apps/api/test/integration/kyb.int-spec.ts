@@ -7,8 +7,8 @@ import { ApiKeysService } from '../../src/modules/api-keys/api-keys.service';
 import { accounts } from './accounts';
 import { createTestApp, TestApp } from './app';
 import { resetDatabase } from './db';
+import { staffSession } from './staff';
 
-const STAFF = { 'X-Internal-Token': 'test-internal-token-0123456789abcdef', 'X-Staff-Id': 'conformite@alphapay.cg' };
 const PDF = Buffer.concat([Buffer.from('%PDF-1.4\n% pièce de test\n'), Buffer.alloc(2000, 0x20), Buffer.from('\n%%EOF')]);
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(500, 1)]);
 
@@ -35,6 +35,9 @@ function storedFiles(dir = process.env.STORAGE_DIR!): string[] {
 describe('M2 Dossier KYB et KYC (HTTP, Postgres réel)', () => {
   let t: TestApp;
   let a: ReturnType<typeof accounts>;
+  /** Agent de conformité connecté (mot de passe + TOTP). */
+  let STAFF: Record<string, string>;
+  let agent: string;
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -44,6 +47,9 @@ describe('M2 Dossier KYB et KYC (HTTP, Postgres réel)', () => {
     await resetDatabase();
     await t.syncTemplates();
     t.providers.outbox.clear();
+    const compliance = await staffSession(t, 'COMPLIANCE');
+    STAFF = compliance.headers;
+    agent = compliance.id;
   });
   afterAll(async () => {
     await t.app.close();
@@ -93,7 +99,7 @@ describe('M2 Dossier KYB et KYC (HTTP, Postgres réel)', () => {
       'soumis→en_revue:staff',
       'en_revue→approuvé:staff',
     ]);
-    expect(approved.body.history[2].actor_id).toBe('conformite@alphapay.cg');
+    expect(approved.body.history[2].actor_id).toBe(agent);
 
     // Seul un dossier approuvé ouvre le live (garde côté API).
     expect((await prisma.merchant.findUniqueOrThrow({ where: { id: owner.merchantId } })).onboardingStatus).toBe('APPROVED');
@@ -191,16 +197,21 @@ describe('M2 Dossier KYB et KYC (HTTP, Postgres réel)', () => {
     // Le back-office voit la pièce ; chaque consultation est auditée avec l'agent.
     const app = await prisma.kybApplication.findUniqueOrThrow({ where: { merchantId: owner.merchantId } });
     await a.http().get(`/internal/kyb/${app.id}/documents/${docId}/url`).set(STAFF).expect(200);
-    await a.http().get(`/internal/kyb/${app.id}/documents/${docId}/url`).set({ 'X-Internal-Token': STAFF['X-Internal-Token'] }).expect(400);
+    await a.http().get(`/internal/kyb/${app.id}/documents/${docId}/url`).expect(401);
     const views = await prisma.auditLog.findMany({ where: { action: 'kyb.document_viewed', targetId: docId }, orderBy: { createdAt: 'asc' } });
-    expect(views.map((v) => `${v.actorType}:${v.actorId}`)).toEqual([expect.stringMatching(/^user:/), 'staff:conformite@alphapay.cg']);
+    expect(views.map((v) => `${v.actorType}:${v.actorId}`)).toEqual([expect.stringMatching(/^user:/), `staff:${agent}`]);
   });
 
-  it('droits : un caissier ne voit pas le dossier ; le back-office exige le jeton interne ; webhook KYC non signé refusé', async () => {
+  it('droits : un caissier ne voit pas le dossier ; le back-office exige une session du personnel, Support en lecture seule ; webhook KYC non signé refusé', async () => {
     const owner = await a.signUp();
     const cashier = await a.inviteAndJoin(owner, 'CASHIER', 'caissier');
     await a.http().get(`/v1/merchants/${owner.merchantId}/kyb`).set('Authorization', cashier.auth).expect(403);
     await a.http().get('/internal/kyb').expect(401);
+    const support = await staffSession(t, 'SUPPORT');
+    await a.http().get('/internal/kyb').set(support.headers).expect(200);
+    const app = await prisma.kybApplication.create({ data: { merchantId: owner.merchantId, status: 'SUBMITTED' } });
+    await a.http().post(`/internal/kyb/${app.id}/decision`).set(support.headers).send({ decision: 'approve' }).expect(403);
+    await a.http().post(`/internal/kyb/${app.id}/review`).set(support.headers).expect(403);
     await a.http().post('/webhooks/kyc/mock').set('Content-Type', 'application/json').send({ applicantId: 'x', externalId: 'y', decision: 'approved' }).expect(401);
   });
 });

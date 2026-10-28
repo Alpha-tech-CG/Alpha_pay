@@ -161,8 +161,6 @@ services:
     command: ["sh", "-c", "npm ci --no-audit --no-fund && npx vite --host 0.0.0.0 --port 5180"]
     environment:
       API_PROXY_TARGET: http://api:3000
-      INTERNAL_API_TOKEN: dev-only-internal-token-0000000000000000
-      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     volumes:
       - ./admin:/app
       - admin_node_modules:/app/node_modules

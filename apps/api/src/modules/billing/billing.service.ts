@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
+import { toMajorAmount } from '../../common/money';
 
 // ─── Contrôle d'accès par palier (T-83) ──────────────────────────────────────
 
@@ -22,8 +23,18 @@ export class BillingService {
 
   // ─── Plans ─────────────────────────────────────────────────────────────────
 
-  listPlans() {
-    return this.prisma.billingPlan.findMany({ where: { isActive: true }, orderBy: { priceMonthly: 'asc' } });
+  async listPlans() {
+    const plans = await this.prisma.billingPlan.findMany({ where: { isActive: true }, orderBy: { priceMonthly: 'asc' } });
+    // Prix lus en base à chaque appel (§M11 : aucun prix en dur), en unités majeures.
+    return plans.map((p) => ({
+      code: p.code,
+      label: p.label,
+      price_monthly: toMajorAmount(p.priceMonthly, p.currency),
+      price_yearly: toMajorAmount(p.priceYearly, p.currency),
+      currency: p.currency,
+      included_modules: p.includedModules,
+      included_credits: p.includedCredits,
+    }));
   }
 
   // ─── Abonnement (T-81) ────────────────────────────────────────────────────
@@ -101,6 +112,7 @@ export class BillingService {
   }
 
   async debitCredit(merchantId: string, amount: number, reason: string, refId?: string) {
+    if (amount <= 0) throw new BadRequestException({ code: 'montant_invalide', message: 'amount must be > 0' });
     const balance = await this.getBalance(merchantId);
     if (balance < amount) {
       throw new BadRequestException({ code: 'credits_insuffisants', balance, required: amount });

@@ -1,28 +1,14 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Le back-office consomme les endpoints /internal protégés par X-Internal-Token.
-// Le token n'est JAMAIS exposé au navigateur : le proxy Vite (dev) l'injecte
-// côté serveur. En prod, un BFF/reverse-proxy équivalent l'injecte après avoir
-// vérifié la session Clerk + le rôle + l'IP allowlist (cf. README admin).
-export default defineConfig(({ mode, command }) => {
+// Le back-office appelle les routes /internal de l'API avec la session du
+// personnel (mot de passe + TOTP, §M12). Le proxy ne fait que relayer : il
+// n'injecte aucun secret. En production, servir le back-office et l'API derrière
+// le même reverse-proxy, accès restreint au réseau d'AlphaPay.
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const internalToken = process.env.INTERNAL_API_TOKEN ?? env.INTERNAL_API_TOKEN;
   // Cible de l'API : localhost en dev natif, service `api` dans docker compose.
   const apiTarget = process.env.API_PROXY_TARGET ?? env.API_PROXY_TARGET ?? 'http://localhost:3000';
-  if (!internalToken) {
-    throw new Error('INTERNAL_API_TOKEN requis pour demarrer le proxy admin.');
-  }
-
-  // Garde-fou étape F (docs/AVANT_PROD.md §0.3) : VITE_DEMO_ADMIN contourne
-  // entièrement l'authentification Clerk (cf. src/session.js). Fait échouer le
-  // build de production plutôt que de risquer de le laisser passer par erreur.
-  if (command === 'build' && mode === 'production' && env.VITE_DEMO_ADMIN === '1') {
-    throw new Error(
-      "VITE_DEMO_ADMIN=1 est interdit dans un build de production — ce flag contourne " +
-      "entierement l'authentification Clerk du back-office admin.",
-    );
-  }
 
   return {
     plugins: [react()],
@@ -34,11 +20,6 @@ export default defineConfig(({ mode, command }) => {
           target: apiTarget,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/admin-api/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
-              proxyReq.setHeader('X-Internal-Token', internalToken);
-            });
-          },
         },
       },
     },

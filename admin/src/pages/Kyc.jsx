@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useSessionUser as useUser } from '../session';
+import { useStaff } from '../session';
 import { api } from '../api';
-import { roleOf, can } from '../rbac';
+import { can } from '../rbac';
 import { Card, Button, Badge, Table, td } from '../ui';
 
 const DOC_LABEL = { RCCM_EXTRACT: 'Extrait RCCM', NIU_CERTIFICATE: 'Attestation NIU', DIRECTOR_ID: "Pièce d'identité du dirigeant" };
@@ -11,10 +11,9 @@ const FIELD_LABEL = {
 
 /** Revue des dossiers KYB (§M2, §M12) : pièces, résultat KYC, décision motivée. */
 export default function Kyc() {
-  const { user } = useUser();
-  const role = roleOf(user);
-  // Identité de l'agent, tracée dans l'historique et le journal d'audit (X-Staff-Id).
-  const staff = { headers: { 'X-Staff-Id': user?.primaryEmailAddress?.emailAddress || 'agent' } };
+  const { role } = useStaff();
+  // L'agent est identifié par sa session (tracé dans l'historique et le journal d'audit).
+  const staff = {};
   const mayDecide = can(role, 'kyc.decide');
 
   const [filter, setFilter] = useState('');

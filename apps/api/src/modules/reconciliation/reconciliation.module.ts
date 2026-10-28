@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { StaffModule } from "../staff/staff.module";
 import { ReconciliationController } from "./reconciliation.controller";
 import { ReconciliationService } from "./reconciliation.service";
 import { ReconciliationCron } from "./reconciliation.cron";
@@ -8,7 +9,7 @@ import { MerchantReconciliationService } from "./merchant/merchant-reconciliatio
 import { TeamAuthModule } from "../team/auth/team-auth.module";
 
 @Module({
-  imports: [TeamAuthModule],
+  imports: [TeamAuthModule, StaffModule],
   controllers: [ReconciliationController, MerchantReconciliationController],
   providers: [
     ReconciliationService,

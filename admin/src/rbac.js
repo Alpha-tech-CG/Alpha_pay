@@ -1,22 +1,19 @@
-// RBAC back-office (ALP-144). Le rôle vient de Clerk (publicMetadata.role).
-// Rôles : support, compliance, finance, engineering, admin.
+// Rôles internes (§M12), appliqués par l'API ; l'interface ne fait que masquer
+// ce qu'un rôle ne peut pas faire. Support = lecture seule.
+export const ROLE_LABEL = { SUPPORT: 'Support', COMPLIANCE: 'Conformité', SUPER_ADMIN: 'Super-administrateur' };
 
-export const ROLES = ['support', 'compliance', 'finance', 'engineering', 'admin'];
-
-// Permissions par capacité -> rôles autorisés. `admin` a tout.
 const MATRIX = {
-  'search.view': ['support', 'compliance', 'finance', 'engineering', 'admin'],
-  'kyc.view': ['compliance', 'admin'],
-  'kyc.decide': ['compliance', 'admin'],
-  'reconciliation.view': ['finance', 'compliance', 'admin'],
-  'audit.view': ['admin', 'engineering'],
+  'merchants.view': ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'],
+  'merchants.suspend': ['COMPLIANCE', 'SUPER_ADMIN'],
+  'merchants.billing': ['SUPER_ADMIN'],
+  'kyc.view': ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'],
+  'kyc.decide': ['COMPLIANCE', 'SUPER_ADMIN'],
+  'billing.view': ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'],
+  'billing.manage': ['SUPER_ADMIN'],
+  'supervision.view': ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'],
+  'reconciliation.view': ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'],
 };
 
-export function roleOf(user) {
-  return user?.publicMetadata?.role || 'support';
-}
-
 export function can(role, capability) {
-  if (role === 'admin') return true;
   return (MATRIX[capability] || []).includes(role);
 }

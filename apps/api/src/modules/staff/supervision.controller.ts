@@ -12,14 +12,14 @@ export class SupervisionController {
 
   @Get('payments/failures')
   async paymentFailures(@Query('hours') hours = '24') {
-    const since = new Date(Date.now() - parseInt(hours) * 3_600_000);
+    const since = new Date(Date.now() - Math.min(Math.max(parseInt(hours) || 24, 1), 24 * 31) * 3_600_000);
     const rows = await this.prisma.transaction.groupBy({
       by: ['operator'],
-      where: { status: 'FAILED', createdAt: { gte: since } },
+      where: { livemode: true, status: 'FAILED', createdAt: { gte: since } },
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
     });
-    const total = await this.prisma.transaction.count({ where: { createdAt: { gte: since } } });
+    const total = await this.prisma.transaction.count({ where: { livemode: true, createdAt: { gte: since } } });
     return {
       since: since.toISOString(),
       total_transactions: total,
@@ -31,10 +31,10 @@ export class SupervisionController {
 
   @Get('messages/stats')
   async messageStats(@Query('hours') hours = '24') {
-    const since = new Date(Date.now() - parseInt(hours) * 3_600_000);
+    const since = new Date(Date.now() - Math.min(Math.max(parseInt(hours) || 24, 1), 24 * 31) * 3_600_000);
     const rows = await this.prisma.message.groupBy({
-      by: ['provider', 'status'] as any,
-      where: { createdAt: { gte: since } } as any,
+      by: ['provider', 'status'],
+      where: { livemode: true, createdAt: { gte: since } },
       _count: { id: true },
     });
     return { since: since.toISOString(), stats: rows };
@@ -45,9 +45,9 @@ export class SupervisionController {
   @Get('webhooks/failures')
   async webhookFailures(@Query('limit') limit = '50') {
     return this.prisma.webhookDelivery.findMany({
-      where: { status: 'FAILED' as any },
+      where: { status: 'FAILED' },
       orderBy: { createdAt: 'desc' },
-      take: parseInt(limit),
+      take: Math.min(Math.max(parseInt(limit) || 50, 1), 200),
       include: {
         endpoint: { select: { url: true, merchantId: true } },
       },
@@ -62,8 +62,8 @@ export class SupervisionController {
     const [merchants, txDay, txFailed, kybPending] = await Promise.all([
       this.prisma.merchant.count({ where: { isActive: true } }),
       this.prisma.transaction.count({ where: { livemode: true, createdAt: { gte: since24h } } }),
-      this.prisma.transaction.count({ where: { status: 'FAILED', createdAt: { gte: since24h } } }),
-      this.prisma.kybApplication.count({ where: { status: { in: ['SUBMITTED', 'IN_REVIEW'] as any } } }),
+      this.prisma.transaction.count({ where: { livemode: true, status: 'FAILED', createdAt: { gte: since24h } } }),
+      this.prisma.kybApplication.count({ where: { status: { in: ['SUBMITTED', 'IN_REVIEW'] } } }),
     ]);
     return {
       active_merchants: merchants,

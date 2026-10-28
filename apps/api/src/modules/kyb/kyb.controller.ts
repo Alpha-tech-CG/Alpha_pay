@@ -7,9 +7,7 @@ import { KybDocumentType, KybStatus } from '@paybrain/database';
 import { MockKycProvider } from '@paybrain/providers';
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ApiError } from '../../common/errors/api-error';
-import { AuditAction } from '../../common/audit/audit.interceptor';
-import { InternalGuard } from '../../common/guards/internal.guard';
-import { StaffGuard } from '../staff/staff.guard';
+import { RequireStaffRole, STAFF_WRITE, StaffGuard } from '../staff/staff.guard';
 import { SessionGuard } from '../auth/session.guard';
 import { RequireAction } from '../team/auth/require-action.decorator';
 import { RequireActionGuard } from '../team/auth/require-action.guard';
@@ -127,13 +125,14 @@ export class KybAdminController {
 
   @Post(':id/review')
   @HttpCode(200)
+  @RequireStaffRole(...STAFF_WRITE.compliance)
   review(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
     return this.kyb.takeForReview(id, staffActor(req));
   }
 
   @Post(':id/decision')
   @HttpCode(200)
-  @AuditAction('kyb.decision', 'kyb_application')
+  @RequireStaffRole(...STAFF_WRITE.compliance)
   decide(@Param('id', ParseUUIDPipe) id: string, @Body() dto: DecisionDto, @Req() req: any) {
     return this.kyb.decide(id, dto.decision, staffActor(req), dto.reason, dto.kyc_override === true);
   }
