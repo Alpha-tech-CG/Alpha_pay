@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { StaffRole } from '@paybrain/database';
+import { AuditAction } from '../../common/audit/audit.interceptor';
 import { StaffGuard } from './staff.guard';
 import { StaffAuthService } from './staff-auth.service';
 
@@ -10,6 +11,7 @@ export class StaffAuthController {
   // ─── Authentification ──────────────────────────────────────────────────────
 
   @Post('login')
+  @AuditAction('staff.login')
   login(@Body() body: { email: string; password: string }, @Req() req: any) {
     return this.auth.loginPassword(body.email, body.password, req.ip);
   }
@@ -21,6 +23,7 @@ export class StaffAuthController {
 
   @Post('logout')
   @UseGuards(StaffGuard)
+  @AuditAction('staff.logout')
   logout(@Req() req: any) {
     const authHeader: string = req.headers['authorization'] ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
@@ -52,6 +55,7 @@ export class StaffAuthController {
 
   @Post('users')
   @UseGuards(StaffGuard)
+  @AuditAction('staff.user_created', 'staff_user')
   createUser(
     @Body() body: { email: string; display_name: string; role: StaffRole; password: string },
     @Req() req: any,

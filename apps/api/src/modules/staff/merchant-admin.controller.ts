@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { Inject } from '@nestjs/common';
+import { AuditAction } from '../../common/audit/audit.interceptor';
 import { StaffGuard } from './staff.guard';
 import { StaffAuthService } from './staff-auth.service';
 
@@ -82,6 +83,7 @@ export class MerchantAdminController {
   // ─── Suspension / réactivation motivée (T-91) ─────────────────────────────
 
   @Post(':merchantId/suspend')
+  @AuditAction('merchant.suspend', 'merchant')
   async suspend(
     @Param('merchantId', ParseUUIDPipe) merchantId: string,
     @Body() body: { reason: string },
@@ -96,6 +98,7 @@ export class MerchantAdminController {
   }
 
   @Post(':merchantId/reactivate')
+  @AuditAction('merchant.reactivate', 'merchant')
   async reactivate(
     @Param('merchantId', ParseUUIDPipe) merchantId: string,
     @Body() body: { reason?: string },

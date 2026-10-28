@@ -1,4 +1,6 @@
 import { Global, Inject, Injectable, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR, Reflector } from '@nestjs/core';
+import { AuditInterceptor } from './audit.interceptor';
 import { createHash } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { logger } from '../logging/logger';
@@ -46,5 +48,12 @@ export class AuditService {
 }
 
 @Global()
-@Module({ providers: [AuditService], exports: [AuditService] })
+@Module({
+  providers: [
+    AuditService,
+    Reflector,
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
+  exports: [AuditService],
+})
 export class AuditModule {}
