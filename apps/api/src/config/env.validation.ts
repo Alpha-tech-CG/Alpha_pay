@@ -75,6 +75,8 @@ export function validateEnv(env: Env = process.env): void {
   if (env.EMAIL_PROVIDER === 'smtp') {
     for (const name of ['SMTP_URL', 'EMAIL_FROM']) if (!env[name]) problems.push(`${name} est requis avec EMAIL_PROVIDER=smtp`);
   }
+  if (!!env.VAPID_PUBLIC_KEY !== !!env.VAPID_PRIVATE_KEY) problems.push('VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY vont ensemble');
+  if (env.VAPID_SUBJECT && !/^(mailto:|https:\/\/)/.test(env.VAPID_SUBJECT)) problems.push('VAPID_SUBJECT : mailto: ou URL https');
   if (env.MESSAGE_CREDIT_COSTS) {
     try {
       JSON.parse(env.MESSAGE_CREDIT_COSTS);

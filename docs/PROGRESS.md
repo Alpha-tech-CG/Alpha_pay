@@ -2,6 +2,21 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 28 octobre 2026 (8) — M5 Vérif
+
+### Fait
+- **T-55** Vérif (migration 27, réversible : abonnements web push) : confirmation à chaque paiement réussi au propriétaire et aux caissiers de la caisse — flux temps réel SSE (ticket à usage unique, Redis pub/sub entre worker et API), web push VAPID (adaptateur réel + factice dans `packages/providers`), SMS/WhatsApp en option par caisse.
+- Écran **Caisse** du tableau de bord : gros affichage du dernier paiement, paiements et total du jour en direct, activation des notifications, mention de la limite « paiements hors AlphaPay invisibles ». Tableau de bord installable (PWA : manifeste, service worker).
+- Décision D-048.
+
+### Vérifié
+- Unitaires 310, intégration 64, providers 113 — verts. Acceptation M5 couverte : confirmation reçue en moins de 5 s, aucune confirmation sur un paiement échoué, caissier limité à sa caisse.
+- Navigateur, sur l'image Docker reconstruite : paiement par QR de caisse → l'écran Caisse ouvert affiche « 15 000 XAF » sans rechargement (worker → Redis → SSE → tableau de bord).
+
+### Reste / points connus
+- Clés VAPID de production à générer (`.env.example`) ; notifications non testées sur téléphone réel (le navigateur intégré les bloque).
+- Modèle WhatsApp `alphapay_paiement_recu` à faire approuver chez Meta (déjà listé).
+
 ## Session du 27-28 octobre 2026 (7) — M4 Encaisser
 
 ### Fait
@@ -130,7 +145,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
 | S3 M1, M9, M3 | 16 nov. | **Fait** (sauf essais sandbox réels MTN/Airtel) |
-| S5 M4, M5, M10, M2 | 30 nov. | À faire |
+| S5 M4, M5, M10, M2 | 30 nov. | En cours (M4, M5 faits) |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |
 | S9 Recette, livraison | 27 déc. | À faire |

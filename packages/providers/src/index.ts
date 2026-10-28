@@ -26,3 +26,8 @@ export { hmacSha256Hex, safeEqual } from './core/validation';
 
 export * from './card/types';
 export { MockCardAcquirer } from './card/mock.adapter';
+
+export * from './push/types';
+export { VapidWebPushProvider } from './push/web-push.adapter';
+export type { VapidConfig } from './push/web-push.adapter';
+export { MockWebPushProvider } from './push/mock.adapter';

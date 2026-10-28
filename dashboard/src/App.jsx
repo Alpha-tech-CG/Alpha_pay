@@ -9,6 +9,7 @@ import Developers from './pages/Developers'
 import Profile from './pages/Profile'
 import Team from './pages/Team'
 import Operators from './pages/Operators'
+import Caisse from './pages/Caisse'
 import InviteAccept from './pages/InviteAccept'
 import Checkout from './Checkout'
 
@@ -55,6 +56,7 @@ export default function App() {
       <Route path="/payments" element={<Protected><AppLayout><Payments /></AppLayout></Protected>} />
       <Route path="/developers" element={<Protected><AppLayout><Developers /></AppLayout></Protected>} />
       <Route path="/team" element={<Protected><AppLayout><Team /></AppLayout></Protected>} />
+      <Route path="/caisse" element={<Protected><AppLayout><Caisse /></AppLayout></Protected>} />
       <Route path="/operators" element={<Protected><AppLayout><Operators /></AppLayout></Protected>} />
       <Route path="/profile" element={<Protected><AppLayout><Profile /></AppLayout></Protected>} />
 

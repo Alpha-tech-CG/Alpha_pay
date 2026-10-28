@@ -2,6 +2,7 @@ import { WebhooksService } from './webhooks.service';
 import { WebhooksGateway } from './webhooks.gateway';
 
 describe('WebhooksService', () => {
+  let verif: { onPaymentSucceeded: jest.Mock };
   let prisma: any;
   let gateway: { broadcastToMerchant: jest.Mock };
   let fetchProviderStatus: jest.Mock;
@@ -30,9 +31,14 @@ describe('WebhooksService', () => {
     fetchProviderStatus = jest.fn();
 
     const webhookDelivery = { dispatch: jest.fn().mockResolvedValue(0) };
-    service = new WebhooksService(prisma, gateway as unknown as WebhooksGateway, webhookDelivery as any, {
-      fetchProviderStatus,
-    } as any);
+    verif = { onPaymentSucceeded: jest.fn().mockResolvedValue(undefined) };
+    service = new WebhooksService(
+      prisma,
+      gateway as unknown as WebhooksGateway,
+      webhookDelivery as any,
+      { fetchProviderStatus } as any,
+      verif as any,
+    );
   });
 
   it('ignores a callback for a transaction it does not know about', async () => {

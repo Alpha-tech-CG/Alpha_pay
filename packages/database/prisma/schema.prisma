@@ -578,6 +578,7 @@ model MerchantMember {
   updatedAt   DateTime             @updatedAt @map("updated_at")
 
   tills    TillMember[]
+  pushSubscriptions WebPushSubscription[]
   merchant Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   user     AppUser      @relation(fields: [userId], references: [id])
 
@@ -922,4 +923,23 @@ model TillMember {
   @@unique([tillId, memberId])
   @@index([memberId])
   @@map("till_members")
+}
+
+// ─── Vérif (T-55, §M5) : notifications web push du tableau de bord (PWA) ─────
+
+// Abonnement web push d'un appareil pour un membre. Le point de terminaison
+// est fourni par le navigateur ; supprimé si le service push le déclare expiré.
+model WebPushSubscription {
+  id         String         @id @default(uuid())
+  memberId   String         @map("member_id")
+  member     MerchantMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  endpoint   String         @unique
+  p256dh     String
+  auth       String
+  userAgent  String?        @map("user_agent")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  lastUsedAt DateTime?      @map("last_used_at")
+
+  @@index([memberId])
+  @@map("web_push_subscriptions")
 }

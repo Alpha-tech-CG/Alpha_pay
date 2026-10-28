@@ -1,0 +1,12 @@
+{
+  "name": "AlphaPay",
+  "short_name": "AlphaPay",
+  "description": "Encaissez par Mobile Money et suivez vos paiements en direct.",
+  "lang": "fr",
+  "start_url": "/caisse",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F4F7FA",
+  "theme_color": "#0B1E3D",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

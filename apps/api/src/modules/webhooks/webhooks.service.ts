@@ -1,3 +1,4 @@
+import { VerifService } from '../verif/verif.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ANY_MODE, PrismaClient, TransactionStatus } from '@paybrain/database';
 import { Operator, publicPaymentStatus, WebhookPayload } from '@paybrain/shared';
@@ -22,6 +23,7 @@ export class WebhooksService {
     private readonly gateway: WebhooksGateway,
     private readonly webhookDelivery: WebhookDeliveryService,
     private readonly payments: PaymentsService,
+    private readonly verif: VerifService,
   ) {}
 
   /**
@@ -144,6 +146,8 @@ export class WebhooksService {
         where: { livemode: transaction.livemode, multiUse: false, usedAt: null, payments: { some: { id: transaction.id } } },
         data: { usedAt: new Date() },
       });
+      // Vérif (§M5) : confirmation au vendeur et au caissier, uniquement sur un paiement réussi.
+      await this.verif.onPaymentSucceeded(transaction.id);
     }
 
     this.gateway.broadcastToMerchant(transaction.merchantId, 'transaction_update', {
