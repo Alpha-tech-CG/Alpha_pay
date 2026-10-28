@@ -25,6 +25,7 @@ import { MessagingModule } from './modules/messaging/messaging.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StoresModule } from './modules/stores/stores.module';
 import { CashEntriesModule } from './modules/cash-entries/cash-entries.module';
+import { ExportsModule } from './modules/exports/exports.module';
 import { AuditModule } from './common/audit/audit.service';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
@@ -43,6 +44,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     AuthModule,
     StoresModule,
     CashEntriesModule,
+    ExportsModule,
     PaymentStatusModule,
     SchedulingModule,
     PaymentsModule,

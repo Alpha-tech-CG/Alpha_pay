@@ -9,6 +9,8 @@ export const QUEUES = {
   paymentStatus: 'payment-status',
   /** Envoi d'un message (SMS, WhatsApp, email) via son fournisseur (§M9). */
   messages: 'messages',
+  /** Génération d'un export CSV/Excel en arrière-plan (§M6, T-73). */
+  exports: 'exports',
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];

@@ -118,6 +118,7 @@ model Merchant {
   kybApplication      KybApplication?
   cashEntries         CashEntry[]
   reconciliationDays  ReconciliationDay[]
+  exportJobs          ExportJob[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -522,6 +523,7 @@ model MerchantMember {
   pushSubscriptions WebPushSubscription[]
   cashEntries       CashEntry[]
   reconReviews      ReconciliationDay[]  @relation("ReconciliationReviewer")
+  exportRequests    ExportJob[]          @relation("ExportRequester")
   merchant Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   user     AppUser      @relation(fields: [userId], references: [id])
 
@@ -997,6 +999,45 @@ model KybEvent {
 
   @@index([applicationId, createdAt])
   @@map("kyb_events")
+}
+
+// ─── Exports (T-73, §M6) ─────────────────────────────────────────────────────
+
+enum ExportJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum ExportFormat {
+  CSV
+  XLSX
+}
+
+// Tâche d'export en arrière-plan. Le fichier est stocké dans FileStorage
+// et accessible via une URL signée à durée limitée.
+model ExportJob {
+  id           String          @id @default(uuid())
+  merchantId   String          @map("merchant_id")
+  merchant     Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  requestedBy  String          @map("requested_by")
+  member       MerchantMember  @relation("ExportRequester", fields: [requestedBy], references: [id])
+  livemode     Boolean         @default(false)
+  status       ExportJobStatus @default(PENDING)
+  format       ExportFormat    @default(CSV)
+  filters      Json            @default("{}")
+  rowCount     Int?            @map("row_count")
+  fileKey      String?         @map("file_key")
+  downloadUrl  String?         @map("download_url")
+  urlExpiresAt DateTime?       @map("url_expires_at")
+  error        String?
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  completedAt  DateTime?       @map("completed_at")
+
+  @@index([merchantId, createdAt(sort: Desc)])
+  @@map("export_jobs")
 }
 
 // ─── Rapprochement journalier (T-72, §M6) ────────────────────────────────────

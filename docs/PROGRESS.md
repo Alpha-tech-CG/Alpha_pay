@@ -2,6 +2,21 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 28 octobre 2026 (11) — M6 Gérer (S6 partiel)
+
+### Fait
+- **T-70** Transactions filtrées (`date_from`, `date_to`, `operator`, `q`), sommaire marchand (aujourd'hui + historique), détail avec piste d'audit — migration 0 (pas de schéma nouveau). Endpoint `GET /v1/merchants/:id/stats` (indicateurs jour/semaine/mois, répartition opérateur, taux d'échec).
+- **T-71** Cash déclaré : migration 30, table `cash_entries`, endpoint CRUD avec RBAC (`cash:declare` pour caissier, admin/owner voient tout).
+- **T-72** Rapprochement journalier : migration 31, table `reconciliation_days` avec indices partiels (raw SQL), endpoints `GET /` `GET /:date` `PATCH /:date` `POST /:date/import-csv` (réutilise `parseStatementCsv`), upsert via findFirst+create/update.
+- **T-73** Exports CSV/Excel : migration 32, table `export_jobs`, BullMQ worker (jusqu'à 10 000 lignes), génération CSV (BOM UTF-8) et XLSX (ExcelJS), stockage via `FileStorage`, lien de téléchargement 1 h. Endpoints `POST` / `GET` / `GET /:jobId`.
+
+### Vérifié
+- `tsc --noEmit` propre sur `apps/api` après les quatre tâches.
+
+### Reste
+- Migrations 30–32 à appliquer en base locale avant de tester manuellement.
+- T-74 à T-83 (M7 Recouvrer, M8 Pack École, M11 Facturation) — prochaine session.
+
 ## Session du 28 octobre 2026 (10) — M2 KYB et KYC (S5 terminé)
 
 ### Fait
