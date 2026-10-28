@@ -117,6 +117,7 @@ model Merchant {
   stores              Store[]
   kybApplication      KybApplication?
   cashEntries         CashEntry[]
+  reconciliationDays  ReconciliationDay[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -520,6 +521,7 @@ model MerchantMember {
   tills    TillMember[]
   pushSubscriptions WebPushSubscription[]
   cashEntries       CashEntry[]
+  reconReviews      ReconciliationDay[]  @relation("ReconciliationReviewer")
   merchant Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   user     AppUser      @relation(fields: [userId], references: [id])
 
@@ -995,6 +997,42 @@ model KybEvent {
 
   @@index([applicationId, createdAt])
   @@map("kyb_events")
+}
+
+// ─── Rapprochement journalier (T-72, §M6) ────────────────────────────────────
+
+enum ReconciliationDayStatus {
+  PENDING
+  OK
+  DISCREPANCY
+}
+
+// Rapprochement journalier par caisse (ou global si till_id null).
+// Contrainte UNIQUE partielle gérée en SQL (Prisma ne supporte pas les index partiels).
+model ReconciliationDay {
+  id               String                    @id @default(uuid())
+  merchantId       String                    @map("merchant_id")
+  merchant         Merchant                  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tillId           String?                   @map("till_id")
+  entryDate        DateTime                  @map("entry_date") @db.Date
+  livemode         Boolean                   @default(false)
+  status           ReconciliationDayStatus   @default(PENDING)
+  comment          String?
+  digitalCount     Int                       @default(0) @map("digital_count")
+  digitalAmount    BigInt                    @default(0) @map("digital_amount")
+  cashAmount       BigInt                    @default(0) @map("cash_amount")
+  currency         String                    @default("XAF")
+  statementLines   Int?                      @map("statement_lines")
+  statementAmount  BigInt?                   @map("statement_amount")
+  statementCsvKey  String?                   @map("statement_csv_key")
+  reviewedById     String?                   @map("reviewed_by_id")
+  reviewedBy       MerchantMember?           @relation("ReconciliationReviewer", fields: [reviewedById], references: [id])
+  reviewedAt       DateTime?                 @map("reviewed_at")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+  @@index([merchantId, livemode, entryDate(sort: Desc)])
+  @@map("reconciliation_days")
 }
 
 // ─── Cash déclaré (T-71, §M6) ────────────────────────────────────────────────
