@@ -129,6 +129,8 @@ model Merchant {
   guardians           Guardian[]
   feeGrids            FeeGrid[]
   studentFeeSchedules StudentFeeSchedule[]
+  subscription        Subscription?
+  alphapayInvoices    AlphapayInvoice[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -1422,3 +1424,82 @@ model StudentFeeSchedule {
   @@index([merchantId, status])
   @@map("student_fee_schedules")
 }
+
+// ─── Facturation interne (T-81, §M11) ────────────────────────────────────────
+
+model BillingPlan {
+  id              String         @id @default(uuid())
+  code            String         @unique
+  label           String
+  priceMonthly    BigInt         @default(0) @map("price_monthly")
+  priceYearly     BigInt         @default(0) @map("price_yearly")
+  currency        String         @default("XAF")
+  includedModules String[]       @map("included_modules")
+  includedCredits Int            @default(0) @map("included_credits")
+  isActive        Boolean        @default(true) @map("is_active")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  subscriptions   Subscription[]
+
+  @@map("billing_plans")
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  GRACE
+  CANCELED
+  EXPIRED
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  merchantId    String             @unique @map("merchant_id")
+  merchant      Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  planId        String             @map("plan_id")
+  plan          BillingPlan        @relation(fields: [planId], references: [id])
+  status        SubscriptionStatus @default(TRIAL)
+  periodStart   DateTime           @map("period_start") @db.Date
+  periodEnd     DateTime           @map("period_end") @db.Date
+  canceledAt    DateTime?          @map("canceled_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  apInvoices    AlphapayInvoice[]
+
+  @@map("subscriptions")
+}
+
+model AlphapayInvoice {
+  id             String       @id @default(uuid())
+  merchantId     String       @map("merchant_id")
+  merchant       Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  subscriptionId String?      @map("subscription_id")
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  amount         BigInt
+  currency       String       @default("XAF")
+  status         String       @default("PENDING")
+  transactionId  String?      @map("transaction_id")
+  dueDate        DateTime     @map("due_date") @db.Date
+  paidAt         DateTime?    @map("paid_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([merchantId, createdAt(sort: Desc)])
+  @@map("alphapay_invoices")
+}
+
+// ─── Crédits (T-82, §M11) ────────────────────────────────────────────────────
+
+model CreditPack {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  label     String
+  credits   Int
+  price     BigInt
+  currency  String   @default("XAF")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("credit_packs")
+}
+
