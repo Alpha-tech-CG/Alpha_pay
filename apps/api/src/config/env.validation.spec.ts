@@ -10,6 +10,7 @@ const production = {
   PUBLIC_API_URL: 'https://api.alphapay.cg',
   PII_ENCRYPTION_KEY: KEY_A,
   PROVIDER_CREDENTIALS_KEY: KEY_B,
+  DOCUMENTS_ENCRYPTION_KEY: Buffer.alloc(32, 3).toString('base64'),
   API_KEY_PEPPER: 'p'.repeat(32),
   INTERNAL_API_TOKEN: 't'.repeat(32),
   ALLOWED_ORIGINS: 'https://app.alphapay.cg',

@@ -28,6 +28,23 @@ export function isValidCheckoutToken(transactionId: string, token: unknown): boo
   return typeof token === 'string' && token.length > 0 && safeEqual(token, checkoutToken(transactionId));
 }
 
+/**
+ * URL signée et temporaire d'un fichier (§M2) : `/v1/files/:id?expires=…&sig=…`.
+ * Rien à stocker ; une URL ne vaut que pour ce fichier et jusqu'à son expiration.
+ */
+export function signedFileUrl(fileId: string, ttlSeconds = 300, now = Date.now()): { url: string; expiresAt: Date } {
+  const expires = Math.floor(now / 1000) + ttlSeconds;
+  const sig = createHmac('sha256', secret()).update(`file:${fileId}:${expires}`).digest('base64url');
+  const base = (process.env.PUBLIC_API_URL ?? '').replace(/\/$/, '');
+  return { url: `${base}/v1/files/${fileId}?expires=${expires}&sig=${sig}`, expiresAt: new Date(expires * 1000) };
+}
+
+export function isValidFileSignature(fileId: string, expires: unknown, sig: unknown, now = Date.now()): boolean {
+  const exp = Number(expires);
+  if (!Number.isInteger(exp) || exp < Math.floor(now / 1000) || typeof sig !== 'string' || !sig) return false;
+  return safeEqual(sig, createHmac('sha256', secret()).update(`file:${fileId}:${exp}`).digest('base64url'));
+}
+
 export function callbackToken(connectionId: string): string {
   return createHmac('sha256', secret()).update(`operator-callback:${connectionId}`).digest('base64url');
 }

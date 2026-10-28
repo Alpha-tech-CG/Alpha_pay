@@ -61,3 +61,6 @@ apps/prototype/android/
 ## Déploiement VPS — secrets et config locale, JAMAIS committer
 infra/vps/secrets/
 infra/vps/vps.env
+
+# Stockage local des pièces KYB (chiffrées) en développement
+apps/api/var/

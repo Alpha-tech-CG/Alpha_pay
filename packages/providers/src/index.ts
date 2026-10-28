@@ -11,7 +11,7 @@ export { airtelProviderFactory, AirtelMobileMoneyProvider } from './mobile-money
 export { mockProviderFactory, MockMobileMoneyProvider, MOCK_MOBILE_MONEY_NUMBERS } from './mobile-money/mock.adapter';
 
 export * from './kyc/types';
-export { MockKycProvider } from './kyc/mock.adapter';
+export { MockKycProvider, MOCK_KYC_SIGNATURE_HEADER } from './kyc/mock.adapter';
 
 export * from './messaging/types';
 export { MockOutbox, MockSmsProvider, MockWhatsAppProvider, MockEmailProvider } from './messaging/mock.adapters';
@@ -31,3 +31,5 @@ export * from './push/types';
 export { VapidWebPushProvider } from './push/web-push.adapter';
 export type { VapidConfig } from './push/web-push.adapter';
 export { MockWebPushProvider } from './push/mock.adapter';
+export { SumsubKycProvider } from './kyc/sumsub.adapter';
+export type { SumsubConfig } from './kyc/sumsub.adapter';

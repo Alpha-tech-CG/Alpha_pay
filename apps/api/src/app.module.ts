@@ -6,15 +6,14 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { DevelopersModule } from './modules/developers/developers.module';
+import { KybModule } from './modules/kyb/kyb.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
 import { WebhooksOutModule } from './modules/webhooks-out/webhooks-out.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { NotificationModule } from './modules/notifications/notification.module';
-import { KycModule } from './modules/kyc/kyc.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
-import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { MerchantModule } from './modules/merchant/merchant.module';
 import { TeamModule } from './modules/team/team.module';
 import { DatabaseModule } from './database.module';
@@ -49,15 +48,14 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     PaymentLinksModule,
     CheckoutModule,
     DevelopersModule,
+    KybModule,
     StatsModule,
     OutboxModule,
     ApiKeysModule,
     WebhooksOutModule,
     ReconciliationModule,
     NotificationModule,
-    KycModule,
     MetricsModule,
-    OnboardingModule,
     MerchantModule,
     TeamModule,
   ],

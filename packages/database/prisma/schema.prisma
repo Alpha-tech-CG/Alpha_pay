@@ -74,23 +74,7 @@ enum NotificationStatus {
   SKIPPED
 }
 
-enum KycStatus {
-  NOT_STARTED
-  SUBMITTED
-  IN_REVIEW
-  APPROVED
-  REJECTED
-  NEEDS_MORE
-}
 
-enum KycDocumentType {
-  ID_FRONT
-  ID_BACK
-  RCCM
-  NIU
-  STATUTES
-  PROOF_OF_ADDRESS
-}
 
 enum OnboardingStatus {
   PENDING
@@ -131,6 +115,7 @@ model Merchant {
   memberEvents        MerchantMemberEvent[]
   providerConnections ProviderConnection[]
   stores              Store[]
+  kybApplication      KybApplication?
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -369,54 +354,8 @@ model ContactMessage {
 }
 
 // Pipeline KYC marchand (ALP-142). Conservation 10 ans (réglementaire).
-model KycCase {
-  id              String        @id @default(uuid())
-  merchantId      String        @unique @map("merchant_id")
-  status          KycStatus     @default(NOT_STARTED)
-  smileScore      Int?          @map("smile_score")
-  smileJobId      String?       @unique @map("smile_job_id")
-  screeningHit    Boolean       @default(false) @map("screening_hit")
-  screeningLists  String[]      @default([]) @map("screening_lists")
-  lastScreenedAt  DateTime?     @map("last_screened_at")
-  decision        String?
-  decidedBy       String?       @map("decided_by")
-  decidedAt       DateTime?     @map("decided_at")
-  rejectionReason String?       @map("rejection_reason")
-  reKycDueAt      DateTime?     @map("re_kyc_due_at")
-  reKycStartedAt  DateTime?     @map("re_kyc_started_at")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  documents       KycDocument[]
-  events          KycEvent[]
 
-  @@map("kyc_cases")
-}
 
-model KycDocument {
-  id         String          @id @default(uuid())
-  caseId     String          @map("case_id")
-  kycCase    KycCase         @relation(fields: [caseId], references: [id])
-  type       KycDocumentType
-  // Référence S3 (bucket chiffré, jamais public). L'upload se fait via URL pré-signée.
-  s3Key      String          @map("s3_key")
-  uploadedAt DateTime        @default(now()) @map("uploaded_at")
-
-  @@unique([caseId, type])
-  @@map("kyc_documents")
-}
-
-model KycEvent {
-  id        String   @id @default(uuid())
-  caseId    String   @map("case_id")
-  kycCase   KycCase  @relation(fields: [caseId], references: [id])
-  action    String
-  actor     String
-  details   String?
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([caseId])
-  @@map("kyc_events")
-}
 
 // Notifications multi-canal (ALP-143).
 model NotificationLog {
@@ -965,4 +904,112 @@ model ApiRequestLog {
   @@index([merchantId, livemode, createdAt])
   @@index([createdAt])
   @@map("api_request_logs")
+}
+
+// ─── Onboarding marchand (T-59, T-60, §M2) : dossier KYB et KYC du dirigeant ──
+
+// brouillon → soumis → en_revue → approuvé | infos_requises (→ soumis) | refusé
+enum KybStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  INFO_REQUIRED
+  REJECTED
+}
+
+enum KybDocumentType {
+  RCCM_EXTRACT
+  NIU_CERTIFICATE
+  DIRECTOR_ID
+}
+
+enum KycCheckStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETRY
+}
+
+// Un dossier par marchand. Seul APPROVED débloque le mode live
+// (Merchant.onboardingStatus, tenu à jour par le service KYB).
+model KybApplication {
+  id                String          @id @default(uuid())
+  merchantId        String          @unique @map("merchant_id")
+  merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  status            KybStatus       @default(DRAFT)
+  legalName         String?         @map("legal_name")
+  legalForm         String?         @map("legal_form")
+  rccm              String?
+  niu               String?
+  address           String?
+  sector            String?
+  directorFirstName String?         @map("director_first_name")
+  directorLastName  String?         @map("director_last_name")
+  submittedAt       DateTime?       @map("submitted_at")
+  decidedAt         DateTime?       @map("decided_at")
+  // Motif de la dernière décision (refus ou compléments demandés), montré au marchand.
+  decisionReason    String?         @map("decision_reason")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  documents         KybDocument[]
+  events            KybEvent[]
+  kycChecks         KycCheck[]
+
+  @@index([status, submittedAt])
+  @@map("kyb_applications")
+}
+
+// Pièce jointe chiffrée par l'API (AES-256-GCM) avant stockage ; lue uniquement
+// par URL signée et temporaire. Une nouvelle pièce du même type remplace l'ancienne.
+model KybDocument {
+  id            String          @id @default(uuid())
+  applicationId String          @map("application_id")
+  application   KybApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          KybDocumentType
+  filename      String
+  contentType   String          @map("content_type")
+  sizeBytes     Int             @map("size_bytes")
+  sha256        String
+  storageKey    String          @unique @map("storage_key")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  @@unique([applicationId, type])
+  @@map("kyb_documents")
+}
+
+// Historique : chaque changement d'état, horodaté, avec son auteur et son motif.
+model KybEvent {
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  application   KybApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    KybStatus?     @map("from_status")
+  toStatus      KybStatus      @map("to_status")
+  // user (membre du marchand), staff (équipe AlphaPay) ou system.
+  actorType     String         @map("actor_type")
+  actorId       String?        @map("actor_id")
+  reason        String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@index([applicationId, createdAt])
+  @@map("kyb_events")
+}
+
+// Vérification d'identité du dirigeant chez le fournisseur KYC (Sumsub ou mock).
+model KycCheck {
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  application   KybApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  provider      String
+  applicantId   String         @map("applicant_id")
+  status        KycCheckStatus @default(PENDING)
+  // Motifs du fournisseur (refus ou reprise), sans donnée personnelle.
+  reasons       String[]       @default([])
+  completedAt   DateTime?      @map("completed_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@unique([provider, applicantId])
+  @@index([applicationId])
+  @@map("kyc_checks")
 }

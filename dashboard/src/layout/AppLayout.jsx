@@ -20,6 +20,7 @@ const ICONS = {
   dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
   payments: 'M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8',
   caisse: 'M20 6L9 17l-5-5',
+  kyb: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 15l2 2 4-4',
   developers: 'M8 9l-3 3 3 3M16 9l3 3-3 3',
   team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   profile: 'M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
@@ -57,6 +58,20 @@ function BottomNav({ tabs, path }) {
   )
 }
 
+/** Mode live verrouillé tant que le dossier n'est pas approuvé (§M2) : rappel aux gestionnaires. */
+function LiveBanner() {
+  const { user } = useAuth()
+  const { t: tr } = useT()
+  const location = useLocation()
+  const m = user?.merchants?.[0]
+  if (!m || m.kybStatus === 'APPROVED' || !['OWNER', 'ADMIN'].includes(m.role) || location.pathname === '/kyb') return null
+  return (
+    <Link to="/kyb" style={{ display: 'block', background: '#FFF4CE', color: '#6B4E00', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontWeight: 600, marginBottom: 16, textDecoration: 'none' }}>
+      {tr(m.kybStatus === 'REJECTED' ? 'kyb.banner.rejected' : 'kyb.banner')} →
+    </Link>
+  )
+}
+
 export default function AppLayout({ children }) {
   const { t, mode, toggle } = useTheme()
   const { t: tr, locale, toggle: toggleLocale } = useT()
@@ -70,6 +85,7 @@ export default function AppLayout({ children }) {
     { to: '/developers', icon: 'developers', label: tr('nav.developers'), desktopOnly: true },
     { to: '/team', icon: 'team', label: tr('nav.team') },
     // Réglage ponctuel : barre latérale seulement, pas dans la barre d'onglets mobile.
+    { to: '/kyb', icon: 'kyb', label: tr('nav.kyb'), desktopOnly: true },
     { to: '/operators', icon: 'operators', label: tr('nav.operators'), desktopOnly: true },
     { to: '/profile', icon: 'profile', label: tr('nav.profile') },
   ]
@@ -137,6 +153,7 @@ export default function AppLayout({ children }) {
         </header>
 
         <main className="pb-main" style={{ padding: '28px 24px', flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+          <LiveBanner />
           {children}
         </main>
       </div>

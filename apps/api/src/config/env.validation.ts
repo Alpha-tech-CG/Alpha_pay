@@ -33,6 +33,7 @@ const REQUIRED_IN_PRODUCTION = [
   'PUBLIC_API_URL',
   'PII_ENCRYPTION_KEY',
   'PROVIDER_CREDENTIALS_KEY',
+  'DOCUMENTS_ENCRYPTION_KEY',
   'API_KEY_PEPPER',
   'INTERNAL_API_TOKEN',
   'ALLOWED_ORIGINS',
@@ -51,11 +52,14 @@ export function validateEnv(env: Env = process.env): void {
   oneOf(env, 'SMS_PROVIDER', ['mock', 'infobip'], problems);
   oneOf(env, 'WHATSAPP_PROVIDER', ['mock', 'meta'], problems);
   oneOf(env, 'EMAIL_PROVIDER', ['mock', 'smtp'], problems);
+  oneOf(env, 'KYC_PROVIDER', ['mock', 'sumsub'], problems);
+  oneOf(env, 'STORAGE_DRIVER', ['local', 's3'], problems);
   oneOf(env, 'LOG_LEVEL', ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'], problems);
   positiveInt(env, 'PORT', problems);
   positiveInt(env, 'PAYMENT_EXPIRY_SECONDS', problems);
   base64Key32(env, 'PII_ENCRYPTION_KEY', problems);
   base64Key32(env, 'PROVIDER_CREDENTIALS_KEY', problems);
+  base64Key32(env, 'DOCUMENTS_ENCRYPTION_KEY', problems);
   minLength(env, 'API_KEY_PEPPER', 32, problems);
   minLength(env, 'INTERNAL_API_TOKEN', 32, problems);
   minLength(env, 'OTP_HMAC_SECRET', 32, problems);
@@ -77,6 +81,10 @@ export function validateEnv(env: Env = process.env): void {
   }
   if (!!env.VAPID_PUBLIC_KEY !== !!env.VAPID_PRIVATE_KEY) problems.push('VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY vont ensemble');
   if (env.VAPID_SUBJECT && !/^(mailto:|https:\/\/)/.test(env.VAPID_SUBJECT)) problems.push('VAPID_SUBJECT : mailto: ou URL https');
+  if (env.KYC_PROVIDER === 'sumsub') {
+    for (const name of ['SUMSUB_APP_TOKEN', 'SUMSUB_SECRET_KEY', 'SUMSUB_WEBHOOK_SECRET', 'SUMSUB_LEVEL_NAME']) if (!env[name]) problems.push(`${name} est requis avec KYC_PROVIDER=sumsub`);
+  }
+  if (env.STORAGE_DRIVER === 's3' && !env.STORAGE_BUCKET) problems.push('STORAGE_BUCKET est requis avec STORAGE_DRIVER=s3');
   if (env.MESSAGE_CREDIT_COSTS) {
     try {
       JSON.parse(env.MESSAGE_CREDIT_COSTS);

@@ -8,7 +8,7 @@ export interface BodyGuardOptions {
   /** Chemins fournisseur autorisés à envoyer un formulaire URL-encodé. */
   formUrlencodedPaths?: string[];
   /** Chemins autorisés à envoyer un multipart (upload de document). */
-  multipartPaths?: string[];
+  multipartPaths?: (string | RegExp)[];
   /** Borne dédiée aux uploads multipart (défaut 6 MiB). */
   multipartMaxBytes?: number;
   /** Chemins autorisés à envoyer un JSON volumineux (ex: image base64). */
@@ -54,7 +54,7 @@ export function bodyGuard(options: BodyGuardOptions = {}) {
     // borne dédiée (les documents dépassent forcément les 8 KiB JSON).
     if (
       contentType === "multipart/form-data" &&
-      multipartPaths.some((path) => req.path?.startsWith(path))
+      multipartPaths.some((path) => (typeof path === 'string' ? req.path?.startsWith(path) : path.test(req.path ?? '')))
     ) {
       if (Number.isFinite(len) && len > multipartMaxBytes) {
         return res.status(413).json({

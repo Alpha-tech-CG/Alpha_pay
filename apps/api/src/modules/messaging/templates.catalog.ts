@@ -107,6 +107,17 @@ export const TEMPLATE_CATALOG: CatalogTemplate[] = [
     variables: ['merchantName', 'description', 'amount', 'link'],
   },
 
+  // ── Dossier KYB : changement d'état (§M2) ──
+  { key: 'kyb.statut', channel: 'SMS', version: 1, category: 'TRANSACTIONAL', body: 'AlphaPay - dossier {{status}}. {{text}}' },
+  {
+    key: 'kyb.statut',
+    channel: 'EMAIL',
+    version: 1,
+    category: 'TRANSACTIONAL',
+    subject: 'Votre dossier AlphaPay : {{status}}',
+    body: 'Bonjour,\n\n{{text}}\n\nRetrouvez votre dossier dans le tableau de bord AlphaPay, rubrique « Dossier entreprise ».\n\nL’équipe AlphaPay',
+  },
+
   // ── Équipe : invitation (§M1) ──
   {
     key: 'equipe.invitation',

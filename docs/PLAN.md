@@ -67,8 +67,8 @@
 | T-56 | Clés `ap_test_`/`ap_live_` (affichage unique), journal des requêtes API 30 j, rate-limit par clé + en-têtes `RateLimit-*` | M ✅ |
 | T-57 | Webhooks : `AlphaPay-Signature` (t=…, v1=…), retries 24 h, journal + bouton « renvoyer », événements §7 | M ✅ |
 | T-58 | OpenAPI 3.1 générée, portail développeurs FR (démarrage, auth, paiements, webhooks, messages, OTP, erreurs, numéros de test), exemples curl/Node/PHP, exemple de vérification de signature | L ✅ |
-| T-59 | KYB : `kyb_applications`, `kyb_documents`, `kyb_events`, états brouillon→soumis→en_revue→approuvé/infos_requises/refusé, fichiers chiffrés + URL signées, notification à chaque changement | M |
-| T-60 | KYC : `KycProvider` Sumsub + mock (demandeur, lien, webhook), `kyc_checks` ; remplacement de Smile ID | M |
+| T-59 | KYB : `kyb_applications`, `kyb_documents`, `kyb_events`, états brouillon→soumis→en_revue→approuvé/infos_requises/refusé, fichiers chiffrés + URL signées, notification à chaque changement | M ✅ |
+| T-60 | KYC : `KycProvider` Sumsub + mock (demandeur, lien, webhook), `kyc_checks` ; remplacement de Smile ID | M ✅ |
 | T-61 | Garde « live » côté API : pas de clé `ap_live_` ni de paiement live sans KYB approuvé | S ✅ |
 
 ## S6–S7 — M6 Gérer, M7 Recouvrer, M8 Pack École, M11 Facturation (1 → 14 déc.)

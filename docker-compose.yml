@@ -31,6 +31,8 @@ x-api-env: &api-env
   # Clés de développement (base64, 32 octets) — jamais en préproduction ni en production.
   PII_ENCRYPTION_KEY: ZGV2LW9ubHktcGlpLWtleS0wMDAwMDAwMDAwMDAwMDA=
   PROVIDER_CREDENTIALS_KEY: ZGV2LW9ubHktcHJvdmlkZXItY3JlZHMtMDAwMDAwMDA=
+  DOCUMENTS_ENCRYPTION_KEY: ZGV2LW9ubHktZG9jdW1lbnRzLWtleS0wMDAwMDAwMDA=
+  STORAGE_DIR: /data/storage
   API_KEY_PEPPER: dev-only-pepper-not-for-production-0000000000
   INTERNAL_API_TOKEN: dev-only-internal-token-0000000000000000
   JWT_SECRET: dev-only-jwt-secret-not-for-production-000000
@@ -97,6 +99,9 @@ services:
   api:
     <<: *api-image
     environment: *api-env
+    # Pièces KYB chiffrées : volume persistant (STORAGE_DIR).
+    volumes:
+      - api_storage:/data/storage
     ports:
       - "3000:3000"
     depends_on:
@@ -167,6 +172,7 @@ services:
       - api
 
 volumes:
+  api_storage:
   postgres_data:
   redis_data:
   dashboard_node_modules:

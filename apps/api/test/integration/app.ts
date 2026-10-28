@@ -31,7 +31,7 @@ export async function createTestApp(configure?: (builder: TestingModuleBuilder) 
   let builder = Test.createTestingModule({ imports: [AppModule] });
   if (configure) builder = configure(builder);
   const moduleRef = await builder.compile();
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ rawBody: true });
   // Requis : WebhooksModule déclare un @WebSocketGateway(). Sans adapter
   // explicite, Nest tente le driver socket.io par défaut (absent).
   app.useWebSocketAdapter(new WsAdapter(app));

@@ -6,7 +6,7 @@ import { useIdleLogout } from './useIdleLogout';
 
 const NAV = [
   { to: '/', label: 'Recherche', cap: 'search.view' },
-  { to: '/kyc', label: 'KYC marchands', cap: 'kyc.view' },
+  { to: '/kyc', label: 'Dossiers KYB', cap: 'kyc.view' },
   { to: '/reconciliation', label: 'Réconciliation', cap: 'reconciliation.view' },
 ];
 

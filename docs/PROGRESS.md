@@ -2,6 +2,25 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 28 octobre 2026 (10) — M2 KYB et KYC (S5 terminé)
+
+### Fait
+- **T-59** Dossier KYB (migration 29, réversible ; tables Smile ID retirées) : informations de l'entreprise et du dirigeant, trois pièces (extrait RCCM, attestation NIU, pièce du dirigeant) chiffrées par l'API et lisibles uniquement par URL signée de 5 minutes, états du cahier avec historique horodaté et attribué, notification au marchand à chaque changement, mode live ouvert seulement à l'approbation.
+- **T-60** `KycProvider` Sumsub (requêtes signées, webhook vérifié, résultat relu) + mock avec page factice ; faux serveur Sumsub et suite de contrat.
+- Back-office : file des dossiers, pièces, résultat KYC, décision motivée (approuver, compléments, refuser ; dérogation motivée si KYC non approuvé). Écran « Dossiers KYB » du back-office réécrit.
+- Tableau de bord : écran « Dossier entreprise » (formulaire, dépôt des pièces, vérification d'identité, soumission, motif, historique) et bandeau « mode test » tant que le dossier n'est pas approuvé.
+- Anciens modules `kyc` (Smile ID) et `onboarding` supprimés. Décision D-051.
+
+### Vérifié
+- Unitaires 297 (les tests Smile ID et onboarding sont partis avec leurs modules), intégration 76, providers 118 — verts. Acceptation M2 couverte : ni clé `ap_live_` ni paiement live sans dossier approuvé (refus côté API) ; le back-office voit les pièces et le KYC, approuve, refuse ou demande des compléments avec motif.
+- Navigateur, sur la pile reconstruite : dossier rempli dans le tableau de bord, trois pièces déposées, vérification d'identité par la page factice (« approuvé »), soumission ; dans le back-office, pièce ouverte par lien signé (PDF déchiffré), approbation, historique avec l'agent ; trois emails reçus dans MailHog (soumis, en revue, approuvé).
+- Défauts trouvés et corrigés : le dossier de stockage du conteneur API n'était pas inscriptible par l'utilisateur `nestjs` (créé dans le Dockerfile) ; les tests d'intégration visent désormais `127.0.0.1` (Docker Desktop cessait de répondre sur `::1`).
+
+### Reste / points connus
+- Contrat Sumsub (dépendance §13) : chemins de l'API à valider sur compte réel ; en attendant, KYC factice et dérogation motivée dans le back-office.
+- Back-office encore sous Clerk avec identité de l'agent déclarative (`X-Staff-Id`) jusqu'aux comptes du personnel (T-90).
+- `docs/ADMIN.md` (guide du back-office) à rédiger avec M12.
+
 ## Session du 28 octobre 2026 (9) — M10 Développeurs
 
 ### Fait
@@ -163,7 +182,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
 | S3 M1, M9, M3 | 16 nov. | **Fait** (sauf essais sandbox réels MTN/Airtel) |
-| S5 M4, M5, M10, M2 | 30 nov. | En cours (M4, M5, M10 faits ; M2 à faire) |
+| S5 M4, M5, M10, M2 | 30 nov. | **Fait** |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |
 | S9 Recette, livraison | 27 déc. | À faire |

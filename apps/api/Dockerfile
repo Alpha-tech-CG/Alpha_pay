@@ -88,6 +88,9 @@ COPY --from=builder --chown=nestjs:nodejs /prod/package.json ./package.json
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder --chown=nestjs:nodejs /app/packages/database/sql ./packages/database/sql
 
+# Pièces KYB chiffrées (STORAGE_DIR) : un volume nommé neuf hérite de ce propriétaire.
+RUN mkdir -p /data/storage && chown nestjs:nodejs /data/storage
+
 USER nestjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

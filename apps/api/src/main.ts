@@ -67,6 +67,9 @@ async function bootstrap() {
     bodyGuard({
       maxBytes: MAX_BODY_BYTES,
       formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
+      // Pièces du dossier KYB (§M2) : 10 Mo par fichier.
+      multipartPaths: [/^\/v1\/merchants\/[^/]+\/kyb\/documents\/[A-Za-z_]+$/],
+      multipartMaxBytes: 10.5 * 1024 * 1024,
     }),
   );
 
