@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, Get, Inject, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { PrismaClient, TransactionStatus } from '@paybrain/database';
 import { afterCursor, decodeCursor, page, parseLimit } from '../../common/pagination/cursor';
@@ -7,6 +7,7 @@ import { StoresService } from '../stores/stores.service';
 import { RequireMemberGuard } from '../team/auth/require-member.guard';
 import { presentPayment } from './payment.presenter';
 import { STATUS_BY_LABEL } from './payments.controller';
+import { formatAmount, toMajorAmount } from '../../common/money';
 
 /**
  * Paiements vus depuis le tableau de bord (§M1, §M6). Le périmètre dépend du
@@ -24,32 +25,118 @@ export class MerchantPaymentsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les paiements (filtres : mode, caisse, statut ; pagination par curseur)' })
+  @ApiOperation({ summary: 'Lister les paiements (filtres : mode, caisse, statut, opérateur, dates, recherche ; pagination par curseur)' })
   async list(
-    @Param('merchantId') merchantId: string,
+    @Param('merchantId') _merchantId: string,
     @Req() req: any,
     @Query('mode') mode?: string,
     @Query('till_id') tillId?: string,
     @Query('status') status?: string,
+    @Query('operator') operator?: string,
+    @Query('date_from') dateFrom?: string,
+    @Query('date_to') dateTo?: string,
+    @Query('q') q?: string,
     @Query('limit') limit?: string,
     @Query('starting_after') startingAfter?: string,
   ) {
+    const { merchantId } = req.membership;
     const visible = await this.stores.visibleTillIds(merchantId, req.membership);
     if (visible !== 'all' && visible.length === 0) throw new ForbiddenException('Aucune caisse rattachée');
     if (tillId && visible !== 'all' && !visible.includes(tillId)) throw new ForbiddenException('Caisse hors de votre périmètre');
 
     const n = parseLimit(limit);
+
+    const dateFilter =
+      dateFrom || dateTo
+        ? {
+            createdAt: {
+              ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+              ...(dateTo ? { lte: new Date(dateTo + 'T23:59:59.999Z') } : {}),
+            },
+          }
+        : {};
+
+    const searchFilter = q
+      ? { OR: [{ externalId: { contains: q } }, { mtnReferenceId: { contains: q } }] }
+      : {};
+
     const rows = await this.prisma.transaction.findMany({
       where: {
         merchantId,
         livemode: mode === 'live',
         ...(tillId ? { tillId } : visible === 'all' ? {} : { tillId: { in: visible } }),
         ...(status ? { status: STATUS_BY_LABEL[status] ?? (status.toUpperCase() as TransactionStatus) } : {}),
+        ...(operator ? { operator: operator.toUpperCase() as any } : {}),
+        ...dateFilter,
+        ...searchFilter,
         ...afterCursor(decodeCursor(startingAfter)),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: n + 1,
     });
     return page(rows, n, presentPayment);
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Totaux du jour/semaine/mois pour le tableau de bord Paiements' })
+  async summary(
+    @Param('merchantId') _merchantId: string,
+    @Query('mode') mode: string,
+    @Req() req: any,
+  ) {
+    const { merchantId } = req.membership;
+    const livemode = mode === 'live';
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const [today, allTime] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: { merchantId, livemode, status: 'SUCCEEDED', createdAt: { gte: todayStart } },
+        _count: { id: true },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: { merchantId, livemode, status: 'SUCCEEDED' },
+        _count: { id: true },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const fmt = (v: bigint | null) => ({ amount: v != null ? toMajorAmount(v, 'XAF') : 0, display: v != null ? formatAmount(v, 'XAF') : '0 XAF' });
+    return {
+      today: { count: today._count.id, ...fmt(today._sum.amount) },
+      all_time: { count: allTime._count.id, ...fmt(allTime._sum.amount) },
+    };
+  }
+
+  @Get(':txId')
+  @ApiOperation({ summary: 'Détail d\'un paiement avec son journal d\'audit' })
+  async detail(
+    @Param('merchantId') _merchantId: string,
+    @Param('txId', ParseUUIDPipe) txId: string,
+    @Req() req: any,
+  ) {
+    const { merchantId } = req.membership;
+    const visible = await this.stores.visibleTillIds(merchantId, req.membership);
+
+    const tx = await this.prisma.transaction.findFirst({
+      where: { id: txId, merchantId },
+      include: { audits: { orderBy: { createdAt: 'asc' } } },
+    });
+    if (!tx) throw new NotFoundException('Paiement introuvable');
+
+    if (visible !== 'all' && tx.tillId && !visible.includes(tx.tillId)) {
+      throw new ForbiddenException('Paiement hors de votre périmètre');
+    }
+
+    return {
+      ...presentPayment(tx),
+      audit_trail: tx.audits.map((a) => ({
+        from: a.fromStatus,
+        to: a.toStatus,
+        reason: a.reason,
+        at: a.createdAt,
+      })),
+    };
   }
 }

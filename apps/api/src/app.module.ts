@@ -24,6 +24,7 @@ import { KvModule } from './common/kv/kv.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StoresModule } from './modules/stores/stores.module';
+import { CashEntriesModule } from './modules/cash-entries/cash-entries.module';
 import { AuditModule } from './common/audit/audit.service';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
 import { SchedulingModule } from './common/scheduling/scheduling.module';
@@ -41,6 +42,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     AuditModule,
     AuthModule,
     StoresModule,
+    CashEntriesModule,
     PaymentStatusModule,
     SchedulingModule,
     PaymentsModule,

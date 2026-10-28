@@ -116,6 +116,7 @@ model Merchant {
   providerConnections ProviderConnection[]
   stores              Store[]
   kybApplication      KybApplication?
+  cashEntries         CashEntry[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -518,6 +519,7 @@ model MerchantMember {
 
   tills    TillMember[]
   pushSubscriptions WebPushSubscription[]
+  cashEntries       CashEntry[]
   merchant Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   user     AppUser      @relation(fields: [userId], references: [id])
 
@@ -993,6 +995,30 @@ model KybEvent {
 
   @@index([applicationId, createdAt])
   @@map("kyb_events")
+}
+
+// ─── Cash déclaré (T-71, §M6) ────────────────────────────────────────────────
+
+// Cash déclaré manuellement par un caissier en fin de shift.
+// Complète le rapprochement journalier (T-72) ; n'affecte pas les encaissements.
+model CashEntry {
+  id         String         @id @default(uuid())
+  merchantId String         @map("merchant_id")
+  merchant   Merchant       @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tillId     String?        @map("till_id")
+  memberId   String         @map("member_id")
+  member     MerchantMember @relation(fields: [memberId], references: [id])
+  amount     BigInt
+  currency   String         @default("XAF")
+  livemode   Boolean        @default(false)
+  note       String?
+  entryDate  DateTime       @map("entry_date") @db.Date
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@index([merchantId, livemode, entryDate(sort: Desc)])
+  @@index([tillId, livemode, entryDate(sort: Desc)])
+  @@map("cash_entries")
 }
 
 // Vérification d'identité du dirigeant chez le fournisseur KYC (Sumsub ou mock).
