@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body, Controller, ForbiddenException, Get, Header, HttpCode, HttpStatus, Inject, NotFoundException, Param, ParseEnumPipe, ParseUUIDPipe, Post, Patch, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -8,6 +8,7 @@ import { MockKycProvider } from '@paybrain/providers';
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { ApiError } from '../../common/errors/api-error';
 import { InternalGuard } from '../../common/guards/internal.guard';
+import { StaffGuard } from '../staff/staff.guard';
 import { SessionGuard } from '../auth/session.guard';
 import { RequireAction } from '../team/auth/require-action.decorator';
 import { RequireActionGuard } from '../team/auth/require-action.guard';
@@ -35,13 +36,10 @@ class DecisionDto {
 
 const userActor = (req: any): KybActor => ({ type: 'user', id: req.appUser.id, ip: req.ip });
 
-/**
- * Agent AlphaPay : identité transmise par le back-office (en-tête X-Staff-Id)
- * derrière le jeton interne, en attendant les comptes du personnel (T-90).
- */
+/** Agent AlphaPay identifié par le StaffGuard (T-90). */
 function staffActor(req: any): KybActor {
-  const id = String(req.headers['x-staff-id'] ?? '').trim().slice(0, 120);
-  if (!id) throw new ApiError(HttpStatus.BAD_REQUEST, 'agent_requis', 'En-tête X-Staff-Id requis (identité de l’agent)');
+  const id: string = req.staffUser?.staffId ?? req.staffUser?.email ?? '';
+  if (!id) throw new ApiError(HttpStatus.UNAUTHORIZED, 'agent_requis', 'Jeton personnel AlphaPay requis');
   return { type: 'staff', id, ip: req.ip };
 }
 
@@ -90,7 +88,7 @@ export class KybController {
   @Post('kyc')
   @HttpCode(201)
   @RequireAction('kyb:manage')
-  @ApiOperation({ summary: 'Lien de vérification d’identité du dirigeant (fournisseur KYC)' })
+  @ApiOperation({ summary: "Lien de verification d'identite du dirigeant (fournisseur KYC)" })
   startKyc(@Param('merchantId') merchantId: string, @Req() req: any) {
     return this.kyb.startKyc(merchantId, userActor(req));
   }
@@ -106,7 +104,7 @@ export class KybController {
 /** Back-office (§M2, §M12) : file des dossiers, pièces, résultat KYC, décision motivée. */
 @ApiExcludeController()
 @Controller('internal/kyb')
-@UseGuards(InternalGuard)
+@UseGuards(StaffGuard)
 export class KybAdminController {
   constructor(private readonly kyb: KybService) {}
 
@@ -198,9 +196,9 @@ export class MockKycController {
   page(@Param('applicantId') applicantId: string) {
     this.mock();
     const id = applicantId.replace(/[^A-Za-z0-9_-]/g, '');
-    return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vérification d’identité (test)</title>
+    return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vérification d'identité (test)</title>
 <body style="font-family:system-ui;max-width:420px;margin:40px auto;padding:0 16px;color:#0B1E3D">
-<h1 style="font-size:20px">Vérification d’identité — mode test</h1>
+<h1 style="font-size:20px">Vérification d'identité — mode test</h1>
 <p>Ce faux fournisseur remplace Sumsub en développement. Un nom de famille contenant « REJET » est refusé, « REPRISE » demande une reprise.</p>
 <form method="post" action="/mock/kyc/${id}/submit"><button style="height:48px;width:100%;border:0;border-radius:10px;background:#00B4D8;font-weight:700;font-size:16px">Envoyer mes pièces</button></form></body></html>`;
   }

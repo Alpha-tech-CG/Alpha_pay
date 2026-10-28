@@ -3,6 +3,7 @@ import { KycProvider, MockKycProvider, SumsubKycProvider } from '@paybrain/provi
 import { FileStorage, fileStorageFromEnv } from '../../common/storage/file-storage';
 import { MessagingModule } from '../messaging/messaging.module';
 import { TeamAuthModule } from '../team/auth/team-auth.module';
+import { StaffModule } from '../staff/staff.module';
 import { FilesController, KybAdminController, KybController, KycWebhookController, MockKycController } from './kyb.controller';
 import { KybService, KYC_PROVIDER } from './kyb.service';
 
@@ -22,7 +23,7 @@ export function kycProviderFromEnv(env: NodeJS.ProcessEnv = process.env): KycPro
 
 /** M2 — Onboarding marchand : dossier KYB, pièces chiffrées, KYC du dirigeant, revue AlphaPay. */
 @Module({
-  imports: [MessagingModule, TeamAuthModule],
+  imports: [MessagingModule, TeamAuthModule, StaffModule],
   controllers: [KybController, KybAdminController, FilesController, KycWebhookController, MockKycController],
   providers: [KybService, { provide: KYC_PROVIDER, useFactory: () => kycProviderFromEnv() }, { provide: FileStorage, useFactory: fileStorageFromEnv }],
   exports: [KybService],

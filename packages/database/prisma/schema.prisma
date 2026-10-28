@@ -1503,3 +1503,59 @@ model CreditPack {
   @@map("credit_packs")
 }
 
+// ─── Back-office : personnel AlphaPay (T-90, §M12) ───────────────────────────
+
+enum StaffRole {
+  SUPPORT
+  COMPLIANCE
+  SUPER_ADMIN
+}
+
+model StaffUser {
+  id             String           @id @default(uuid())
+  email          String           @unique
+  displayName    String           @map("display_name")
+  role           StaffRole        @default(SUPPORT)
+  passwordHash   String           @map("password_hash")
+  totpSecretEnc  String?          @map("totp_secret_enc")
+  totpEnabled    Boolean          @default(false) @map("totp_enabled")
+  isActive       Boolean          @default(true) @map("is_active")
+  lastLoginAt    DateTime?        @map("last_login_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  sessions       StaffSession[]
+  accessLogs     StaffAccessLog[]
+
+  @@map("staff_users")
+}
+
+model StaffSession {
+  id          String    @id @default(uuid())
+  staffId     String    @map("staff_id")
+  staff       StaffUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique @map("token_hash")
+  ip          String?
+  userAgent   String?   @map("user_agent")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([staffId])
+  @@index([expiresAt])
+  @@map("staff_sessions")
+}
+
+model StaffAccessLog {
+  id        String    @id @default(uuid())
+  staffId   String    @map("staff_id")
+  staff     StaffUser @relation(fields: [staffId], references: [id])
+  action    String
+  targetId  String?   @map("target_id")
+  detail    Json      @default("{}")
+  ip        String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([staffId, createdAt(sort: Desc)])
+  @@index([targetId, createdAt(sort: Desc)])
+  @@map("staff_access_log")
+}
+
