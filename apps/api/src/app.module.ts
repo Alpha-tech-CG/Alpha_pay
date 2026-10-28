@@ -5,6 +5,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaymentLinksModule } from './modules/payment-links/payment-links.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
+import { DevelopersModule } from './modules/developers/developers.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
@@ -47,6 +48,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     WebhooksModule,
     PaymentLinksModule,
     CheckoutModule,
+    DevelopersModule,
     StatsModule,
     OutboxModule,
     ApiKeysModule,

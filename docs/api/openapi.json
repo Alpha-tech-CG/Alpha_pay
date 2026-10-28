@@ -1,0 +1,3984 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/merchants/{merchantId}/provider-connections": {
+      "get": {
+        "operationId": "ProviderConnectionsController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "État des comptes MTN et Airtel (test et live)",
+        "tags": [
+          "Comptes opérateur"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/provider-connections/{operator}": {
+      "put": {
+        "operationId": "ProviderConnectionsController_save",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveConnectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Connecter (ou remplacer) un compte opérateur, puis le vérifier",
+        "tags": [
+          "Comptes opérateur"
+        ]
+      },
+      "delete": {
+        "operationId": "ProviderConnectionsController_disable",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Déconnecter un compte opérateur (identifiants effacés)",
+        "tags": [
+          "Comptes opérateur"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/provider-connections/{operator}/verify": {
+      "post": {
+        "operationId": "ProviderConnectionsController_verify",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Revérifier un compte opérateur",
+        "tags": [
+          "Comptes opérateur"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_scrape",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Santé"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Santé"
+        ]
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "operationId": "MessagingApiController_send",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Envoyer un SMS, un WhatsApp ou un email",
+        "tags": [
+          "Messages et OTP"
+        ]
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "operationId": "MessagingApiController_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lire le statut d’un message",
+        "tags": [
+          "Messages et OTP"
+        ]
+      }
+    },
+    "/v1/otp/send": {
+      "post": {
+        "operationId": "MessagingApiController_sendOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Envoyer un code à usage unique (6 chiffres, valable 5 minutes)",
+        "tags": [
+          "Messages et OTP"
+        ]
+      }
+    },
+    "/v1/otp/verify": {
+      "post": {
+        "operationId": "MessagingApiController_verifyOtp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Vérifier un code à usage unique (5 essais, puis blocage 15 minutes)",
+        "tags": [
+          "Messages et OTP"
+        ]
+      }
+    },
+    "/v1/credits": {
+      "get": {
+        "operationId": "MessagingApiController_balance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Solde de crédits de messages",
+        "tags": [
+          "Messages et OTP"
+        ]
+      }
+    },
+    "/v1/webhook-endpoints": {
+      "get": {
+        "operationId": "WebhooksOutController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "WebhooksOutController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhook-endpoints/{id}": {
+      "patch": {
+        "operationId": "WebhooksOutController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "delete": {
+        "operationId": "WebhooksOutController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhook-endpoints/{id}/deliveries": {
+      "get": {
+        "operationId": "WebhooksOutController_deliveries",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhook-endpoints/{id}/deliveries/{deliveryId}/resend": {
+      "post": {
+        "operationId": "WebhooksOutController_resend",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhook-endpoints/{id}/test": {
+      "post": {
+        "operationId": "WebhooksOutController_test",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Inscription marchand ; envoie un code de vérification",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Étape 1 : mot de passe ; envoie un code (SMS, WhatsApp ou email)",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/verify": {
+      "post": {
+        "operationId": "AuthController_verify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Étape 2 : code reçu ; ouvre une session",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Renouvelle le jeton d’accès (cookie de session)",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Ferme la session courante",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/logout-all": {
+      "post": {
+        "operationId": "AuthController_logoutAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Ferme toutes les sessions du compte",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/sessions": {
+      "get": {
+        "operationId": "AuthController_listSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Sessions ouvertes du compte",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/password/forgot": {
+      "post": {
+        "operationId": "AuthController_forgot",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Réinitialisation : envoie un code si le compte existe (réponse identique sinon)",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/password/reset": {
+      "post": {
+        "operationId": "AuthController_reset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Réinitialisation : code + nouveau mot de passe ; ferme toutes les sessions",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Profil et marchands de l’utilisateur connecté",
+        "tags": [
+          "Authentification"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/stores": {
+      "get": {
+        "operationId": "StoresController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      },
+      "post": {
+        "operationId": "StoresController_create",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStoreDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/stores/{storeId}": {
+      "patch": {
+        "operationId": "StoresController_update",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStoreDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/stores/{storeId}/tills": {
+      "post": {
+        "operationId": "StoresController_createTill",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "storeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/tills/{tillId}": {
+      "patch": {
+        "operationId": "StoresController_updateTill",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/tills/{tillId}/members": {
+      "post": {
+        "operationId": "StoresController_assign",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/tills/{tillId}/members/{memberId}": {
+      "delete": {
+        "operationId": "StoresController_unassign",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/tills/{tillId}/qr.pdf": {
+      "get": {
+        "operationId": "StoresController_qr",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tillId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/tills/mine": {
+      "get": {
+        "operationId": "StoresController_mine",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Boutiques et caisses"
+        ]
+      }
+    },
+    "/v1/payments": {
+      "post": {
+        "operationId": "PaymentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Créer un paiement Mobile Money (MTN, Airtel)",
+        "tags": [
+          "Paiements"
+        ]
+      },
+      "get": {
+        "operationId": "PaymentsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lister les paiements (pagination par curseur : limit, starting_after)",
+        "tags": [
+          "Paiements"
+        ]
+      }
+    },
+    "/v1/payments/{id}": {
+      "get": {
+        "operationId": "PaymentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lire un paiement",
+        "tags": [
+          "Paiements"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payments": {
+      "get": {
+        "operationId": "MerchantPaymentsController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lister les paiements (filtres : mode, caisse, statut ; pagination par curseur)",
+        "tags": [
+          "Paiements (tableau de bord)"
+        ]
+      }
+    },
+    "/webhooks/{operator}": {
+      "post": {
+        "operationId": "WebhooksController_handle",
+        "parameters": [
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/webhooks/operators/{operator}/{connectionId}/{token}": {
+      "post": {
+        "operationId": "WebhooksController_handleConnectionCallback",
+        "parameters": [
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/stream-ticket": {
+      "post": {
+        "operationId": "VerifController_ticket",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Ticket à usage unique pour ouvrir le flux temps réel (60 s)",
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/today": {
+      "get": {
+        "operationId": "VerifController_today",
+        "parameters": [
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Écran Caisse : paiements réussis du jour",
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/push/config": {
+      "get": {
+        "operationId": "VerifController_pushConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/push-subscriptions": {
+      "post": {
+        "operationId": "VerifController_subscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      },
+      "delete": {
+        "operationId": "VerifController_unsubscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePushDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/verif/stream": {
+      "get": {
+        "operationId": "VerifStreamController_stream",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Confirmations en temps réel (text/event-stream)",
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/payment-links": {
+      "post": {
+        "operationId": "PaymentLinksController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Créer un lien de paiement (montant fixe ou libre)",
+        "tags": [
+          "Liens de paiement"
+        ]
+      },
+      "get": {
+        "operationId": "PaymentLinksController_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement"
+        ]
+      }
+    },
+    "/v1/payment-links/{id}": {
+      "get": {
+        "operationId": "PaymentLinksController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement"
+        ]
+      }
+    },
+    "/v1/payment-links/{id}/deactivate": {
+      "post": {
+        "operationId": "PaymentLinksController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payment-links": {
+      "get": {
+        "operationId": "MerchantPaymentLinksController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement (tableau de bord)"
+        ]
+      },
+      "post": {
+        "operationId": "MerchantPaymentLinksController_create",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payment-links/{id}/deactivate": {
+      "post": {
+        "operationId": "MerchantPaymentLinksController_deactivate",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payment-links/{id}/send": {
+      "post": {
+        "operationId": "MerchantPaymentLinksController_send",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendPaymentLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Liens de paiement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/public/links/{code}": {
+      "get": {
+        "operationId": "PublicPaymentLinksController_view",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/public/links/{code}/pay": {
+      "post": {
+        "operationId": "PublicPaymentLinksController_pay",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/public/tills/{code}": {
+      "get": {
+        "operationId": "CheckoutApiController_tillView",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/public/tills/{code}/pay": {
+      "post": {
+        "operationId": "CheckoutApiController_payTill",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayTillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/public/payments/{id}": {
+      "get": {
+        "operationId": "CheckoutApiController_status",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/api-keys": {
+      "get": {
+        "operationId": "DevelopersController_listKeys",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      },
+      "post": {
+        "operationId": "DevelopersController_createKey",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Créer une clé (le secret n’est affiché qu’une seule fois)",
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "DevelopersController_rotateKey",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/api-keys/{id}": {
+      "delete": {
+        "operationId": "DevelopersController_revokeKey",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/api-logs": {
+      "get": {
+        "operationId": "DevelopersController_logs",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/webhook-endpoints": {
+      "get": {
+        "operationId": "DevelopersController_listEndpoints",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      },
+      "post": {
+        "operationId": "DevelopersController_createEndpoint",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/webhook-endpoints/{id}": {
+      "patch": {
+        "operationId": "DevelopersController_updateEndpoint",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookEndpointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      },
+      "delete": {
+        "operationId": "DevelopersController_deleteEndpoint",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/webhook-endpoints/{id}/deliveries": {
+      "get": {
+        "operationId": "DevelopersController_deliveries",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/webhook-endpoints/{id}/deliveries/{deliveryId}/resend": {
+      "post": {
+        "operationId": "DevelopersController_resend",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/webhook-endpoints/{id}/test": {
+      "post": {
+        "operationId": "DevelopersController_test",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Développeurs (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/api-keys": {
+      "get": {
+        "operationId": "ApiKeysController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      },
+      "post": {
+        "operationId": "ApiKeysController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/v1/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "ApiKeysController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/v1/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeysController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/stats": {
+      "get": {
+        "operationId": "StatsController_getStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Statistiques"
+        ]
+      }
+    },
+    "/outbox/dead-letter": {
+      "get": {
+        "operationId": "OutboxController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Outbox"
+        ]
+      }
+    },
+    "/internal/reconciliation/run": {
+      "post": {
+        "operationId": "ReconciliationController_run",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunReconciliationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/internal/reconciliation/runs": {
+      "get": {
+        "operationId": "ReconciliationController_listRuns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/internal/reconciliation/runs/{id}": {
+      "get": {
+        "operationId": "ReconciliationController_getRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reconciliation"
+        ]
+      }
+    },
+    "/webhooks/notifications/africastalking": {
+      "post": {
+        "operationId": "NotificationWebhookController_africaTalking",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "NotificationWebhook"
+        ]
+      }
+    },
+    "/webhooks/notifications/postmark": {
+      "post": {
+        "operationId": "NotificationWebhookController_postmark",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "NotificationWebhook"
+        ]
+      }
+    },
+    "/v1/push-tokens": {
+      "post": {
+        "operationId": "PushTokenController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PushToken"
+        ]
+      }
+    },
+    "/v1/kyc": {
+      "get": {
+        "operationId": "KycController_myCase",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Kyc"
+        ]
+      }
+    },
+    "/v1/kyc/documents": {
+      "post": {
+        "operationId": "KycController_addDocument",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddKycDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Kyc"
+        ]
+      }
+    },
+    "/v1/kyc/documents/upload-url": {
+      "post": {
+        "operationId": "KycController_createUploadUrl",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKycUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Kyc"
+        ]
+      }
+    },
+    "/v1/kyc/submit": {
+      "post": {
+        "operationId": "KycController_submit",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Kyc"
+        ]
+      }
+    },
+    "/internal/kyc/cases": {
+      "get": {
+        "operationId": "KycAdminController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KycAdmin"
+        ]
+      }
+    },
+    "/internal/kyc/cases/{id}": {
+      "get": {
+        "operationId": "KycAdminController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KycAdmin"
+        ]
+      }
+    },
+    "/internal/kyc/cases/{id}/decide": {
+      "post": {
+        "operationId": "KycAdminController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideKycDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KycAdmin"
+        ]
+      }
+    },
+    "/webhooks/kyc/smile": {
+      "post": {
+        "operationId": "KycWebhookController_receiveSmile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmileResultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "KycWebhook"
+        ]
+      }
+    },
+    "/internal/onboarding/pending": {
+      "get": {
+        "operationId": "OnboardingController_listPending",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Onboarding"
+        ]
+      }
+    },
+    "/internal/onboarding/{id}/approve": {
+      "post": {
+        "operationId": "OnboardingController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Onboarding"
+        ]
+      }
+    },
+    "/internal/onboarding/{id}/reject": {
+      "post": {
+        "operationId": "OnboardingController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Onboarding"
+        ]
+      }
+    },
+    "/v1/merchant/profile": {
+      "get": {
+        "operationId": "MerchantController_profile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members": {
+      "get": {
+        "operationId": "TeamController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/events": {
+      "get": {
+        "operationId": "TeamController_listEvents",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/{memberId}": {
+      "patch": {
+        "operationId": "TeamController_changeRole",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      },
+      "delete": {
+        "operationId": "TeamController_remove",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/{memberId}/suspend": {
+      "post": {
+        "operationId": "TeamController_suspend",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/{memberId}/reactivate": {
+      "post": {
+        "operationId": "TeamController_reactivate",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/invitations": {
+      "post": {
+        "operationId": "InvitationsController_create",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — invitations"
+        ]
+      },
+      "get": {
+        "operationId": "InvitationsController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — invitations"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/members/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "InvitationsController_revoke",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — invitations"
+        ]
+      }
+    },
+    "/v1/invitations/{token}": {
+      "get": {
+        "operationId": "InvitationsPublicController_preview",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/v1/invitations/accept": {
+      "post": {
+        "operationId": "InvitationsPublicController_accept",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Invitations"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/ownership/transfer": {
+      "post": {
+        "operationId": "OwnershipController_transfer",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferOwnershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — propriété"
+        ]
+      }
+    },
+    "/v1/team/members": {
+      "get": {
+        "operationId": "TeamMembersReadonlyController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — mobile (lecture seule)"
+        ]
+      }
+    },
+    "/v1/me/merchants": {
+      "get": {
+        "operationId": "MyMerchantsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Équipe marchand — moi"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "API AlphaPay",
+    "description": "Encaissez par **MTN Mobile Money** et **Airtel Money** au Congo avec une seule API. AlphaPay est un fournisseur technique : l'argent de vos clients arrive directement sur **vos** comptes marchands MTN et Airtel. AlphaPay ne détient jamais vos fonds.\n\n# Démarrage\n\n1. Créez votre compte sur le tableau de bord AlphaPay, puis ouvrez **Développeurs → Clés API**.\n2. Créez une clé de **test** (`ap_test_…`). Le secret n'est affiché **qu'une seule fois** : copiez-le dans votre gestionnaire de secrets.\n3. Lancez votre premier paiement de test :\n\n```bash\ncurl https://api.alphapay.cg/v1/payments \\\n  -H \"Authorization: Bearer ap_test_xxxxxxxx_votre_secret\" \\\n  -H \"Idempotency-Key: $(uuidgen)\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{ \"amount\": 15000, \"phone\": \"+242060000001\", \"reference\": \"cmd-1042\" }'\n```\n\nLe paiement est créé au statut `en_attente`. Le client valide sur son téléphone avec son code secret Mobile Money, puis le statut devient `réussi`, `échoué` ou `expiré`. Vous êtes prévenu par **webhook** (recommandé) ; vous pouvez aussi lire le paiement avec `GET /v1/payments/{id}`.\n\n# Authentification\n\nChaque requête porte votre clé dans l'en-tête `Authorization` :\n\n```\nAuthorization: Bearer ap_live_xxxxxxxx_votre_secret\n```\n\n- `ap_test_…` : **mode test**, opérateurs simulés, aucun argent réel. Disponible dès l'inscription.\n- `ap_live_…` : **mode live**, vrais paiements. Disponible après validation de votre dossier (KYB) et connexion de vos comptes MTN et Airtel. Sans KYB validé, l'API répond `403 kyb_non_valide`.\n\nLes données des deux modes ne se mélangent jamais : une clé de test ne voit pas les paiements live, et inversement. Gardez vos clés côté serveur, jamais dans une application mobile ou une page web.\n\n# Mode test et numéros de test\n\nEn mode test, ces numéros simulent les réponses des opérateurs :\n\n| Numéro | Résultat |\n|---|---|\n| `+242060000001` | Réussit tout de suite |\n| `+242060000002` | Échoue (le client refuse) |\n| `+242060000003` | Reste en attente quelques secondes, puis réussit |\n| `+242060000004` | N'est jamais validé, puis expire |\n| `+242060000005` | Coupure réseau côté opérateur, reprise automatique sans doublon |\n\nLes numéros commençant par `06` sont MTN, ceux commençant par `05` ou `04` sont Airtel. Vous pouvez forcer l'opérateur avec `\"operator\": \"mtn\"` ou `\"airtel\"`.\n\n# Paiements\n\n`POST /v1/payments` crée un paiement Mobile Money.\n\n| Champ | Type | Description |\n|---|---|---|\n| `amount` | entier | Montant en francs CFA (XAF n'a pas de centimes). Maximum 5 000 000. |\n| `phone` | texte | Numéro du payeur, `06 123 45 67` ou `+242061234567`. |\n| `reference` | texte | Votre référence (commande, facture), unique par mode. `[A-Za-z0-9_-]`, 64 caractères au plus. |\n| `operator` | `mtn` \\| `airtel` | Facultatif : déduit du numéro. |\n| `description` | texte | Facultatif, 200 caractères au plus. |\n| `till_id` | identifiant | Facultatif : caisse qui encaisse. |\n\nStatuts : `en_attente`, `réussi`, `échoué`, `expiré`, `annulé`.\n\n**Node.js**\n\n```js\nconst res = await fetch('https://api.alphapay.cg/v1/payments', {\n  method: 'POST',\n  headers: {\n    Authorization: `Bearer ${process.env.ALPHAPAY_KEY}`,\n    'Idempotency-Key': crypto.randomUUID(),\n    'Content-Type': 'application/json',\n  },\n  body: JSON.stringify({ amount: 15000, phone: '+242061234567', reference: 'cmd-1042' }),\n});\nconst payment = await res.json();\n```\n\n**PHP**\n\n```php\n$ch = curl_init('https://api.alphapay.cg/v1/payments');\ncurl_setopt_array($ch, [\n  CURLOPT_POST => true,\n  CURLOPT_RETURNTRANSFER => true,\n  CURLOPT_HTTPHEADER => [\n    'Authorization: Bearer ' . getenv('ALPHAPAY_KEY'),\n    'Idempotency-Key: ' . bin2hex(random_bytes(16)),\n    'Content-Type: application/json',\n  ],\n  CURLOPT_POSTFIELDS => json_encode(['amount' => 15000, 'phone' => '+242061234567', 'reference' => 'cmd-1042']),\n]);\n$payment = json_decode(curl_exec($ch), true);\n```\n\n**Liste.** `GET /v1/payments` renvoie les paiements du plus récent au plus ancien, 20 par page (`limit` jusqu'à 100). Pour la page suivante, passez `starting_after=<next_cursor>` tant que `has_more` vaut `true`.\n\n# Liens de paiement\n\n`POST /v1/payment-links` crée un lien à partager par WhatsApp ou SMS : montant fixe (`amount`) ou libre (sans `amount`), date d'expiration (`expires_at`), usage unique (par défaut) ou multiple (`multi_use: true`). La réponse contient l'`url` de la page de paiement et des liens de partage `share.whatsapp` et `share.sms` prêts à l'emploi. Un lien expiré, désactivé ou déjà payé affiche un message clair et ne déclenche aucun paiement.\n\n# Idempotence\n\nAjoutez un en-tête `Idempotency-Key` (UUID) à chaque `POST`. Il est **obligatoire** sur `POST /v1/payments`. Si la même requête est renvoyée avec la même clé dans les 24 heures (coupure réseau, nouvelle tentative), AlphaPay renvoie la même réponse sans refaire l'action, avec l'en-tête `Idempotency-Replayed: true`. La même clé avec un corps différent renvoie `422`.\n\n# Webhooks\n\nDéclarez une URL dans **Développeurs → Webhooks**. AlphaPay y envoie un `POST` JSON à chaque événement :\n\n| Événement | Quand |\n|---|---|\n| `payment.succeeded` | Le paiement est réussi |\n| `payment.failed` | Le paiement a échoué ou a été annulé |\n| `payment.expired` | Le client n'a pas validé à temps |\n| `message.delivered` | Un message envoyé par l'API Messages est livré |\n| `message.failed` | Un message n'a pas pu être livré (tous canaux essayés) |\n| `invoice.paid`, `installment.paid` | Factures et échéances (module Recouvrer) |\n\n```json\n{\n  \"id\": \"evt_6f1c…\",\n  \"object\": \"event\",\n  \"type\": \"payment.succeeded\",\n  \"livemode\": false,\n  \"created_at\": \"2026-11-02T10:15:00.000Z\",\n  \"data\": { \"object\": { \"id\": \"…\", \"object\": \"payment\", \"status\": \"réussi\", \"amount\": 15000, \"currency\": \"XAF\", \"reference\": \"cmd-1042\" } }\n}\n```\n\nRépondez `2xx` en moins de 10 secondes. Sinon AlphaPay réessaie après 1 min, 5 min, 30 min, 2 h, 6 h et 15 h (sur 24 heures). Un même événement peut arriver plus d'une fois : dédoublonnez sur `id`. Le tableau de bord montre chaque livraison et permet de la **renvoyer**.\n\n## Vérifier la signature\n\nChaque envoi porte l'en-tête `AlphaPay-Signature: t=<horodatage>,v1=<signature>`, où la signature est le HMAC-SHA256 de `\"<horodatage>.<corps brut>\"` avec le secret de votre endpoint (`whsec_…`). Calculez-la sur le **corps brut**, avant tout décodage JSON, et refusez un horodatage de plus de 5 minutes.\n\n**Node.js (Express)**\n\n```js\nconst crypto = require('crypto');\n\napp.post('/webhooks/alphapay', express.raw({ type: 'application/json' }), (req, res) => {\n  const header = req.get('AlphaPay-Signature') || '';\n  const { t, v1 } = Object.fromEntries(header.split(',').map((p) => p.split('=')));\n  const expected = crypto.createHmac('sha256', process.env.ALPHAPAY_WEBHOOK_SECRET).update(`${t}.${req.body}`).digest('hex');\n  const valid = v1 && v1.length === expected.length && crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(expected));\n  if (!valid || Math.abs(Date.now() / 1000 - Number(t)) > 300) return res.sendStatus(400);\n  const event = JSON.parse(req.body);\n  // … traiter event.type, une seule fois par event.id\n  res.sendStatus(200);\n});\n```\n\n**PHP**\n\n```php\n$body = file_get_contents('php://input');\nparse_str(str_replace(',', '&', $_SERVER['HTTP_ALPHAPAY_SIGNATURE'] ?? ''), $sig);\n$expected = hash_hmac('sha256', ($sig['t'] ?? '') . '.' . $body, getenv('ALPHAPAY_WEBHOOK_SECRET'));\nif (!hash_equals($expected, $sig['v1'] ?? '') || abs(time() - (int)($sig['t'] ?? 0)) > 300) {\n  http_response_code(400);\n  exit;\n}\n$event = json_decode($body, true);\nhttp_response_code(200);\n```\n\n# Messages et OTP\n\n- `POST /v1/messages` envoie un SMS, un WhatsApp ou un email à partir d'un modèle ; avec plusieurs canaux, AlphaPay bascule sur le suivant en cas d'échec (WhatsApp puis SMS).\n- `POST /v1/otp/send` envoie un code à usage unique (valable 5 minutes) ; `POST /v1/otp/verify` le vérifie. Après 5 essais faux, le code est bloqué 15 minutes.\n- `GET /v1/credits` donne votre solde de crédits de messages. Sans crédit, l'envoi est refusé (`402 credits_insuffisants`). Le mode test est gratuit.\n\n# Erreurs\n\nToutes les erreurs ont la même forme :\n\n```json\n{ \"error\": { \"code\": \"telephone_invalide\", \"message\": \"Numéro de téléphone invalide\", \"param\": \"phone\", \"request_id\": \"…\" } }\n```\n\n| HTTP | Signification |\n|---|---|\n| 400 | Requête invalide (`param` indique le champ) |\n| 401 | Clé absente, invalide ou révoquée |\n| 402 | Crédits de messages insuffisants |\n| 403 | Droits insuffisants ou KYB non validé (`kyb_non_valide`) |\n| 404 | Objet introuvable (ou appartenant à un autre marchand) |\n| 409 | Conflit (requête identique encore en cours) |\n| 422 | Règle métier (ex. `operateur_non_connecte` : compte MTN/Airtel du marchand non connecté) |\n| 429 | Limite de requêtes atteinte |\n| 5xx | Incident AlphaPay ou opérateur : réessayez avec la même `Idempotency-Key` |\n\nDonnez le `request_id` au support pour toute question : il retrouve la requête dans le journal.\n\n# Limites de requêtes\n\nChaque clé a droit à 100 requêtes par minute. Chaque réponse indique où vous en êtes :\n\n- `RateLimit-Limit` : requêtes permises par minute ;\n- `RateLimit-Remaining` : requêtes restantes ;\n- `RateLimit-Reset` : secondes avant la remise à zéro.\n\nAu-delà : `429 trop_de_requetes` avec `Retry-After`. Le tableau de bord garde le journal de vos requêtes API pendant 30 jours (méthode, route, statut, durée, `request_id`).\n",
+    "version": "1.0",
+    "contact": {
+      "name": "Support AlphaPay",
+      "url": "https://alphapay.cg",
+      "email": "support@alphapay.cg"
+    }
+  },
+  "tags": [
+    {
+      "name": "Paiements",
+      "description": "Créer, lire et lister les paiements Mobile Money"
+    },
+    {
+      "name": "Liens de paiement",
+      "description": "Liens à partager par WhatsApp ou SMS"
+    },
+    {
+      "name": "Messages et OTP",
+      "description": "SMS, WhatsApp, email et codes à usage unique"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Endpoints de notification et journal des livraisons"
+    },
+    {
+      "name": "Clés API",
+      "description": "Clés test et live"
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.alphapay.cg",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Clé API ap_test_… ou ap_live_…"
+      },
+      "Bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Session du tableau de bord"
+      }
+    },
+    "schemas": {
+      "SaveConnectionDto": {
+        "type": "object",
+        "properties": {
+          "credentials": {
+            "type": "object",
+            "example": {
+              "subscriptionKey": "…",
+              "apiUserId": "…",
+              "apiKey": "…"
+            },
+            "description": "Identifiants API du compte opérateur du marchand."
+          }
+        },
+        "required": [
+          "credentials"
+        ]
+      },
+      "SendMessageDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ],
+            "example": "sms"
+          },
+          "to": {
+            "type": "string",
+            "description": "Numéro (E.164 ou local du Congo) pour SMS et WhatsApp, adresse pour l’email.",
+            "example": "+242061234567"
+          },
+          "text": {
+            "type": "string",
+            "description": "Texte du message.",
+            "example": "Votre commande est prête."
+          },
+          "subject": {
+            "type": "string",
+            "description": "Objet (email seulement)."
+          },
+          "fallback": {
+            "type": "array",
+            "description": "Canaux de bascule, dans l’ordre (ex. [\"sms\"] après WhatsApp).",
+            "items": {
+              "type": "string",
+              "enum": [
+                "sms",
+                "whatsapp",
+                "email"
+              ]
+            }
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "transactional",
+              "marketing"
+            ],
+            "default": "transactional",
+            "description": "Les messages marketing respectent les désabonnements (STOP)."
+          }
+        },
+        "required": [
+          "channel",
+          "to",
+          "text"
+        ]
+      },
+      "SendOtpDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ],
+            "example": "whatsapp"
+          },
+          "to": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "purpose": {
+            "type": "string",
+            "description": "Usage du code ; un code émis pour un usage ne valide pas un autre usage.",
+            "default": "verification",
+            "example": "paiement"
+          },
+          "fallback": {
+            "type": "array",
+            "description": "Canaux de bascule (ex. [\"sms\"] si WhatsApp échoue).",
+            "items": {
+              "type": "string",
+              "enum": [
+                "sms",
+                "whatsapp",
+                "email"
+              ]
+            }
+          }
+        },
+        "required": [
+          "channel",
+          "to"
+        ]
+      },
+      "VerifyOtpDto": {
+        "type": "object",
+        "properties": {
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ],
+            "example": "whatsapp",
+            "description": "Canal demandé à l’envoi (le destinataire est lié au canal)."
+          },
+          "to": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "purpose": {
+            "type": "string",
+            "default": "verification"
+          },
+          "code": {
+            "type": "string",
+            "example": "482913"
+          }
+        },
+        "required": [
+          "channel",
+          "to",
+          "code"
+        ]
+      },
+      "CreateWebhookEndpointDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWebhookEndpointDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Boutique Mabiala",
+            "description": "Nom du commerce (et du titulaire du compte)."
+          },
+          "phone": {
+            "type": "string",
+            "example": "061234567"
+          },
+          "email": {
+            "type": "string",
+            "example": "gerant@boutique.cg"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ],
+            "default": "sms",
+            "description": "Canal du code de vérification."
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "email",
+          "password"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "example": "gerant@boutique.cg",
+            "description": "Email ou numéro de téléphone."
+          },
+          "password": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ],
+            "description": "Canal du code ; par défaut celui préféré du compte."
+          }
+        },
+        "required": [
+          "identifier",
+          "password"
+        ]
+      },
+      "VerifyCodeDto": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "482913"
+          }
+        },
+        "required": [
+          "challenge",
+          "code"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "description": "Email ou numéro de téléphone."
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "sms",
+              "whatsapp",
+              "email"
+            ]
+          }
+        },
+        "required": [
+          "identifier"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "482913"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "required": [
+          "challenge",
+          "code",
+          "password"
+        ]
+      },
+      "CreateStoreDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Boutique Poto-Poto"
+          },
+          "address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateStoreDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateTillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Caisse 1"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTillDto": {
+        "type": "object",
+        "properties": {
+          "confirmBySms": {
+            "type": "boolean",
+            "description": "Confirmation Vérif par SMS (§M5)"
+          },
+          "confirmByWhatsApp": {
+            "type": "boolean",
+            "description": "Confirmation Vérif par WhatsApp (§M5)"
+          }
+        }
+      },
+      "AssignMemberDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 5000
+          },
+          "currency": {
+            "type": "string",
+            "default": "XAF"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Référence du marchand, unique par mode (commande, facture…)",
+            "example": "cmd-1042"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "mtn",
+              "airtel"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "till_id": {
+            "type": "string",
+            "description": "Caisse qui encaisse (§M6)"
+          }
+        },
+        "required": [
+          "amount",
+          "phone",
+          "reference"
+        ]
+      },
+      "PushKeysDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PushSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeysDto"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ]
+      },
+      "DeletePushDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePaymentLinkDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Montant fixe en unités majeures ; absent = montant libre",
+            "example": 15000
+          },
+          "currency": {
+            "type": "string",
+            "default": "XAF"
+          },
+          "description": {
+            "type": "string",
+            "example": "Commande n° 1042"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Date d'expiration (ISO 8601)"
+          },
+          "multi_use": {
+            "type": "boolean",
+            "default": false,
+            "description": "Payable plusieurs fois"
+          }
+        },
+        "required": [
+          "description"
+        ]
+      },
+      "SendPaymentLinkDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "whatsapp",
+              "sms"
+            ],
+            "default": "whatsapp"
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "PayLinkDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Requis si le lien est à montant libre"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "mtn",
+              "airtel"
+            ]
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "PayTillDto": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "amount": {
+            "type": "number",
+            "example": 2500
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "mtn",
+              "airtel"
+            ]
+          }
+        },
+        "required": [
+          "phone",
+          "amount"
+        ]
+      },
+      "CreateApiKeyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RunReconciliationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterPushTokenDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddKycDocumentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateKycUploadDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DecideKycDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SmileResultDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RejectDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ChangeRoleDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "ACCOUNTANT",
+              "CASHIER",
+              "DEVELOPER"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "caissier@boutique.cg"
+          },
+          "phone": {
+            "type": "string",
+            "example": "061234567"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "ACCOUNTANT",
+              "CASHIER",
+              "DEVELOPER"
+            ]
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "AcceptInvitationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TransferOwnershipDto": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

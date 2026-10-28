@@ -85,3 +85,21 @@ export function signWebhookPayload(secret: string, timestamp: number, rawBody: B
   const hex = createHmac('sha256', secret).update(signed).digest('hex');
   return `sha256=${hex}`;
 }
+
+/**
+ * En-tête `AlphaPay-Signature` des webhooks sortants (§M10) :
+ * `t=<horodatage unix>,v1=<hex HMAC-SHA256(secret, "<t>.<corps brut>")>`.
+ */
+export function alphaPaySignature(secret: string, timestamp: number, rawBody: Buffer | string): string {
+  return `t=${timestamp},v1=${signWebhookPayload(secret, timestamp, rawBody).slice('sha256='.length)}`;
+}
+
+/** Vérification côté marchand (documentée et testée) : signature valide et horodatage récent. */
+export function verifyAlphaPaySignature(secret: string, header: string, rawBody: Buffer | string, toleranceSec = 300, now = Date.now()): boolean {
+  const parts = Object.fromEntries(header.split(',').map((p) => p.split('=') as [string, string]));
+  const t = Number(parts.t);
+  if (!Number.isInteger(t) || !parts.v1 || Math.abs(now / 1000 - t) > toleranceSec) return false;
+  const expected = Buffer.from(alphaPaySignature(secret, t, rawBody).split('v1=')[1], 'hex');
+  const given = Buffer.from(parts.v1, 'hex');
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}

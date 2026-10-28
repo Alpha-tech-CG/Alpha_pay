@@ -7,6 +7,6 @@ import { WebhookDeliveryWorker } from './webhook-delivery.worker';
 @Module({
   controllers: [WebhooksOutController],
   providers: [WebhookEndpointsService, WebhookDeliveryService, WebhookDeliveryWorker],
-  exports: [WebhookDeliveryService],
+  exports: [WebhookDeliveryService, WebhookEndpointsService],
 })
 export class WebhooksOutModule {}

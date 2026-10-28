@@ -8,9 +8,11 @@ import { OtpService } from './otp.service';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { MessagingService } from './messaging.service';
 import { TemplateService } from './template.service';
+import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 
 /** M9 — Messages et OTP : modèles, envoi, bascule, livraison, désabonnement, crédits, API revendue. */
 @Module({
+  imports: [WebhooksOutModule],
   controllers: [MessagingApiController, MessagingWebhooksController, DevOutboxController],
   providers: [MessagingProviders, TemplateService, CreditsService, MessagingService, OtpService, IdempotencyInterceptor],
   exports: [MessagingService, CreditsService, TemplateService, OtpService],

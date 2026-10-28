@@ -1,4 +1,5 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { WebhookDeliveryService } from '../webhooks-out/webhook-delivery.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
 import { ANY_MODE, Message, MessageCategory, MessageChannel, MessageStatus, Prisma, PrismaClient } from '@paybrain/database';
@@ -64,7 +65,24 @@ export class MessagingService {
     private readonly providers: MessagingProviders,
     private readonly credits: CreditsService,
     @Inject(JobQueue) private readonly queue: JobQueue,
+    // Événements message.delivered / message.failed (§7) ; absent dans les tests qui l'omettent.
+    @Optional() private readonly webhooks?: WebhookDeliveryService,
   ) {}
+
+  /** Webhook sortant du marchand pour un message de l'API revendue (jamais pour les messages internes). */
+  private async emit(message: Message, event: 'message.delivered' | 'message.failed', failureReason?: string) {
+    if (!message.merchantId || !this.webhooks) return;
+    await this.webhooks
+      .dispatch(message.merchantId, message.livemode, event, {
+        id: message.groupId,
+        object: 'message',
+        channel: message.channel.toLowerCase(),
+        to: message.destinationMasked,
+        status: event === 'message.delivered' ? 'livré' : 'échoué',
+        failure_reason: failureReason ?? null,
+      })
+      .catch((err) => this.logger.warn(`Webhook ${event} non créé : ${(err as Error).message}`));
+  }
 
   /** Appelé uniquement par le process worker. */
   register(): void {
@@ -292,6 +310,8 @@ export class MessagingService {
         this.logger.warn(`Bascule impossible pour ${message.id} : ${(err as Error).message}`);
       }
     }
+    // Plus aucun canal à essayer : l'échec est définitif pour le marchand.
+    if (!next) await this.emit(message, 'message.failed', reason);
     if (neverAccepted && message.merchantId && message.creditsCharged > 0) {
       await this.credits.refund(message.merchantId, message.livemode, message.creditsCharged, message.id);
     }
@@ -334,6 +354,7 @@ export class MessagingService {
           ...(target !== 'SENT' ? { contactEnc: null, variablesEnc: null } : {}),
         },
       });
+      if (target !== 'SENT' && !message.deliveredAt) await this.emit(message, 'message.delivered');
       applied++;
     }
     return applied;

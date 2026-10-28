@@ -1,6 +1,16 @@
 import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUrl } from 'class-validator';
 
-const EVENTS = ['payment.succeeded', 'payment.failed', 'payment.pending'];
+/** Événements de webhook (§7). Liste vide = tous les événements. */
+export const WEBHOOK_EVENTS = [
+  'payment.succeeded',
+  'payment.failed',
+  'payment.expired',
+  'invoice.paid',
+  'installment.paid',
+  'message.delivered',
+  'message.failed',
+] as const;
+const EVENTS = [...WEBHOOK_EVENTS];
 
 export class CreateWebhookEndpointDto {
   @IsUrl({ require_tld: false, require_protocol: true })

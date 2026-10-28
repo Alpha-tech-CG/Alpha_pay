@@ -24,8 +24,8 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { AppModule } from "./app.module";
 import { WsAdapter } from "@nestjs/platform-ws";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { apiReference } from "@scalar/nestjs-api-reference";
+import { mountDeveloperPortal } from "./openapi/openapi";
 import { loadSecrets } from "./secrets/secrets-loader";
 import { bodyGuard } from "./common/security/body-guard";
 import { createRateLimitStore } from "./common/security/redis-rate-limit.store";
@@ -177,47 +177,23 @@ async function bootstrap() {
   });
   app.use('/v1/public', (req: any, res: any, next: any) => (req.method === 'POST' ? publicPayLimiter(req, res, next) : next()));
 
-  // Documentation OpenAPI + playground interactif (ALP-138).
-  // Désactivée en production par défaut (réduit la divulgation de la surface
-  // d'API) ; réactivable explicitement via ENABLE_API_DOCS=true.
-  const docsEnabled =
-    process.env.NODE_ENV !== "production" || process.env.ENABLE_API_DOCS === "true";
-  if (docsEnabled) {
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("PayBrain API")
-    .setDescription(
-      "API d'agrégation de paiement mobile money (MTN, Airtel) — Congo",
-    )
-    .setVersion("1.0")
-    .setOpenAPIVersion("3.1.0")
-    .addBearerAuth({ type: "http", scheme: "bearer", description: "Clé API ap_test_… ou ap_live_…" }, "ApiKey")
-    .addBearerAuth({ type: "http", scheme: "bearer" }, "Bearer")
-    .addTag("Paiements", "Initier et suivre les paiements mobile money")
-    .addTag(
-      "Liens de paiement",
-      "Générer des liens de paiement hébergés (checkout)",
-    )
-    .addTag(
-      "Clés API",
-      "Gérer les clés API marchand (test/live, rotation, révocation)",
-    )
-    .addTag("Webhooks", "Configurer les endpoints de notification sortants")
-    .addServer("http://localhost:3000", "Local")
-    .addServer("https://api.paybrain.cg", "Production")
-    .build();
-  const openapi = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup("docs", app, openapi, {
-    jsonDocumentUrl: "docs/openapi.json",
-  });
-
-  // Portail développeur Scalar (ALP-138) — rendu moderne sur /reference,
-  // basé sur la même spec OpenAPI.
-  app.use("/reference", apiReference({ content: openapi, theme: "purple" }));
+  // Portail développeurs (T-58) ; DISABLE_API_DOCS=true le coupe (ex. instance interne).
+  if (process.env.DISABLE_API_DOCS !== "true") {
+    mountDeveloperPortal(app, (openapi) =>
+      apiReference({
+        content: openapi,
+        theme: "none",
+        layout: "modern",
+        defaultHttpClient: { targetKey: "shell", clientKey: "curl" },
+        customCss: ":root{--scalar-color-accent:#00B4D8;--scalar-font:Inter,system-ui,sans-serif;--scalar-font-code:'JetBrains Mono',monospace}",
+        metaData: { title: "Documentation API AlphaPay" },
+      }),
+    );
   }
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`PayBrain API (NestJS) démarrée sur le port ${port}`);
+  console.log(`API AlphaPay démarrée sur le port ${port}`);
   console.log(`Documentation API : http://localhost:${port}/docs`);
 }
 

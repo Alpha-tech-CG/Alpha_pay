@@ -62,7 +62,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (exception instanceof HttpException && status < 500) {
-      res.status(status).json({ error: { ...describe4xx(exception, status), request_id: requestId } });
+      const error = describe4xx(exception, status);
+      (res.locals ??= {}).errorCode = error.code; // repris par le journal des requêtes API (T-56)
+      res.status(status).json({ error: { ...error, request_id: requestId } });
       return;
     }
 
@@ -82,6 +84,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       'Erreur serveur',
     );
 
+    (res.locals ??= {}).errorCode = publicCode;
     res.status(status).json({
       error: { code: publicCode, message: 'Une erreur est survenue. Réessayez plus tard.', request_id: requestId },
     });

@@ -43,6 +43,12 @@ export class WebhooksOutController {
     return this.endpoints.deliveries(req.merchant.id, req.livemode === true, id);
   }
 
+  @Post(':id/deliveries/:deliveryId/resend')
+  @RequiredScopes('webhooks:write')
+  resend(@Param('id') id: string, @Param('deliveryId') deliveryId: string, @Req() req: any) {
+    return this.endpoints.resend(req.merchant.id, req.livemode === true, id, deliveryId);
+  }
+
   @Post(':id/test')
   @RequiredScopes('webhooks:write')
   test(@Param('id') id: string, @Req() req: any) {

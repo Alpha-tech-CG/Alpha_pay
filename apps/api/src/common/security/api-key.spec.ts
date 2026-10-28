@@ -1,10 +1,16 @@
 import { generateApiKey, hashApiKeySecret, parseApiKey, verifyAgainstDummy, verifyApiKeySecret } from './api-key';
 
 describe('api-key (ALP-136 + ALP-161 Argon2id)', () => {
-  it('génère une clé au format pk_<mode>_<prefix>_<secret>', () => {
+  it('génère une clé au format ap_<mode>_<prefix>_<secret> (§7)', () => {
     const { full, prefix, secret } = generateApiKey('live');
-    expect(prefix).toMatch(/^pk_live_[0-9a-f]{8}$/);
+    expect(prefix).toMatch(/^ap_live_[0-9a-f]{8}$/);
     expect(full).toBe(`${prefix}_${secret}`);
+    expect(parseApiKey(full)).toEqual({ prefix, secret });
+  });
+
+  it('accepte encore les anciennes clés pk_… (émises avant la V1)', () => {
+    expect(parseApiKey(`pk_test_0123abcd_${'x'.repeat(32)}`)).toEqual({ prefix: 'pk_test_0123abcd', secret: 'x'.repeat(32) });
+    expect(parseApiKey(`zz_test_0123abcd_${'x'.repeat(32)}`)).toBeNull();
   });
 
   it('hash Argon2id + vérifie un secret (roundtrip)', async () => {

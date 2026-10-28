@@ -1,3 +1,4 @@
+import { presentPayment } from '../payments/payment.presenter';
 import { VerifService } from '../verif/verif.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ANY_MODE, PrismaClient, TransactionStatus } from '@paybrain/database';
@@ -159,15 +160,14 @@ export class WebhooksService {
     // Notifie le marchand via ses webhooks sortants (ALP-132).
     const event = STATUS_EVENT[verifiedStatus];
     if (event) {
-      await this.webhookDelivery.dispatch(transaction.merchantId, transaction.livemode, event, {
-        type: event,
-        externalId: transaction.externalId,
-        referenceId: transaction.mtnReferenceId,
-        status: publicPaymentStatus(verifiedStatus),
-        amount: transaction.amount,
-        currency: transaction.currency,
-        reason,
-      }).catch((err) => this.logger.error(`Dispatch webhook sortant échoué: ${err?.message}`));
+      // Objet = représentation publique du paiement (identique à GET /v1/payments/:id).
+      // Un échec ici ne doit jamais bloquer la transition de statut déjà appliquée.
+      try {
+        const fresh = await this.prisma.transaction.findFirst({ where: { id: transaction.id, livemode: transaction.livemode } });
+        if (fresh) await this.webhookDelivery.dispatch(transaction.merchantId, transaction.livemode, event, presentPayment(fresh));
+      } catch (err: any) {
+        this.logger.error(`Dispatch webhook sortant échoué: ${err?.message}`);
+      }
     }
     return true;
   }

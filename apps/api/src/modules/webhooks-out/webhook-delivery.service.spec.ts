@@ -1,4 +1,5 @@
-import { WebhookDeliveryService } from './webhook-delivery.service';
+import { RETRY_SCHEDULE_SEC, WebhookDeliveryService } from './webhook-delivery.service';
+import { verifyAlphaPaySignature } from '../../common/security/hmac';
 import { encryptField } from '../../common/security/pii-crypto';
 
 function createPrisma(endpoint: any) {
@@ -14,7 +15,7 @@ const baseDelivery = { id: 'd1', endpointId: 'ep1', webhookId: 'wh1', event: 'pa
 describe('WebhookDeliveryService.attempt (ALP-132)', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('signe le POST (X-Signature-256, X-Timestamp, X-Webhook-Id) et marque SUCCESS sur 2xx', async () => {
+  it('signe le POST (AlphaPay-Signature t=…,v1=…) et marque SUCCESS sur 2xx', async () => {
     const prisma = createPrisma(ENDPOINT);
     const fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 200, text: async () => 'ok' });
     global.fetch = fetchMock as any;
@@ -24,9 +25,11 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
 
     expect(res).toEqual({ ok: true, status: 200 });
     const [, opts] = fetchMock.mock.calls[0];
-    expect(opts.headers['X-Signature-256']).toMatch(/^sha256=[0-9a-f]+$/);
-    expect(opts.headers['X-Timestamp']).toMatch(/^\d+$/);
-    expect(opts.headers['X-Webhook-Id']).toBe('wh1');
+    expect(opts.headers['AlphaPay-Signature']).toMatch(/^t=\d+,v1=[0-9a-f]{64}$/);
+    expect(opts.headers['AlphaPay-Delivery-Id']).toBe('wh1');
+    // La signature se vérifie avec le secret de l'endpoint (exemple documenté).
+    expect(verifyAlphaPaySignature(ENDPOINT.secret, opts.headers['AlphaPay-Signature'], opts.body)).toBe(true);
+    expect(verifyAlphaPaySignature('autre-secret', opts.headers['AlphaPay-Signature'], opts.body)).toBe(false);
     expect(prisma.webhookDelivery.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'SUCCESS' }) }),
     );
@@ -54,8 +57,8 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
     await svc.attempt({ ...baseDelivery, attempts: 0 });
     const data = prisma.webhookDelivery.update.mock.calls[0][0].data;
     const delayMs = new Date(data.nextRetryAt).getTime() - before;
-    expect(delayMs).toBeGreaterThanOrEqual(29_000);
-    expect(delayMs).toBeLessThanOrEqual(31_000);
+    expect(delayMs).toBeGreaterThanOrEqual(59_000);
+    expect(delayMs).toBeLessThanOrEqual(61_000);
   });
 
   it('marque FAILED une fois le barème épuisé (après le 6e délai)', async () => {

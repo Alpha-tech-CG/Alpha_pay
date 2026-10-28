@@ -2,6 +2,24 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 28 octobre 2026 (9) — M10 Développeurs
+
+### Fait
+- **T-56** Clés `ap_test_`/`ap_live_` gérées depuis le tableau de bord (secret affiché une seule fois, remplacement, révocation, audit) ; limite par clé avec en-têtes `RateLimit-*` ; journal des requêtes API sur 30 jours (migration 28, réversible).
+- **T-57** Webhooks signés `AlphaPay-Signature`, enveloppe d'événement standard (corrige l'envoi d'un montant BigInt non sérialisable), nouvelles tentatives sur 24 h, journal des livraisons et bouton « Renvoyer », événements `message.delivered`/`message.failed`, URL live publique obligatoire.
+- **T-58** Portail développeurs FR sur `/docs` (guide : démarrage, authentification, numéros de test, paiements, liens, idempotence, webhooks et vérification de signature en Node et PHP, messages et OTP, erreurs, limites) + référence OpenAPI 3.1 avec exemples générés ; export versionné `docs/api/openapi.json`. Ancien guide PayBrain archivé (il décrivait des remboursements, hors périmètre).
+- Page **Développeurs** du tableau de bord réécrite sur la session (plus de clé API dans le proxy).
+- Décisions D-049, D-050.
+
+### Vérifié
+- Unitaires 311, intégration 70, providers 113 — verts (dont : clé affichée une fois, live refusé sans KYB, caissier refusé, journal sans donnée personnelle, `RateLimit-*` et 429, webhook signé vérifié, relance après panne, renvoi manuel, `message.failed`, URL live non publique refusée).
+- Navigateur, sur l'image reconstruite : portail `/docs` (guide FR + référence) ; page Développeurs : clé créée et affichée une seule fois, deux appels avec cette clé visibles dans le journal (route normalisée, `404 · paiement_introuvable`).
+- Défauts trouvés et corrigés : la CSP stricte bloquait le portail (CSP dédiée à `/docs`) ; un échec de création de webhook pouvait remonter dans la transition de statut (isolé).
+
+### Reste / points connus
+- Écran Paiements du tableau de bord encore sur l'ancien proxy à clé API (refait avec M6).
+- Le DNS de la box (filtre RPZ) résout `truststore.pki.rds.amazonaws.com` en 127.0.0.2 : une construction Docker sans cache de l'API peut échouer sur le téléchargement du certificat RDS (inutile depuis le départ d'AWS, à retirer du Dockerfile).
+
 ## Session du 28 octobre 2026 (8) — M5 Vérif
 
 ### Fait
@@ -145,7 +163,7 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 |---|---|---|
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
 | S3 M1, M9, M3 | 16 nov. | **Fait** (sauf essais sandbox réels MTN/Airtel) |
-| S5 M4, M5, M10, M2 | 30 nov. | En cours (M4, M5 faits) |
+| S5 M4, M5, M10, M2 | 30 nov. | En cours (M4, M5, M10 faits ; M2 à faire) |
 | S7 M6, M7, M8, M11 | 14 déc. | À faire |
 | S8 M12, M13, gel | 21 déc. | À faire |
 | S9 Recette, livraison | 27 déc. | À faire |

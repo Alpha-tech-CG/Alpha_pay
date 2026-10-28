@@ -20,6 +20,7 @@ export const LIVEMODE_MODELS = new Set([
   'Message',
   'OtpAudit',
   'CreditLedger',
+  'ApiRequestLog',
 ]);
 
 /**

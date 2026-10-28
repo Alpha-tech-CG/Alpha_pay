@@ -39,7 +39,8 @@ function getPepper(): string {
 export function generateApiKey(mode: 'test' | 'live'): GeneratedApiKey {
   const prefixId = randomBytes(4).toString('hex');
   const secret = randomBytes(24).toString('base64url');
-  const prefix = `pk_${mode}_${prefixId}`;
+  // Format du cahier (§7) : ap_test_… / ap_live_… (les anciennes clés pk_… restent valides).
+  const prefix = `ap_${mode}_${prefixId}`;
   return { full: `${prefix}_${secret}`, prefix, secret };
 }
 
@@ -73,7 +74,7 @@ export async function verifyAgainstDummy(secret: string): Promise<false> {
 
 /** Découpe une clé présentée en { prefix, secret }. Renvoie null si format invalide. */
 export function parseApiKey(raw: string): { prefix: string; secret: string } | null {
-  const m = /^(pk_(?:test|live)_[0-9a-f]{8})_([A-Za-z0-9_-]{20,})$/.exec(raw);
+  const m = /^((?:ap|pk)_(?:test|live)_[0-9a-f]{8})_([A-Za-z0-9_-]{20,})$/.exec(raw);
   if (!m) return null;
   return { prefix: m[1], secret: m[2] };
 }

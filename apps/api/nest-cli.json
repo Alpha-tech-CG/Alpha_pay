@@ -17,6 +17,10 @@
       {
         "include": "modules/checkout/public/**/*",
         "watchAssets": true
+      },
+      {
+        "include": "openapi/guide.md",
+        "watchAssets": true
       }
     ]
   }

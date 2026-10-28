@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "openapi": "ts-node -T scripts/export-openapi.ts",
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "node dist/main",

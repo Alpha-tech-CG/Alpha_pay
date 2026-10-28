@@ -1,11 +1,18 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpStatus, Inject, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { parseApiKey, verifyAgainstDummy, verifyApiKeySecret } from '../security/api-key';
 import { isIpAllowed } from '../security/ip-allowlist';
+import { consumeApiKeyQuota, trackApiRequest } from '../security/api-usage';
+import { KvStore } from '../kv/kv-store';
+import { ApiError } from '../errors/api-error';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    // Absent quand le garde est instancié hors HTTP (passerelle WebSocket).
+    @Optional() private readonly kv?: KvStore,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -44,6 +51,15 @@ export class ApiKeyGuard implements CanActivate {
         request.apiKeyScopes = record.scopes;
         // Mode test ou live porté par la clé (§4.6).
         request.livemode = record.mode === 'LIVE';
+
+        // Requête HTTP : journal (30 j) puis limite par clé avec en-têtes RateLimit-* (T-56).
+        const response = typeof context.getType === 'function' && context.getType() === 'http' ? context.switchToHttp().getResponse() : undefined;
+        if (response?.setHeader) {
+          trackApiRequest(this.prisma, request, response);
+          if (this.kv && !(await consumeApiKeyQuota(this.kv, record.id, response))) {
+            throw new ApiError(HttpStatus.TOO_MANY_REQUESTS, 'trop_de_requetes', 'Limite de requêtes de cette clé atteinte, réessayez dans une minute.');
+          }
+        }
         return true;
       }
       throw new UnauthorizedException('Clé API invalide');

@@ -1,8 +1,26 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ApiError } from '../../common/errors/api-error';
 import { randomBytes } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
 import { WebhookDeliveryService } from './webhook-delivery.service';
+
+/**
+ * En live, l'URL doit être en https et publique (pas de localhost ni d'adresse
+ * privée littérale : anti-SSRF). En test, http et localhost restent permis.
+ */
+function assertDeliverableUrl(url: string, livemode: boolean): void {
+  if (!livemode) return;
+  const u = new URL(url);
+  const host = u.hostname.replace(/^\[|\]$/g, '');
+  const privateHost =
+    host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') ||
+    /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host === '::1' || /^f[cd]/i.test(host);
+  if (u.protocol !== 'https:' || privateHost) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, 'url_webhook_invalide', 'En mode live, l’URL doit être en https et accessible publiquement', 'url');
+  }
+}
 
 @Injectable()
 export class WebhookEndpointsService {
@@ -20,6 +38,7 @@ export class WebhookEndpointsService {
   }
 
   create(merchantId: string, livemode: boolean, dto: CreateWebhookEndpointDto) {
+    assertDeliverableUrl(dto.url, livemode);
     return this.prisma.webhookEndpoint.create({
       data: {
         merchantId,
@@ -36,6 +55,7 @@ export class WebhookEndpointsService {
 
   async update(merchantId: string, livemode: boolean, id: string, dto: Partial<CreateWebhookEndpointDto> & { status?: 'ACTIVE' | 'DISABLED' }) {
     await this.assertOwned(merchantId, livemode, id);
+    if (dto.url) assertDeliverableUrl(dto.url, livemode);
     return this.prisma.webhookEndpoint.update({
       where: { id },
       data: {
@@ -65,6 +85,14 @@ export class WebhookEndpointsService {
         responseStatus: true, lastError: true, nextRetryAt: true, createdAt: true,
       },
     });
+  }
+
+  /** Renvoi manuel d'une livraison (§M10, bouton « renvoyer ») : même événement, même identifiant. */
+  async resend(merchantId: string, livemode: boolean, endpointId: string, deliveryId: string) {
+    await this.assertOwned(merchantId, livemode, endpointId);
+    const delivery = await this.prisma.webhookDelivery.findFirst({ where: { id: deliveryId, endpointId } });
+    if (!delivery) throw new NotFoundException('Livraison introuvable');
+    return this.delivery.resend(delivery);
   }
 
   async test(merchantId: string, livemode: boolean, id: string) {

@@ -4,6 +4,7 @@ import { WsAdapter } from '@nestjs/platform-ws';
 import { AppModule } from '../../src/app.module';
 import { validationExceptionFactory } from '../../src/common/errors/api-error';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
+import { mountDeveloperPortal } from '../../src/openapi/openapi';
 import { JobQueue } from '../../src/common/queue/job-queue';
 import { InMemoryJobQueue } from '../../src/common/queue/in-memory-job-queue';
 import { MessagingProviders } from '../../src/modules/messaging/messaging-providers';
@@ -38,6 +39,7 @@ export async function createTestApp(configure?: (builder: TestingModuleBuilder) 
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, exceptionFactory: validationExceptionFactory }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
+  mountDeveloperPortal(app);
   await app.init();
 
   const queue = app.get(JobQueue) as InMemoryJobQueue;

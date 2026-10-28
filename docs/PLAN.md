@@ -64,9 +64,9 @@
 | T-53 | Page de paiement hébergée allégée (< 200 Ko, 3G, suivi temps réel par SSE/polling, couleurs et polices AlphaPay) | L ✅ |
 | T-54 | QR unique par boutique/caisse, PDF A5 et A6 (nom marchand, logos MTN/Airtel) | M ✅ |
 | T-55 | Vérif : web push (VAPID) + SSE, notification < 5 s, SMS/WhatsApp en option par caisse, écran **Caisse** ; mention de la limite (paiements hors AlphaPay invisibles) | L ✅ |
-| T-56 | Clés `ap_test_`/`ap_live_` (affichage unique), journal des requêtes API 30 j, rate-limit par clé + en-têtes `RateLimit-*` | M |
-| T-57 | Webhooks : `AlphaPay-Signature` (t=…, v1=…), retries 24 h, journal + bouton « renvoyer », événements §7 | M |
-| T-58 | OpenAPI 3.1 générée, portail développeurs FR (démarrage, auth, paiements, webhooks, messages, OTP, erreurs, numéros de test), exemples curl/Node/PHP, exemple de vérification de signature | L |
+| T-56 | Clés `ap_test_`/`ap_live_` (affichage unique), journal des requêtes API 30 j, rate-limit par clé + en-têtes `RateLimit-*` | M ✅ |
+| T-57 | Webhooks : `AlphaPay-Signature` (t=…, v1=…), retries 24 h, journal + bouton « renvoyer », événements §7 | M ✅ |
+| T-58 | OpenAPI 3.1 générée, portail développeurs FR (démarrage, auth, paiements, webhooks, messages, OTP, erreurs, numéros de test), exemples curl/Node/PHP, exemple de vérification de signature | L ✅ |
 | T-59 | KYB : `kyb_applications`, `kyb_documents`, `kyb_events`, états brouillon→soumis→en_revue→approuvé/infos_requises/refusé, fichiers chiffrés + URL signées, notification à chaque changement | M |
 | T-60 | KYC : `KycProvider` Sumsub + mock (demandeur, lien, webhook), `kyc_checks` ; remplacement de Smile ID | M |
 | T-61 | Garde « live » côté API : pas de clé `ap_live_` ni de paiement live sans KYB approuvé | S ✅ |
