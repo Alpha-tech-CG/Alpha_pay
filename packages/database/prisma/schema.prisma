@@ -119,6 +119,10 @@ model Merchant {
   cashEntries         CashEntry[]
   reconciliationDays  ReconciliationDay[]
   exportJobs          ExportJob[]
+  customers           Customer[]
+  invoices            Invoice[]
+  receipts            Receipt[]
+  invoiceCounter      InvoiceCounter?
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -1117,4 +1121,169 @@ model KycCheck {
   @@unique([provider, applicantId])
   @@index([applicationId])
   @@map("kyc_checks")
+}
+
+// ─── Recouvrement : Clients (T-74, §M7) ──────────────────────────────────────
+
+model Customer {
+  id         String    @id @default(uuid())
+  merchantId String    @map("merchant_id")
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  invoices   Invoice[]
+
+  @@index([merchantId, createdAt(sort: Desc)])
+  @@map("customers")
+}
+
+// ─── Compteur de factures par marchand ────────────────────────────────────────
+
+model InvoiceCounter {
+  merchantId String   @id @map("merchant_id")
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  lastSeq    Int      @default(0) @map("last_seq")
+
+  @@map("invoice_counters")
+}
+
+// ─── Factures (T-74 / T-75, §M7) ─────────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  VOID
+  OVERDUE
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  merchantId    String        @map("merchant_id")
+  merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId    String?       @map("customer_id")
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  livemode      Boolean       @default(false)
+  number        String?
+  status        InvoiceStatus @default(DRAFT)
+  currency      String        @default("XAF")
+  subtotal      BigInt        @default(0)
+  taxAmount     BigInt        @default(0) @map("tax_amount")
+  total         BigInt        @default(0)
+  amountPaid    BigInt        @default(0) @map("amount_paid")
+  amountDue     BigInt        @default(0) @map("amount_due")
+  issueDate     DateTime      @default(now()) @map("issue_date") @db.Date
+  dueDate       DateTime?     @map("due_date") @db.Date
+  notes         String?
+  footer        String?
+  paymentLinkId String?       @map("payment_link_id")
+  pdfKey        String?       @map("pdf_key")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  lines         InvoiceLine[]
+  installments  InvoiceInstallment[]
+  reminders     InvoiceReminder[]
+  receipts      Receipt[]
+
+  @@index([merchantId, createdAt(sort: Desc)])
+  @@index([customerId, createdAt(sort: Desc)])
+  @@index([merchantId, status])
+  @@map("invoices")
+}
+
+// ─── Lignes de facture ────────────────────────────────────────────────────────
+
+model InvoiceLine {
+  id          String   @id @default(uuid())
+  invoiceId   String   @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal  @db.Decimal(10, 3)
+  unitPrice   BigInt   @map("unit_price")
+  taxRate     Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  amount      BigInt
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([invoiceId, sortOrder])
+  @@map("invoice_lines")
+}
+
+// ─── Versements (T-75) ────────────────────────────────────────────────────────
+
+model InvoiceInstallment {
+  id            String            @id @default(uuid())
+  invoiceId     String            @map("invoice_id")
+  invoice       Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  dueDate       DateTime          @map("due_date") @db.Date
+  amount        BigInt
+  paidAmount    BigInt            @default(0) @map("paid_amount")
+  status        String            @default("PENDING")
+  paymentLinkId String?           @map("payment_link_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  reminders     InvoiceReminder[]
+
+  @@index([invoiceId, dueDate])
+  @@map("invoice_installments")
+}
+
+// ─── Relances (T-76) ──────────────────────────────────────────────────────────
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum ReminderChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+model InvoiceReminder {
+  id             String              @id @default(uuid())
+  invoiceId      String              @map("invoice_id")
+  invoice        Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  installmentId  String?             @map("installment_id")
+  installment    InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  channel        ReminderChannel     @default(SMS)
+  status         ReminderStatus      @default(PENDING)
+  daysOffset     Int                 @map("days_offset")
+  scheduledFor   DateTime            @map("scheduled_for")
+  sentAt         DateTime?           @map("sent_at")
+  error          String?
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  @@index([scheduledFor])
+  @@map("invoice_reminders")
+}
+
+// ─── Reçus (T-77) ─────────────────────────────────────────────────────────────
+
+model Receipt {
+  id            String    @id @default(uuid())
+  merchantId    String    @map("merchant_id")
+  merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invoiceId     String?   @map("invoice_id")
+  invoice       Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  transactionId String?   @map("transaction_id")
+  number        String
+  amount        BigInt
+  currency      String    @default("XAF")
+  livemode      Boolean   @default(false)
+  pdfKey        String?   @map("pdf_key")
+  sentAt        DateTime? @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([merchantId, createdAt(sort: Desc)])
+  @@map("receipts")
 }
