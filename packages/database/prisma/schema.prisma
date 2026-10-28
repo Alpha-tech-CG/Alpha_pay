@@ -123,6 +123,12 @@ model Merchant {
   invoices            Invoice[]
   receipts            Receipt[]
   invoiceCounter      InvoiceCounter?
+  schoolYears         SchoolYear[]
+  schoolClasses       SchoolClass[]
+  students            Student[]
+  guardians           Guardian[]
+  feeGrids            FeeGrid[]
+  studentFeeSchedules StudentFeeSchedule[]
 
   @@index([onboardingStatus])
   @@map("merchants")
@@ -1286,4 +1292,133 @@ model Receipt {
 
   @@index([merchantId, createdAt(sort: Desc)])
   @@map("receipts")
+}
+
+// ─── Pack École (T-78/T-79/T-80, §M8) ────────────────────────────────────────
+
+model SchoolYear {
+  id         String        @id @default(uuid())
+  merchantId String        @map("merchant_id")
+  merchant   Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  label      String
+  startsOn   DateTime      @map("starts_on") @db.Date
+  endsOn     DateTime      @map("ends_on") @db.Date
+  isActive   Boolean       @default(false) @map("is_active")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  classes    SchoolClass[]
+  feeGrids   FeeGrid[]
+
+  @@index([merchantId])
+  @@map("school_years")
+}
+
+model SchoolClass {
+  id           String               @id @default(uuid())
+  schoolYearId String               @map("school_year_id")
+  schoolYear   SchoolYear           @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  merchantId   String               @map("merchant_id")
+  merchant     Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name         String
+  capacity     Int?
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  students     Student[]
+  feeGrids     FeeGrid[]
+
+  @@index([schoolYearId])
+  @@map("school_classes")
+}
+
+model Student {
+  id             String               @id @default(uuid())
+  merchantId     String               @map("merchant_id")
+  merchant       Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  schoolClassId  String?              @map("school_class_id")
+  schoolClass    SchoolClass?         @relation(fields: [schoolClassId], references: [id], onDelete: SetNull)
+  firstName      String               @map("first_name")
+  lastName       String               @map("last_name")
+  dateOfBirth    DateTime?            @map("date_of_birth") @db.Date
+  gender         String?
+  registrationNo String?              @map("registration_no")
+  metadata       Json                 @default("{}")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  guardians      Guardian[]
+  feeSchedules   StudentFeeSchedule[]
+
+  @@index([merchantId])
+  @@index([schoolClassId])
+  @@map("students")
+}
+
+model Guardian {
+  id         String   @id @default(uuid())
+  merchantId String   @map("merchant_id")
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  studentId  String   @map("student_id")
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  name       String
+  phone      String?
+  email      String?
+  relation   String?
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([studentId])
+  @@map("guardians")
+}
+
+model FeeGrid {
+  id            String        @id @default(uuid())
+  merchantId    String        @map("merchant_id")
+  merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  schoolYearId  String        @map("school_year_id")
+  schoolYear    SchoolYear    @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  schoolClassId String?       @map("school_class_id")
+  schoolClass   SchoolClass?  @relation(fields: [schoolClassId], references: [id], onDelete: SetNull)
+  label         String
+  currency      String        @default("XAF")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  lines         FeeGridLine[]
+
+  @@index([schoolYearId])
+  @@index([schoolClassId])
+  @@map("fee_grids")
+}
+
+model FeeGridLine {
+  id          String               @id @default(uuid())
+  feeGridId   String               @map("fee_grid_id")
+  feeGrid     FeeGrid              @relation(fields: [feeGridId], references: [id], onDelete: Cascade)
+  label       String
+  amount      BigInt
+  dueDate     DateTime?            @map("due_date") @db.Date
+  sortOrder   Int                  @default(0) @map("sort_order")
+  schedules   StudentFeeSchedule[]
+
+  @@index([feeGridId, sortOrder])
+  @@map("fee_grid_lines")
+}
+
+model StudentFeeSchedule {
+  id             String      @id @default(uuid())
+  merchantId     String      @map("merchant_id")
+  merchant       Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  studentId      String      @map("student_id")
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeGridLineId  String      @map("fee_grid_line_id")
+  feeGridLine    FeeGridLine @relation(fields: [feeGridLineId], references: [id])
+  invoiceId      String?     @map("invoice_id")
+  amount         BigInt
+  amountPaid     BigInt      @default(0) @map("amount_paid")
+  dueDate        DateTime?   @map("due_date") @db.Date
+  status         String      @default("PENDING")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@index([studentId])
+  @@index([merchantId, status])
+  @@map("student_fee_schedules")
 }
