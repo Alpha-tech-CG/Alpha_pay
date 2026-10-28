@@ -2,6 +2,28 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 28 octobre 2026 (12) — S8 Back-office staff + feature freeze (T-90→T-96)
+
+### Fait
+- **T-90** `StaffUser` avec authentification TOTP obligatoire en deux étapes (mot de passe → code TOTP), sessions 8 h hashées HMAC-SHA256, chiffrement du secret OTP par XOR+APP_SECRET (à remplacer par KMS en prod). Migration 36 : `staff_users`, `staff_sessions`, `staff_access_log`, enum `StaffRole` (SUPPORT/COMPLIANCE/SUPER_ADMIN). `StaffGuard` remplace `InternalGuard` sur `KybAdminController`.
+- **T-91** `MerchantAdminController` : file KYB (statuts SUBMITTED/IN_REVIEW), fiche complète (abonnement, solde crédits, transactions live), suspension motivée et réactivation.
+- **T-92** Gestion palier/crédits depuis le back-office : changement de plan (`PATCH /:merchantId/subscription`), ajustement manuel du registre crédits (`POST /:merchantId/credits/adjust`).
+- **T-93** `SupervisionController` : échecs de paiement groupés par opérateur, stats messages, webhooks échoués, tableau de bord global (marchands actifs, tx_24h, taux d'échec, KYB en attente).
+- **T-94** Audit logs immuables : migration 37 avec triggers Postgres `BEFORE UPDATE/DELETE` levant une exception. `AuditInterceptor` global (`APP_INTERCEPTOR`) activé par `@AuditAction()`. Annotations sur staff login/logout/user_created, `kyb.decision`, `merchant.suspend/reactivate`.
+- **T-95** `CardAcquirerModule` derrière `FEATURE_CARD_PAYMENTS=true` (défaut : false). Tous les endpoints lèvent 404 quand désactivé — aucune trace en production. Mock local (`/mock/card/:sessionId`) avec page formulaire et redirection avec status.
+- **T-96** Feature freeze : `tsc --noEmit` propre, toutes les features V1 sont commitées sur `v1`.
+
+### Vérifié
+- `tsc --noEmit` propre sur `apps/api` après T-90→T-96.
+
+### Reste (S9 — qualité et livraison)
+- T-100 : tests Playwright E2E
+- T-101 : couverture ≥ 80 %
+- T-102 : jeu de données démo
+- T-103 : déploiement préprod + production (VPS OVH)
+- T-104 : docs (README, API, RUNBOOK, ADMIN, GO_LIVE)
+- T-105 : `pnpm audit`, revue sécurité, test chaînes interdites
+
 ## Session du 28 octobre 2026 (11) — M6 Gérer (S6 partiel)
 
 ### Fait
