@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import {
   Body,
   Controller,
@@ -26,7 +27,8 @@ class CreateExportDto {
 }
 
 @Controller('v1/merchants/:merchantId/exports')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m6_manage')
 export class ExportsController {
   constructor(private readonly exports: ExportsService) {}
 

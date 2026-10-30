@@ -3,6 +3,7 @@ import { Prisma, PrismaClient } from '@paybrain/database';
 import { AuditService } from '../../common/audit/audit.service';
 import { ApiError } from '../../common/errors/api-error';
 import { checkoutUrl, newPublicCode } from '../../common/codes/public-code';
+import { BillingService } from '../billing/billing.service';
 import { QrFormat, renderTillQrPdf } from './till-qr.pdf';
 import { can, MemberRole } from '../team/permissions/permissions';
 
@@ -35,6 +36,7 @@ export class StoresService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly audit: AuditService,
+    private readonly billing: BillingService,
   ) {}
 
   private notFound(what = 'Boutique') {
@@ -61,7 +63,14 @@ export class StoresService {
     return stores.map((s) => ({ ...s, tills: s.tills.map((t) => this.mapTill(t)) }));
   }
 
+  /** Limites du palier (§M11) : nombre de boutiques et de caisses. */
+  private async checkLimit(merchantId: string, kind: 'stores' | 'tills') {
+    const current = kind === 'stores' ? await this.prisma.store.count({ where: { merchantId, active: true } }) : await this.prisma.till.count({ where: { merchantId, active: true } });
+    await this.billing.assertWithinLimit(merchantId, kind, current);
+  }
+
   async createStore(merchantId: string, input: { name: string; address?: string }, actor: Actor) {
+    await this.checkLimit(merchantId, 'stores');
     const store = await this.prisma.store.create({ data: { merchantId, name: input.name.trim(), address: input.address?.trim() || null } });
     await this.record(actor, merchantId, 'stores.store_created', 'store', store.id);
     return store;
@@ -80,6 +89,7 @@ export class StoresService {
   async createTill(merchantId: string, storeId: string, input: { name: string }, actor: Actor) {
     const store = await this.prisma.store.findFirst({ where: { id: storeId, merchantId } });
     if (!store) throw this.notFound();
+    await this.checkLimit(merchantId, 'tills');
     for (let attempt = 0; attempt < 5; attempt++) {
       try {
         const till = await this.prisma.till.create({

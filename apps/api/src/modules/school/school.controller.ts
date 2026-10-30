@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import {
   Body,
   Controller,
@@ -21,7 +22,8 @@ import {
 } from './school.service';
 
 @Controller('v1/merchants/:merchantId/school')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m8_school')
 export class SchoolController {
   constructor(private readonly school: SchoolService) {}
 

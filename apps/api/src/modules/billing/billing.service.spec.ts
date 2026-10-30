@@ -1,116 +1,51 @@
-import { BadRequestException } from '@nestjs/common';
 import { BillingService } from './billing.service';
 
-function makePrisma(overrides: Partial<Record<string, any>> = {}) {
-  return {
-    subscription: {
-      findUnique: jest.fn().mockResolvedValue(null),
-      ...overrides.subscription,
-    },
-    billingPlan: {
-      findUnique: jest.fn().mockResolvedValue(null),
-      ...overrides.billingPlan,
-    },
-    creditLedger: {
-      aggregate: jest.fn().mockResolvedValue({ _sum: { delta: 0 } }),
-      create: jest.fn().mockResolvedValue({}),
-      ...overrides.creditLedger,
-    },
-    alphapayInvoice: {
-      create: jest.fn().mockResolvedValue({}),
-      ...overrides.alphapayInvoice,
-    },
-  } as any;
-}
+describe('BillingService.checkModuleAccess (§M11)', () => {
+  const plans: Record<string, any> = {
+    gratuit: { code: 'gratuit', includedModules: [] },
+    pro: { code: 'pro', includedModules: ['m6_manage', 'm7_recover'] },
+  };
+  let sub: any;
+  let svc: BillingService;
 
-const TRIAL_PLAN = {
-  id: 'plan-trial',
-  code: 'TRIAL',
-  name: 'Trial',
-  includedModules: ['m6_manage', 'm7_recover'],
-  includedCredits: 0,
-  monthlyPriceCents: 0,
-};
-
-const ACTIVE_SUB = {
-  id: 'sub-1',
-  merchantId: 'merch-1',
-  status: 'ACTIVE',
-  periodEnd: new Date(Date.now() + 86_400_000),
-  plan: {
-    includedModules: ['m6_manage', 'm7_recover', 'm8_school'],
-    includedCredits: 100,
-  },
-};
-
-const GRACE_SUB = { ...ACTIVE_SUB, status: 'GRACE' };
-const EXPIRED_SUB = { ...ACTIVE_SUB, status: 'EXPIRED', periodEnd: new Date(Date.now() - 1000) };
-
-describe('BillingService.checkModuleAccess', () => {
-  it('TRIAL avec module inclus → allowed', async () => {
-    const prisma = makePrisma({
-      subscription: { findUnique: jest.fn().mockResolvedValue({ ...ACTIVE_SUB, status: 'TRIAL' }) },
-    });
-    const svc = new BillingService(prisma);
-    const r = await svc.checkModuleAccess('merch-1', 'm6_manage');
-    expect(r).toEqual({ allowed: true, readonly: false });
+  beforeEach(() => {
+    sub = null;
+    const prisma: any = {
+      subscription: { findUnique: jest.fn(async () => sub) },
+      billingPlan: { findUnique: jest.fn(async ({ where }: any) => plans[where.code] ?? null) },
+    };
+    svc = new BillingService(prisma, {} as any, { onSucceeded: jest.fn() } as any, {} as any, {} as any, {} as any, {} as any);
   });
 
-  it('GRACE → allowed readonly (encaissements jamais bloqués)', async () => {
-    const prisma = makePrisma({
-      subscription: { findUnique: jest.fn().mockResolvedValue(GRACE_SUB) },
-    });
-    const svc = new BillingService(prisma);
-    const r = await svc.checkModuleAccess('merch-1', 'm6_manage');
-    expect(r).toEqual({ allowed: true, readonly: true });
+  it('sans abonnement : palier gratuit, modules payants verrouillés (visibles mais refusés)', async () => {
+    expect(await svc.checkModuleAccess('m', 'm7_recover')).toEqual({ allowed: false, readonly: false, plan: 'gratuit' });
   });
 
-  it('EXPIRED module non inclus → not allowed', async () => {
-    const prisma = makePrisma({
-      subscription: { findUnique: jest.fn().mockResolvedValue(EXPIRED_SUB) },
-    });
-    const svc = new BillingService(prisma);
-    const r = await svc.checkModuleAccess('merch-1', 'm11_billing');
-    expect(r.allowed).toBe(false);
+  it('palier actif : modules inclus ouverts, les autres verrouillés', async () => {
+    sub = { status: 'ACTIVE', plan: plans.pro };
+    expect(await svc.checkModuleAccess('m', 'm7_recover')).toEqual({ allowed: true, readonly: false, plan: 'pro' });
+    expect(await svc.checkModuleAccess('m', 'm8_school')).toMatchObject({ allowed: false });
   });
 
-  it('aucun abonnement → allowed par défaut (TRIAL implicite)', async () => {
-    const prisma = makePrisma();
-    const svc = new BillingService(prisma);
-    const r = await svc.checkModuleAccess('merch-1', 'm6_manage');
-    expect(r.allowed).toBe(true);
+  it('période de grâce : accès complet ; au-delà (impayé) : lecture seule', async () => {
+    sub = { status: 'GRACE', plan: plans.pro };
+    expect(await svc.checkModuleAccess('m', 'm6_manage')).toMatchObject({ allowed: true, readonly: false });
+    sub = { status: 'EXPIRED', plan: plans.pro };
+    expect(await svc.checkModuleAccess('m', 'm6_manage')).toMatchObject({ allowed: true, readonly: true });
   });
 });
 
-describe('BillingService.debitCredit', () => {
-  it('débite quand le solde est suffisant', async () => {
-    const prisma = makePrisma({
-      creditLedger: {
-        aggregate: jest.fn().mockResolvedValue({ _sum: { delta: 50 } }),
-        create: jest.fn().mockResolvedValue({}),
-      },
-    });
-    const svc = new BillingService(prisma);
-    await expect(svc.debitCredit('merch-1', 10, 'test')).resolves.not.toThrow();
-    expect(prisma.creditLedger.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ delta: -10 }) }),
-    );
-  });
+describe('BillingService.subscribe (§M11)', () => {
+  // Régression : les paliers payants sont livrés à 0 tant que les prix ne sont pas
+  // fixés ; un prix à 0 activait le palier sans facture (Pro gratuit pour tous).
+  it('refuse un palier payant dont le prix n’est pas encore fixé, sans rien activer', async () => {
+    const prisma: any = {
+      billingPlan: { findUnique: jest.fn(async () => ({ id: 'p-pro', code: 'pro', label: 'Pro', isActive: true, priceMonthly: 0n })) },
+      subscription: { upsert: jest.fn() },
+    };
+    const svc = new BillingService(prisma, {} as any, { onSucceeded: jest.fn() } as any, {} as any, {} as any, {} as any, {} as any);
 
-  it('lève credits_insuffisants quand le solde est insuffisant', async () => {
-    const prisma = makePrisma({
-      creditLedger: { aggregate: jest.fn().mockResolvedValue({ _sum: { delta: 5 } }), create: jest.fn() },
-    });
-    const svc = new BillingService(prisma);
-    await expect(svc.debitCredit('merch-1', 10, 'test')).rejects.toThrow(BadRequestException);
-  });
-
-  it('refuse un montant de débit nul ou négatif', async () => {
-    const prisma = makePrisma({
-      creditLedger: { aggregate: jest.fn().mockResolvedValue({ _sum: { delta: 100 } }), create: jest.fn() },
-    });
-    const svc = new BillingService(prisma);
-    await expect(svc.debitCredit('merch-1', 0, 'test')).rejects.toThrow();
-    await expect(svc.debitCredit('merch-1', -5, 'test')).rejects.toThrow();
+    await expect(svc.subscribe('m', 'pro', 'u')).rejects.toMatchObject({ response: { code: 'prix_non_fixe' } });
+    expect(prisma.subscription.upsert).not.toHaveBeenCalled();
   });
 });

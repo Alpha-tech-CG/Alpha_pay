@@ -24,6 +24,7 @@ const ICONS = {
   developers: 'M8 9l-3 3 3 3M16 9l3 3-3 3',
   team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   profile: 'M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  billing: 'M2 5h20v14H2zM2 10h20',
 }
 function TabIcon({ d }) {
   return (
@@ -87,6 +88,7 @@ export default function AppLayout({ children }) {
     // Réglage ponctuel : barre latérale seulement, pas dans la barre d'onglets mobile.
     { to: '/kyb', icon: 'kyb', label: tr('nav.kyb'), desktopOnly: true },
     { to: '/operators', icon: 'operators', label: tr('nav.operators'), desktopOnly: true },
+    { to: '/billing', icon: 'billing', label: tr('nav.billing'), desktopOnly: true },
     { to: '/profile', icon: 'profile', label: tr('nav.profile') },
   ]
   const nav = (

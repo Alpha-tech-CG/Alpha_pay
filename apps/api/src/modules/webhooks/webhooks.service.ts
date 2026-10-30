@@ -1,3 +1,4 @@
+import { PaymentHooks } from '../../common/payments/payment-hooks';
 import { presentPayment } from '../payments/payment.presenter';
 import { VerifService } from '../verif/verif.service';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -25,6 +26,7 @@ export class WebhooksService {
     private readonly webhookDelivery: WebhookDeliveryService,
     private readonly payments: PaymentsService,
     private readonly verif: VerifService,
+    private readonly paymentHooks: PaymentHooks,
   ) {}
 
   /**
@@ -149,6 +151,9 @@ export class WebhooksService {
       });
       // Vérif (§M5) : confirmation au vendeur et au caissier, uniquement sur un paiement réussi.
       await this.verif.onPaymentSucceeded(transaction.id);
+      // Facturation AlphaPay (M11), factures et versements (M7).
+      const paid = await this.prisma.transaction.findFirst({ where: { id: transaction.id, livemode: transaction.livemode } });
+      if (paid) await this.paymentHooks.succeeded(paid);
     }
 
     this.gateway.broadcastToMerchant(transaction.merchantId, 'transaction_update', {

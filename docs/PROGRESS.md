@@ -2,6 +2,24 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 30 octobre 2026 (13) — M11 Facturation terminée (T-81/T-83)
+
+### Fait
+- **T-81** Factures AlphaPay réglées par un lien de paiement sur le compte marchand d'AlphaPay (migration 31 : limites des paliers, nature et lien des factures, paliers du cahier insérés à prix 0). Point d'extension `PaymentHooks` : la facture est appliquée au paiement réussi, une seule fois.
+- **T-83** `ModuleAccessGuard` + `@RequireModule` côté serveur sur Gérer, Recouvrer et Pack École (`403 module_non_inclus`, `403 lecture_seule` après la grâce) ; limites de boutiques et de caisses à la création (`403 limite_palier`).
+- **Correctif** : un palier payant dont le prix n'est pas encore fixé (0) s'activait sans facture, donc Pro gratuit pour tous ; il est désormais refusé (`409 prix_non_fixe`), affiché « Sur devis ».
+- **Tableau de bord** : écran « Facturation » (palier et facture en attente, modules inclus/verrouillés/lecture seule, paliers, crédits et achat de packs, factures), FR/EN.
+- Décision D-053.
+
+### Vérifié
+- `tsc --noEmit` propre ; unitaires 318 verts (dont la régression `prix_non_fixe`).
+- Navigateur, sur l’image API reconstruite : compte de test créé, écran Facturation chargé (toutes les requêtes en 200), paliers payants affichés « Sur devis » sans bouton de souscription.
+
+### Reste / points connus
+- **Tests d'intégration non concluants** : la redirection de ports de Docker Desktop vers Postgres (5433) perd environ une connexion sur deux (ETIMEDOUT). À relancer après redémarrage de Docker Desktop (`billing.int-spec.ts` notamment).
+- À arbitrer : limite de transactions mensuelles du palier gratuit (non appliquée, elle bloquerait des encaissements) ; modules Messages et Développeurs affichés verrouillés mais pas encore gardés côté serveur ; relances des factures AlphaPay via M7.
+- Prix des paliers à saisir dans le back-office (Paliers et prix).
+
 ## Session du 28 octobre 2026 (12) — S8 Back-office staff + feature freeze (T-90→T-96)
 
 ### Fait

@@ -21,7 +21,7 @@ export interface CreateLinkInput {
 
 /** Qui agit : un membre (tableau de bord) ou une clé API. */
 export interface LinkActor {
-  type: 'user' | 'api_key';
+  type: 'user' | 'api_key' | 'system';
   id: string;
   ip?: string;
 }

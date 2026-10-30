@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import {
   Body,
   Controller,
@@ -18,7 +19,8 @@ import { CustomersService, CreateCustomerDto } from './customers.service';
 import { CreateInvoiceDto, InstallmentDto, InvoicesService } from './invoices.service';
 
 @Controller('v1/merchants/:merchantId')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m7_recover')
 export class InvoicingController {
   constructor(
     private readonly customers: CustomersService,

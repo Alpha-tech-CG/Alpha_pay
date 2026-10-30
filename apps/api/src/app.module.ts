@@ -7,6 +7,7 @@ import { PaymentLinksModule } from './modules/payment-links/payment-links.module
 import { CheckoutModule } from './modules/checkout/checkout.module';
 import { DevelopersModule } from './modules/developers/developers.module';
 import { KybModule } from './modules/kyb/kyb.module';
+import { PaymentHooksModule } from './common/payments/payment-hooks';
 import { StatsModule } from './modules/stats/stats.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { ApiKeysModule } from './modules/api-keys/api-keys.module';
@@ -63,6 +64,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     CheckoutModule,
     DevelopersModule,
     KybModule,
+    PaymentHooksModule,
     StatsModule,
     OutboxModule,
     ApiKeysModule,

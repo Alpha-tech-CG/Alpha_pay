@@ -1436,6 +1436,10 @@ model BillingPlan {
   currency        String         @default("XAF")
   includedModules String[]       @map("included_modules")
   includedCredits Int            @default(0) @map("included_credits")
+  // Limites du palier (§M11) ; null = sans limite.
+  maxStores       Int?           @map("max_stores")
+  maxTills        Int?           @map("max_tills")
+  maxMonthlyTransactions Int?    @map("max_monthly_transactions")
   isActive        Boolean        @default(true) @map("is_active")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
@@ -1478,6 +1482,12 @@ model AlphapayInvoice {
   amount         BigInt
   currency       String       @default("XAF")
   status         String       @default("PENDING")
+  // SUBSCRIPTION (palier, planId) ou CREDIT_PACK (creditPackId).
+  kind           String       @default("SUBSCRIPTION")
+  planId         String?      @map("plan_id")
+  creditPackId   String?      @map("credit_pack_id")
+  // Payée par un lien de paiement sur le compte marchand d'AlphaPay (§M11).
+  paymentLinkId  String?      @unique @map("payment_link_id")
   transactionId  String?      @map("transaction_id")
   dueDate        DateTime     @map("due_date") @db.Date
   paidAt         DateTime?    @map("paid_at")

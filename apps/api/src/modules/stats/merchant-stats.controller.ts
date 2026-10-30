@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { SessionGuard } from '../auth/session.guard';
@@ -7,7 +8,8 @@ import { MerchantStatsService } from './merchant-stats.service';
 @ApiTags('Statistiques (tableau de bord)')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/stats')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m6_manage')
 export class MerchantStatsController {
   constructor(private readonly stats: MerchantStatsService) {}
 

@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import {
   Body,
   Controller,
@@ -46,7 +47,8 @@ function presentEntry(e: any) {
 @ApiTags('Cash déclaré (tableau de bord)')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/cash-entries')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m6_manage')
 export class CashEntriesController {
   constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
 

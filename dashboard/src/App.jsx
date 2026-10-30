@@ -11,6 +11,7 @@ import Team from './pages/Team'
 import Operators from './pages/Operators'
 import Caisse from './pages/Caisse'
 import Kyb from './pages/Kyb'
+import Billing from './pages/Billing'
 import InviteAccept from './pages/InviteAccept'
 import Checkout from './Checkout'
 
@@ -60,6 +61,7 @@ export default function App() {
       <Route path="/kyb" element={<Protected><AppLayout><Kyb /></AppLayout></Protected>} />
       <Route path="/caisse" element={<Protected><AppLayout><Caisse /></AppLayout></Protected>} />
       <Route path="/operators" element={<Protected><AppLayout><Operators /></AppLayout></Protected>} />
+      <Route path="/billing" element={<Protected><AppLayout><Billing /></AppLayout></Protected>} />
       <Route path="/profile" element={<Protected><AppLayout><Profile /></AppLayout></Protected>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

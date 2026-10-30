@@ -38,6 +38,7 @@ describe('WebhooksService', () => {
       webhookDelivery as any,
       { fetchProviderStatus } as any,
       verif as any,
+      { succeeded: jest.fn().mockResolvedValue(undefined) } as any,
     );
   });
 

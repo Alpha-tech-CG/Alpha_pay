@@ -1,3 +1,4 @@
+import { ModuleAccessGuard, RequireModule } from '../../billing/module-access.guard';
 import {
   Body,
   Controller,
@@ -25,7 +26,8 @@ import { PatchReconciliationDayDto } from './patch-reconciliation-day.dto';
 @ApiTags('Rapprochement (tableau de bord)')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/reconciliation')
-@UseGuards(SessionGuard, RequireMemberGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@RequireModule('m6_manage')
 export class MerchantReconciliationController {
   constructor(private readonly svc: MerchantReconciliationService) {}
 
