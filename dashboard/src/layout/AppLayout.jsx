@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/session'
 import { useTheme } from '../theme'
 import { useT } from '../i18n'
+import { useMerchant } from '../merchant'
 
 function NavItem({ to, label, active }) {
   const { t } = useTheme()
@@ -25,6 +26,11 @@ const ICONS = {
   team: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   profile: 'M20 21a8 8 0 1 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
   billing: 'M2 5h20v14H2zM2 10h20',
+  reconciliation: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
+  links: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  invoices: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  school: 'M22 10L12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5',
+  stores: 'M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6',
 }
 function TabIcon({ d }) {
   return (
@@ -79,21 +85,29 @@ export default function AppLayout({ children }) {
   const location = useLocation()
   const [open, setOpen] = useState(false)
 
+  const { can } = useMerchant()
+  // Écrans selon le rôle (le serveur revérifie) ; un module hors palier reste visible, verrouillé.
   const tabs = [
     { to: '/', icon: 'dashboard', label: tr('nav.dashboard') },
     { to: '/caisse', icon: 'caisse', label: tr('nav.caisse') },
     { to: '/payments', icon: 'payments', label: tr('nav.payments') },
+    { to: '/reconciliation', icon: 'reconciliation', label: tr('nav.reconciliation'), desktopOnly: true, show: can('reconciliation:view') || can('cash:declare') },
+    { to: '/links', icon: 'links', label: tr('nav.links'), desktopOnly: true, show: can('payments:view') },
+    { to: '/invoices', icon: 'invoices', label: tr('nav.invoices'), show: can('invoices:view') },
+    { to: '/school', icon: 'school', label: tr('nav.school'), desktopOnly: true, show: can('school:view') },
+    { to: '/stores', icon: 'stores', label: tr('nav.stores'), desktopOnly: true, show: can('stores:manage') },
     { to: '/developers', icon: 'developers', label: tr('nav.developers'), desktopOnly: true },
-    { to: '/team', icon: 'team', label: tr('nav.team') },
+    { to: '/team', icon: 'team', label: tr('nav.team'), desktopOnly: true },
     // Réglage ponctuel : barre latérale seulement, pas dans la barre d'onglets mobile.
     { to: '/kyb', icon: 'kyb', label: tr('nav.kyb'), desktopOnly: true },
     { to: '/operators', icon: 'operators', label: tr('nav.operators'), desktopOnly: true },
     { to: '/billing', icon: 'billing', label: tr('nav.billing'), desktopOnly: true },
     { to: '/profile', icon: 'profile', label: tr('nav.profile') },
   ]
+  const visibleTabs = tabs.filter((tab) => tab.show !== false)
   const nav = (
     <nav>
-      {tabs.map((tab) => (
+      {visibleTabs.map((tab) => (
         <NavItem key={tab.to} to={tab.to} label={tab.label} active={location.pathname === tab.to} />
       ))}
     </nav>
@@ -105,7 +119,7 @@ export default function AppLayout({ children }) {
       <aside style={{
         width: 220, borderRight: `1px solid ${t.border}`, background: t.surface,
         padding: '24px 16px', position: 'sticky', top: 0, height: '100vh',
-        display: 'flex', flexDirection: 'column',
+        display: 'flex', flexDirection: 'column', overflowY: 'auto', boxSizing: 'border-box',
       }} className="pb-sidebar">
         <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>GROUPE ALPHA</div>
         <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 28 }}>
@@ -120,7 +134,7 @@ export default function AppLayout({ children }) {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 40,
         }}>
           <aside onClick={(e) => e.stopPropagation()} style={{
-            width: 240, height: '100%', background: t.surface, padding: '24px 16px',
+            width: 240, height: '100%', background: t.surface, padding: '24px 16px', overflowY: 'auto', boxSizing: 'border-box',
             borderRight: `1px solid ${t.border}`,
           }}>
             <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 28 }}>
@@ -160,12 +174,14 @@ export default function AppLayout({ children }) {
         </main>
       </div>
 
-      <BottomNav tabs={tabs} path={location.pathname} />
+      <BottomNav tabs={visibleTabs} path={location.pathname} />
 
       <style>{`
         @media (max-width: 760px) {
           .pb-sidebar { display: none !important; }
           .pb-bottomnav { display: flex !important; }
+          /* Les écrans hors barre d'onglets restent accessibles par le menu. */
+          .pb-burger { display: inline-block !important; }
           .pb-main { padding-bottom: 80px !important; }
         }
       `}</style>

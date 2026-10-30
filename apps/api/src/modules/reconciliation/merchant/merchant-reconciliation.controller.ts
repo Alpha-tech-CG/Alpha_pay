@@ -11,13 +11,24 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  HttpStatus,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiError } from '../../../common/errors/api-error';
 import { ApiConsumes, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { SessionGuard } from '../../auth/session.guard';
 import { RequireMemberGuard } from '../../team/auth/require-member.guard';
 import { can } from '../../team/permissions/permissions';
 import { MerchantReconciliationService } from './merchant-reconciliation.service';
 import { PatchReconciliationDayDto } from './patch-reconciliation-day.dto';
+
+function assertDate(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, 'validation_echouee', 'date : AAAA-MM-JJ', 'date');
+  }
+}
 
 /**
  * Rapprochement journalier marchand (§M6, T-72). Accessible aux rôles
@@ -44,6 +55,15 @@ export class MerchantReconciliationController {
     const { merchantId, role } = req.membership;
     if (!can(role, 'reconciliation:view')) throw new ForbiddenException('Accès refusé');
     return this.svc.listDays(merchantId, mode === 'live', { from, to, tillId });
+  }
+
+  @Get(':date/tills')
+  @ApiOperation({ summary: 'Vue journalière par caisse : MTN, Airtel, cash déclaré, statut (date AAAA-MM-JJ)' })
+  async dayByTills(@Param('merchantId') _id: string, @Param('date') date: string, @Req() req: any, @Query('mode') mode?: string) {
+    const { merchantId, role } = req.membership;
+    if (!can(role, 'reconciliation:view')) throw new ForbiddenException('Accès refusé');
+    assertDate(date);
+    return this.svc.dayByTills(merchantId, date, mode === 'live', 'all');
   }
 
   @Get(':date')
@@ -77,18 +97,20 @@ export class MerchantReconciliationController {
 
   @Post(':date/import-csv')
   @HttpCode(200)
-  @ApiConsumes('text/plain', 'text/csv')
-  @ApiOperation({ summary: 'Importer un relevé CSV et déclencher la détection automatique d\'écart' })
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: "Importer un relevé opérateur (CSV, champ « file ») et comparer ligne à ligne" })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024, files: 1 } }))
   async importCsv(
     @Param('merchantId') _id: string,
     @Param('date') date: string,
-    @Body() body: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
     @Req() req: any,
     @Query('mode') mode?: string,
     @Query('till_id') tillId?: string,
   ) {
     const { merchantId, role } = req.membership;
     if (!can(role, 'reconciliation:write')) throw new ForbiddenException('Accès refusé');
-    return this.svc.importCsv(merchantId, date, mode === 'live', typeof body === 'string' ? body : JSON.stringify(body), tillId);
+    if (!file?.buffer?.length) throw new ApiError(HttpStatus.BAD_REQUEST, 'fichier_manquant', 'Joignez le relevé CSV (champ « file »)', 'file');
+    return this.svc.importCsv(merchantId, date, mode === 'live', file.buffer.toString('utf8'), tillId);
   }
 }

@@ -2,13 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PrismaClient, ReconciliationDayStatus } from '@paybrain/database';
 import { formatAmount, toMajorAmount } from '../../../common/money';
 import { parseStatementCsv } from '../statement-parser';
+import { localAt } from '../../invoicing/recovery-time';
 
 function toDate(d: string): Date {
   return new Date(d + 'T00:00:00.000Z');
 }
 
-function endOfDate(d: string): Date {
-  return new Date(d + 'T23:59:59.999Z');
+/** Journée de Brazzaville (§8.5) : de 0 h à 0 h heure locale, en UTC. */
+function localDay(d: string) {
+  return { gte: localAt(d, 0), lt: localAt(d, 0, 1) };
 }
 
 function presentDay(day: any) {
@@ -51,7 +53,7 @@ export class MerchantReconciliationService {
           livemode,
           status: 'SUCCEEDED',
           ...(tillId ? { tillId } : {}),
-          createdAt: { gte: toDate(date), lte: endOfDate(date) },
+          createdAt: localDay(date),
         },
         _count: { id: true },
         _sum: { amount: true },
@@ -94,6 +96,57 @@ export class MerchantReconciliationService {
         currency: 'XAF',
       },
     });
+  }
+
+  /**
+   * Vue journalière par caisse (§M6) : pour chaque caisse et pour l'ensemble,
+   * total MTN, total Airtel, cash déclaré et statut de rapprochement.
+   */
+  async dayByTills(merchantId: string, date: string, livemode: boolean, visibleTills: string[] | 'all') {
+    const tills = await this.prisma.till.findMany({
+      where: { merchantId, ...(visibleTills === 'all' ? {} : { id: { in: visibleTills } }) },
+      orderBy: [{ store: { name: 'asc' } }, { name: 'asc' }],
+      select: { id: true, name: true, active: true, store: { select: { name: true } } },
+    });
+    const [byOp, cash] = await Promise.all([
+      this.prisma.transaction.groupBy({
+        by: ['tillId', 'operator'],
+        where: { merchantId, livemode, status: 'SUCCEEDED', createdAt: localDay(date), ...(visibleTills === 'all' ? {} : { tillId: { in: visibleTills } }) },
+        _count: { id: true },
+        _sum: { amount: true },
+      }),
+      this.prisma.cashEntry.groupBy({
+        by: ['tillId'],
+        where: { merchantId, livemode, entryDate: toDate(date), ...(visibleTills === 'all' ? {} : { tillId: { in: visibleTills } }) },
+        _sum: { amount: true },
+      }),
+    ]);
+    const sumOp = (tillId: string | null | undefined, op: string) =>
+      byOp.filter((r) => (tillId === undefined || r.tillId === tillId) && r.operator === op).reduce((t, r) => t + (r._sum.amount ?? 0n), 0n);
+    const countOf = (tillId: string | null | undefined) => byOp.filter((r) => tillId === undefined || r.tillId === tillId).reduce((n, r) => n + r._count.id, 0);
+    const cashOf = (tillId: string | null | undefined) => cash.filter((r) => tillId === undefined || r.tillId === tillId).reduce((t, r) => t + (r._sum.amount ?? 0n), 0n);
+
+    const rows = [];
+    const all = visibleTills === 'all' ? [{ id: null as string | null, label: 'Toutes les caisses' }] : [];
+    for (const t of [...tills.map((t) => ({ id: t.id as string | null, label: `${t.store.name} · ${t.name}` })), ...all]) {
+      const day = await this.computeDay(merchantId, date, livemode, t.id);
+      const key = t.id === null ? undefined : t.id;
+      const mtn = sumOp(key, 'MTN');
+      const airtel = sumOp(key, 'AIRTEL');
+      const cashAmount = cashOf(key);
+      rows.push({
+        ...presentDay(day),
+        till_label: t.label,
+        payments_count: countOf(key),
+        mtn_amount: toMajorAmount(mtn, 'XAF'),
+        mtn_amount_display: formatAmount(mtn, 'XAF'),
+        airtel_amount: toMajorAmount(airtel, 'XAF'),
+        airtel_amount_display: formatAmount(airtel, 'XAF'),
+        cash_amount: toMajorAmount(cashAmount, 'XAF'),
+        cash_amount_display: formatAmount(cashAmount, 'XAF'),
+      });
+    }
+    return { object: 'list' as const, date, data: rows };
   }
 
   async listDays(merchantId: string, livemode: boolean, opts: { from?: string; to?: string; tillId?: string }) {

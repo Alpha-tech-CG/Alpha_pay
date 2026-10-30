@@ -2,6 +2,30 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 30 octobre 2026 (14) — M7 Recouvrer et M8 Pack École réécrits, écrans Gérer / Recouvrer / École
+
+### Constat
+Le backend M7/M8 du T-74→T-80 n'était qu'un squelette : paiement sans effet sur la facture, aucun reçu créé, relances jamais envoyées, numérotation commune factures/reçus (trous), aucun contrôle de rôle ni validation, identifiants d'un autre marchand acceptés côté École. Côté M6 : exports refusés à tous et non téléchargeables, totaux visibles par un caissier, import de relevé impossible (corps texte refusé).
+
+### Fait
+- **Migration 32** (réversible) : `document_counters` (série par marchand, type et mode), `recovery_settings`, canaux et mode des clients, liens élève/responsable/versement, unicités (reçu par paiement, numéros, matricule, élève × frais).
+- **M7** : clients, factures (lien de paiement intégré, échéanciers avec un lien par versement, annulation), reçus sans trou pour chaque paiement réussi (PDF, envoi au client, lien signé), relances J-3/J0/J+3/J+7 modifiables dans la plage 8 h-19 h de Brazzaville, arrêt sous verrou dès le paiement, passage en retard, webhooks `invoice.paid` / `installment.paid`, PDF facture et reçu (pdfkit). API publique `/v1/customers`, `/v1/invoices` (clé API, idempotence). D-054, D-055.
+- **M8** : années, classes, élèves et responsables vérifiés contre le marchand ; import CSV et Excel (modèle téléchargeable, rapport ligne par ligne, mise à jour par matricule) ; grille de frais → une facture et un échéancier par élève, rejouable ; liens au responsable (élève ou classe) ; impayés par classe en un écran ; retardataires exportables ; reçus au nom de l'élève. D-056.
+- **M6** : exports par le worker avec téléchargement authentifié (transactions et rapprochement, anti-injection de formules) ; indicateurs en journées de Brazzaville et réservés aux gestionnaires ; rapprochement par caisse (MTN, Airtel, cash) ; import de relevé en multipart ; cash déclaré en mode test/live, caisse vérifiée. D-057.
+- **Tableau de bord** : écrans Encaissements (indicateurs, filtres, détail, exports), Rapprochement (+ cash déclaré, relevé), Liens de paiement, Boutiques et caisses (QR A5/A6, caissiers, Vérif), Recouvrer (factures, clients, reçus, relances), Pack École (impayés, classes et élèves, import, frais, retardataires) ; FR/EN ; bascule test/live ; menu accessible sur téléphone.
+
+### Vérifié
+- `tsc --noEmit` propre ; unitaires 56 suites / 329 tests verts (dont montants, échéanciers, heures de Brazzaville, numérotation, import, anti-injection).
+- **Intégration 15 suites / 94 tests verts**, exécutées dans un conteneur sur le réseau Docker (la redirection de port Windows → Postgres perd des connexions) : `docker build --target builder -t alphapay-api-inttest -f apps/api/Dockerfile .` puis `docker run --network alphapay-local_default -e TEST_DATABASE_URL=postgresql://alphapay:alphapay@postgres:5432/alphapay_test -w /app/apps/api alphapay-api-inttest npx jest --config test/jest-integration.json`. Acceptation M7 (aucune relance pour une facture payée, même payée entre planification et envoi ; reçus sans trou ni doublon sous charge) et M8 (500 élèves importés et facturés en 74 s ; impayés par classe en un écran) couvertes.
+- Navigateur, sur la pile reconstruite : module verrouillé sur le palier gratuit ; client, facture en deux versements envoyée (FAC-T-000001), versement 1 payé par la page hébergée et le vrai worker → partiellement payée, reçu REC-T-000001 ; École (import de 41 élèves avec rapport d'erreurs, 41 factures, tableau de bord exact) ; exports Excel et CSV téléchargés ; tous les écrans sans défilement horizontal à 375 px.
+- Défaut trouvé et corrigé : le worker n'avait pas le volume de stockage de l'API dans `docker-compose.yml` (exports introuvables).
+
+### Reste / points connus
+- `docker-compose.prod.yml` n'a **aucun service worker** : en production, exports, relances, envois de messages et suivi des paiements ne tourneraient pas. À traiter avec T-103 (déploiement), avec un stockage partagé ou S3.
+- Accueil du tableau de bord (`DashboardHome`) encore sur l'ancienne API à clé et WebSocket : à refaire sur `/stats`.
+- Reçus et relances ne consomment pas de crédits (D-054, à arbitrer avec les prix).
+- Modèles WhatsApp `alphapay_facture`, `alphapay_relance`, `alphapay_recu` à faire approuver chez Meta (repli SMS en attendant).
+
 ## Session du 30 octobre 2026 (13) — M11 Facturation terminée (T-81/T-83)
 
 ### Fait
@@ -241,6 +265,6 @@ S2–S3 : M9 Messages et OTP (T-20 à T-24), puis M1 Comptes (T-30 à T-34, retr
 | S1 Socle | 2 nov. | **Fait** (T-01 à T-14) |
 | S3 M1, M9, M3 | 16 nov. | **Fait** (sauf essais sandbox réels MTN/Airtel) |
 | S5 M4, M5, M10, M2 | 30 nov. | **Fait** |
-| S7 M6, M7, M8, M11 | 14 déc. | À faire |
-| S8 M12, M13, gel | 21 déc. | À faire |
+| S7 M6, M7, M8, M11 | 14 déc. | **Fait** (M7/M8 réécrits et écrans livrés le 30 oct.) |
+| S8 M12, M13, gel | 21 déc. | **Fait** |
 | S9 Recette, livraison | 27 déc. | À faire |

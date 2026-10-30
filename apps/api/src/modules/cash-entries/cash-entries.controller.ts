@@ -22,6 +22,7 @@ import { RequireMemberGuard } from '../team/auth/require-member.guard';
 import { can } from '../team/permissions/permissions';
 import { formatAmount, toMajorAmount } from '../../common/money';
 import { CreateCashEntryDto } from './create-cash-entry.dto';
+import { StoresService } from '../stores/stores.service';
 
 function presentEntry(e: any) {
   return {
@@ -50,7 +51,10 @@ function presentEntry(e: any) {
 @UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
 @RequireModule('m6_manage')
 export class CashEntriesController {
-  constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly stores: StoresService,
+  ) {}
 
   @Post()
   @HttpCode(201)
@@ -59,11 +63,20 @@ export class CashEntriesController {
     @Param('merchantId') _merchantId: string,
     @Body() dto: CreateCashEntryDto,
     @Req() req: any,
+    @Query('mode') mode?: string,
   ) {
     const { merchantId, memberId, role } = req.membership;
     if (!can(role, 'cash:declare')) throw new ForbiddenException('Rôle insuffisant pour déclarer du cash');
 
-    const livemode = false; // cash toujours en mode test sauf si explicitement demandé
+    // Caisse obligatoire pour un caissier, et seulement l'une des siennes (§M1, §M6).
+    const visible = await this.stores.visibleTillIds(merchantId, req.membership);
+    if (visible !== 'all' && !dto.till_id) throw new ForbiddenException('Précisez votre caisse');
+    if (dto.till_id) {
+      const till = await this.prisma.till.findFirst({ where: { id: dto.till_id, merchantId } });
+      if (!till || (visible !== 'all' && !visible.includes(till.id))) throw new ForbiddenException('Caisse hors de votre périmètre');
+    }
+
+    const livemode = mode === 'live';
     const entry = await this.prisma.cashEntry.create({
       data: {
         merchantId,

@@ -123,6 +123,9 @@ services:
     environment:
       <<: *api-env
       SERVICE_NAME: alphapay-worker
+    # Même stockage que l'API : le worker y écrit les exports, l'API les sert.
+    volumes:
+      - api_storage:/data/storage
     # L'image embarque le healthcheck HTTP de l'API ; le worker n'écoute aucun
     # port : on vérifie simplement que son process tourne.
     healthcheck:

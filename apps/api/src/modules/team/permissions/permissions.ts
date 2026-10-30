@@ -39,6 +39,7 @@ export type MemberAction =
   | 'exports:create'
   | 'invoices:view'
   | 'invoices:write'
+  | 'school:view'
   | 'school:manage'
   | 'verif:receive'
   | 'apikeys:write'
@@ -71,6 +72,7 @@ const MATRIX: Record<MemberAction, readonly MemberRole[]> = {
   'exports:create': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'invoices:view': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'invoices:write': OWNER_ADMIN,
+  'school:view': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'school:manage': OWNER_ADMIN,
   'verif:receive': ['OWNER', 'CASHIER'],
   'apikeys:write': ['OWNER', 'ADMIN', 'DEVELOPER'],

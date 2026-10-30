@@ -3,13 +3,17 @@ import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { SessionGuard } from '../auth/session.guard';
 import { RequireMemberGuard } from '../team/auth/require-member.guard';
+import { RequireActionGuard } from '../team/auth/require-action.guard';
+import { RequireAction } from '../team/auth/require-action.decorator';
 import { MerchantStatsService } from './merchant-stats.service';
 
 @ApiTags('Statistiques (tableau de bord)')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId/stats')
-@UseGuards(SessionGuard, RequireMemberGuard, ModuleAccessGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard, ModuleAccessGuard)
 @RequireModule('m6_manage')
+// Totaux de tout le marchand : jamais pour un caissier (limité à sa caisse, §M1).
+@RequireAction('payments:view')
 export class MerchantStatsController {
   constructor(private readonly stats: MerchantStatsService) {}
 

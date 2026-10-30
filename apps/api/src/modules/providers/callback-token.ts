@@ -58,3 +58,24 @@ export function callbackUrl(operator: string, connectionId: string): string | un
   if (!base) return undefined;
   return `${base.replace(/\/$/, '')}/webhooks/operators/${operator.toLowerCase()}/${connectionId}/${callbackToken(connectionId)}`;
 }
+
+/**
+ * Lien public d'un document envoyé au client (§M7) : reçu ou facture en PDF,
+ * `/v1/public/documents/:kind/:id/:sig`. Sans expiration (un reçu reçu par SMS
+ * doit rester consultable), mais impossible à deviner et valable pour ce seul
+ * document.
+ */
+export type PublicDocumentKind = 'receipt' | 'invoice';
+
+export function documentSignature(kind: PublicDocumentKind, id: string): string {
+  return createHmac('sha256', secret()).update(`document:${kind}:${id}`).digest('base64url');
+}
+
+export function isValidDocumentSignature(kind: PublicDocumentKind, id: string, sig: unknown): boolean {
+  return typeof sig === 'string' && sig.length > 0 && safeEqual(sig, documentSignature(kind, id));
+}
+
+export function publicDocumentUrl(kind: PublicDocumentKind, id: string): string {
+  const base = (process.env.PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  return `${base}/v1/public/documents/${kind}/${id}/${documentSignature(kind, id)}`;
+}

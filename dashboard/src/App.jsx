@@ -12,6 +12,11 @@ import Operators from './pages/Operators'
 import Caisse from './pages/Caisse'
 import Kyb from './pages/Kyb'
 import Billing from './pages/Billing'
+import Reconciliation from './pages/Reconciliation'
+import Stores from './pages/Stores'
+import PaymentLinks from './pages/PaymentLinks'
+import Invoices from './pages/Invoices'
+import School from './pages/School'
 import InviteAccept from './pages/InviteAccept'
 import Checkout from './Checkout'
 
@@ -56,6 +61,11 @@ export default function App() {
       {/* App protégée avec layout */}
       <Route path="/" element={<Protected><AppLayout><DashboardHome /></AppLayout></Protected>} />
       <Route path="/payments" element={<Protected><AppLayout><Payments /></AppLayout></Protected>} />
+      <Route path="/reconciliation" element={<Protected><AppLayout><Reconciliation /></AppLayout></Protected>} />
+      <Route path="/links" element={<Protected><AppLayout><PaymentLinks /></AppLayout></Protected>} />
+      <Route path="/stores" element={<Protected><AppLayout><Stores /></AppLayout></Protected>} />
+      <Route path="/invoices" element={<Protected><AppLayout><Invoices /></AppLayout></Protected>} />
+      <Route path="/school" element={<Protected><AppLayout><School /></AppLayout></Protected>} />
       <Route path="/developers" element={<Protected><AppLayout><Developers /></AppLayout></Protected>} />
       <Route path="/team" element={<Protected><AppLayout><Team /></AppLayout></Protected>} />
       <Route path="/kyb" element={<Protected><AppLayout><Kyb /></AppLayout></Protected>} />

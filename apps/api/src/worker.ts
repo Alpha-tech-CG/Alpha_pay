@@ -19,6 +19,7 @@ import { AppModule } from "./app.module";
 import { loadSecrets } from "./secrets/secrets-loader";
 import { PaymentStatusPoller } from "./modules/payment-status/payment-status.poller";
 import { MessagingService } from "./modules/messaging/messaging.service";
+import { ExportsService } from "./modules/exports/exports.service";
 import { JsonNestLogger, logger } from "./common/logging/logger";
 import { validateEnv } from "./config/env.validation";
 
@@ -36,8 +37,9 @@ async function bootstrap() {
 
   app.get(PaymentStatusPoller).register();
   app.get(MessagingService).register();
+  app.get(ExportsService).register();
 
-  logger.info({ queues: ["payment-status", "messages"] }, "Worker démarré");
+  logger.info({ queues: ["payment-status", "messages", "exports"] }, "Worker démarré");
 }
 
 bootstrap().catch((err) => {

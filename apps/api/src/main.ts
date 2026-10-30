@@ -68,7 +68,12 @@ async function bootstrap() {
       maxBytes: MAX_BODY_BYTES,
       formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
       // Pièces du dossier KYB (§M2) : 10 Mo par fichier.
-      multipartPaths: [/^\/v1\/merchants\/[^/]+\/kyb\/documents\/[A-Za-z_]+$/],
+      // Imports : élèves (§M8, CSV ou Excel) et relevé opérateur (§M6).
+      multipartPaths: [
+        /^\/v1\/merchants\/[^/]+\/kyb\/documents\/[A-Za-z_]+$/,
+        /^\/v1\/merchants\/[^/]+\/school\/classes\/[^/]+\/import$/,
+        /^\/v1\/merchants\/[^/]+\/reconciliation\/[^/]+\/import-csv$/,
+      ],
       multipartMaxBytes: 10.5 * 1024 * 1024,
     }),
   );

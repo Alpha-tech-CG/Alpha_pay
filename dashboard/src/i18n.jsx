@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { MODULE_DICT } from './i18n.modules'
 
 const DICT = {
   fr: {
@@ -538,6 +539,9 @@ const DICT = {
     'billing.status.canceled': "Canceled",
   },
 }
+
+// Écrans Gérer, liens, Recouvrer et Pack École (fichier dédié).
+for (const locale of Object.keys(DICT)) Object.assign(DICT[locale], MODULE_DICT[locale])
 
 const I18nContext = createContext(null)
 

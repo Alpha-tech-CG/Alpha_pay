@@ -1,20 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { localAt, localDate } from '../invoicing/recovery-time';
 import { PrismaClient } from '@paybrain/database';
 import { formatAmount, toMajorAmount } from '../../common/money';
 
-/** Fenêtre temporelle pour les indicateurs. */
-function windowStart(period: 'day' | 'week' | 'month'): Date {
-  const now = new Date();
-  if (period === 'day') {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }
-  if (period === 'week') {
-    const d = new Date(now);
-    d.setDate(d.getDate() - 6);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-  return new Date(now.getFullYear(), now.getMonth(), 1);
+/**
+ * Début de la fenêtre des indicateurs, en jours de Brazzaville (§8.5) :
+ * aujourd'hui, 7 derniers jours (aujourd'hui inclus), mois en cours.
+ */
+export function windowStart(period: 'day' | 'week' | 'month', now = new Date()): Date {
+  const today = localDate(now);
+  if (period === 'day') return localAt(today, 0);
+  if (period === 'week') return localAt(today, 0, -6);
+  return localAt(`${today.slice(0, 7)}-01`, 0);
 }
 
 @Injectable()

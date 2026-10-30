@@ -8,6 +8,8 @@ import { RequireMemberGuard } from '../team/auth/require-member.guard';
 import { presentPayment } from './payment.presenter';
 import { STATUS_BY_LABEL } from './payments.controller';
 import { formatAmount, toMajorAmount } from '../../common/money';
+import { windowStart } from '../stats/merchant-stats.service';
+import { can } from '../team/permissions/permissions';
 
 /**
  * Paiements vus depuis le tableau de bord (§M1, §M6). Le périmètre dépend du
@@ -84,10 +86,11 @@ export class MerchantPaymentsController {
     @Query('mode') mode: string,
     @Req() req: any,
   ) {
-    const { merchantId } = req.membership;
+    const { merchantId, role } = req.membership;
+    // Totaux de tout le marchand : un caissier ne voit que sa caisse (§M1).
+    if (!can(role, 'payments:view')) throw new ForbiddenException('Totaux réservés aux gestionnaires');
     const livemode = mode === 'live';
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = windowStart('day');
 
     const [today, allTime] = await Promise.all([
       this.prisma.transaction.aggregate({

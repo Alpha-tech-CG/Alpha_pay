@@ -8,5 +8,6 @@ import { InvoicingModule } from '../invoicing/invoicing.module';
   imports: [TeamAuthModule, InvoicingModule],
   controllers: [SchoolController],
   providers: [SchoolService],
+  exports: [SchoolService],
 })
 export class SchoolModule {}

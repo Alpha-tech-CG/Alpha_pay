@@ -74,8 +74,6 @@ enum NotificationStatus {
   SKIPPED
 }
 
-
-
 enum OnboardingStatus {
   PENDING
   APPROVED
@@ -122,7 +120,8 @@ model Merchant {
   customers           Customer[]
   invoices            Invoice[]
   receipts            Receipt[]
-  invoiceCounter      InvoiceCounter?
+  documentCounters    DocumentCounter[]
+  recoverySettings    RecoverySettings?
   schoolYears         SchoolYear[]
   schoolClasses       SchoolClass[]
   students            Student[]
@@ -286,24 +285,24 @@ model WebhookLog {
 }
 
 model PaymentLink {
-  id          String    @id @default(uuid())
-  merchantId  String    @map("merchant_id")
+  id          String        @id @default(uuid())
+  merchantId  String        @map("merchant_id")
   // Mode test ou live (§4.6) : jamais mélangés.
-  livemode    Boolean   @default(false)
-  merchant    Merchant  @relation(fields: [merchantId], references: [id])
+  livemode    Boolean       @default(false)
+  merchant    Merchant      @relation(fields: [merchantId], references: [id])
   // Montant fixe en unités mineures (D-007) ; null = montant libre saisi par le payeur (§M4).
   amount      BigInt?
-  currency    String    @default("XAF")
+  currency    String        @default("XAF")
   description String
   // Code public de l'URL hébergée (/l/<code>), sans caractère ambigu.
-  publicCode  String?   @unique @map("public_code")
-  code        String?   @unique @map("ussd_code") // code court composable en USSD (téléphones à touches)
-  multiUse    Boolean   @default(false) @map("multi_use")
-  active      Boolean   @default(true)
-  expiresAt   DateTime? @map("expires_at")
+  publicCode  String?       @unique @map("public_code")
+  code        String?       @unique @map("ussd_code") // code court composable en USSD (téléphones à touches)
+  multiUse    Boolean       @default(false) @map("multi_use")
+  active      Boolean       @default(true)
+  expiresAt   DateTime?     @map("expires_at")
   // Usage unique : date du paiement réussi qui a consommé le lien.
-  usedAt      DateTime? @map("used_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  usedAt      DateTime?     @map("used_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
   payments    Transaction[]
 
   @@index([merchantId, livemode, createdAt])
@@ -369,8 +368,6 @@ model ContactMessage {
 }
 
 // Pipeline KYC marchand (ALP-142). Conservation 10 ans (réglementaire).
-
-
 
 // Notifications multi-canal (ALP-143).
 model NotificationLog {
@@ -531,13 +528,13 @@ model MerchantMember {
   createdAt   DateTime             @default(now()) @map("created_at")
   updatedAt   DateTime             @updatedAt @map("updated_at")
 
-  tills    TillMember[]
+  tills             TillMember[]
   pushSubscriptions WebPushSubscription[]
   cashEntries       CashEntry[]
-  reconReviews      ReconciliationDay[]  @relation("ReconciliationReviewer")
-  exportRequests    ExportJob[]          @relation("ExportRequester")
-  merchant Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  user     AppUser      @relation(fields: [userId], references: [id])
+  reconReviews      ReconciliationDay[]   @relation("ReconciliationReviewer")
+  exportRequests    ExportJob[]           @relation("ExportRequester")
+  merchant          Merchant              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  user              AppUser               @relation(fields: [userId], references: [id])
 
   // NB : un index unique PARTIEL « un seul OWNER actif par marchand » est créé
   // dans la migration SQL (Prisma ne gère pas les index partiels).
@@ -952,24 +949,24 @@ enum KycCheckStatus {
 // Un dossier par marchand. Seul APPROVED débloque le mode live
 // (Merchant.onboardingStatus, tenu à jour par le service KYB).
 model KybApplication {
-  id                String          @id @default(uuid())
-  merchantId        String          @unique @map("merchant_id")
-  merchant          Merchant        @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  status            KybStatus       @default(DRAFT)
-  legalName         String?         @map("legal_name")
-  legalForm         String?         @map("legal_form")
+  id                String        @id @default(uuid())
+  merchantId        String        @unique @map("merchant_id")
+  merchant          Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  status            KybStatus     @default(DRAFT)
+  legalName         String?       @map("legal_name")
+  legalForm         String?       @map("legal_form")
   rccm              String?
   niu               String?
   address           String?
   sector            String?
-  directorFirstName String?         @map("director_first_name")
-  directorLastName  String?         @map("director_last_name")
-  submittedAt       DateTime?       @map("submitted_at")
-  decidedAt         DateTime?       @map("decided_at")
+  directorFirstName String?       @map("director_first_name")
+  directorLastName  String?       @map("director_last_name")
+  submittedAt       DateTime?     @map("submitted_at")
+  decidedAt         DateTime?     @map("decided_at")
   // Motif de la dernière décision (refus ou compléments demandés), montré au marchand.
-  decisionReason    String?         @map("decision_reason")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  decisionReason    String?       @map("decision_reason")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
   documents         KybDocument[]
   events            KybEvent[]
   kycChecks         KycCheck[]
@@ -1063,26 +1060,26 @@ enum ReconciliationDayStatus {
 // Rapprochement journalier par caisse (ou global si till_id null).
 // Contrainte UNIQUE partielle gérée en SQL (Prisma ne supporte pas les index partiels).
 model ReconciliationDay {
-  id               String                    @id @default(uuid())
-  merchantId       String                    @map("merchant_id")
-  merchant         Merchant                  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  tillId           String?                   @map("till_id")
-  entryDate        DateTime                  @map("entry_date") @db.Date
-  livemode         Boolean                   @default(false)
-  status           ReconciliationDayStatus   @default(PENDING)
-  comment          String?
-  digitalCount     Int                       @default(0) @map("digital_count")
-  digitalAmount    BigInt                    @default(0) @map("digital_amount")
-  cashAmount       BigInt                    @default(0) @map("cash_amount")
-  currency         String                    @default("XAF")
-  statementLines   Int?                      @map("statement_lines")
-  statementAmount  BigInt?                   @map("statement_amount")
-  statementCsvKey  String?                   @map("statement_csv_key")
-  reviewedById     String?                   @map("reviewed_by_id")
-  reviewedBy       MerchantMember?           @relation("ReconciliationReviewer", fields: [reviewedById], references: [id])
-  reviewedAt       DateTime?                 @map("reviewed_at")
-  createdAt        DateTime                  @default(now()) @map("created_at")
-  updatedAt        DateTime                  @updatedAt @map("updated_at")
+  id              String                  @id @default(uuid())
+  merchantId      String                  @map("merchant_id")
+  merchant        Merchant                @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tillId          String?                 @map("till_id")
+  entryDate       DateTime                @map("entry_date") @db.Date
+  livemode        Boolean                 @default(false)
+  status          ReconciliationDayStatus @default(PENDING)
+  comment         String?
+  digitalCount    Int                     @default(0) @map("digital_count")
+  digitalAmount   BigInt                  @default(0) @map("digital_amount")
+  cashAmount      BigInt                  @default(0) @map("cash_amount")
+  currency        String                  @default("XAF")
+  statementLines  Int?                    @map("statement_lines")
+  statementAmount BigInt?                 @map("statement_amount")
+  statementCsvKey String?                 @map("statement_csv_key")
+  reviewedById    String?                 @map("reviewed_by_id")
+  reviewedBy      MerchantMember?         @relation("ReconciliationReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?               @map("reviewed_at")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
 
   @@index([merchantId, livemode, entryDate(sort: Desc)])
   @@map("reconciliation_days")
@@ -1134,30 +1131,56 @@ model KycCheck {
 // ─── Recouvrement : Clients (T-74, §M7) ──────────────────────────────────────
 
 model Customer {
-  id         String    @id @default(uuid())
-  merchantId String    @map("merchant_id")
-  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  name       String
-  email      String?
-  phone      String?
-  address    String?
-  metadata   Json      @default("{}")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  invoices   Invoice[]
+  id                String            @id @default(uuid())
+  merchantId        String            @map("merchant_id")
+  merchant          Merchant          @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name              String
+  email             String?
+  phone             String?
+  address           String?
+  notes             String?
+  // Mode test ou live (§4.6) : un client de test n'apparaît jamais en live.
+  livemode          Boolean           @default(false)
+  // Canaux des relances et reçus, dans l'ordre d'essai (§M7) ; bascule sur le suivant.
+  preferredChannels ReminderChannel[] @default([SMS]) @map("preferred_channels")
+  metadata          Json              @default("{}")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  invoices          Invoice[]
+  guardians         Guardian[]
 
-  @@index([merchantId, createdAt(sort: Desc)])
+  @@index([merchantId, livemode, createdAt(sort: Desc)])
   @@map("customers")
 }
 
 // ─── Compteur de factures par marchand ────────────────────────────────────────
 
-model InvoiceCounter {
-  merchantId String   @id @map("merchant_id")
+/// Numérotation sans trou par marchand, par type (invoice, receipt) et par mode (§M7).
+/// Incrémenté dans la même transaction que la création du document.
+model DocumentCounter {
+  merchantId String   @map("merchant_id")
   merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  kind       String
+  livemode   Boolean
   lastSeq    Int      @default(0) @map("last_seq")
 
-  @@map("invoice_counters")
+  @@id([merchantId, kind, livemode])
+  @@map("document_counters")
+}
+
+/// Réglages de recouvrement du marchand (§M7) : calendrier et plage horaire des relances.
+model RecoverySettings {
+  merchantId       String   @id @map("merchant_id")
+  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  // Jours par rapport à l'échéance (négatif = avant) ; défaut J-3, J0, J+3, J+7.
+  reminderOffsets  Int[]    @default([-3, 0, 3, 7]) @map("reminder_offsets")
+  remindersEnabled Boolean  @default(true) @map("reminders_enabled")
+  // Plage d'envoi, heures pleines à l'heure de Brazzaville (fin exclue).
+  sendFromHour     Int      @default(8) @map("send_from_hour")
+  sendUntilHour    Int      @default(19) @map("send_until_hour")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("recovery_settings")
 }
 
 // ─── Factures (T-74 / T-75, §M7) ─────────────────────────────────────────────
@@ -1172,36 +1195,43 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  merchantId    String        @map("merchant_id")
-  merchant      Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  customerId    String?       @map("customer_id")
-  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  livemode      Boolean       @default(false)
+  id            String               @id @default(uuid())
+  merchantId    String               @map("merchant_id")
+  merchant      Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customerId    String?              @map("customer_id")
+  customer      Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  livemode      Boolean              @default(false)
   number        String?
-  status        InvoiceStatus @default(DRAFT)
-  currency      String        @default("XAF")
-  subtotal      BigInt        @default(0)
-  taxAmount     BigInt        @default(0) @map("tax_amount")
-  total         BigInt        @default(0)
-  amountPaid    BigInt        @default(0) @map("amount_paid")
-  amountDue     BigInt        @default(0) @map("amount_due")
-  issueDate     DateTime      @default(now()) @map("issue_date") @db.Date
-  dueDate       DateTime?     @map("due_date") @db.Date
+  status        InvoiceStatus        @default(DRAFT)
+  currency      String               @default("XAF")
+  subtotal      BigInt               @default(0)
+  taxAmount     BigInt               @default(0) @map("tax_amount")
+  total         BigInt               @default(0)
+  amountPaid    BigInt               @default(0) @map("amount_paid")
+  amountDue     BigInt               @default(0) @map("amount_due")
+  issueDate     DateTime             @default(now()) @map("issue_date") @db.Date
+  dueDate       DateTime?            @map("due_date") @db.Date
   notes         String?
   footer        String?
-  paymentLinkId String?       @map("payment_link_id")
-  pdfKey        String?       @map("pdf_key")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  paymentLinkId String?              @unique @map("payment_link_id")
+  pdfKey        String?              @map("pdf_key")
+  // Facture de scolarité (§M8) : l'élève concerné.
+  studentId     String?              @map("student_id")
+  student       Student?             @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  sentAt        DateTime?            @map("sent_at")
+  paidAt        DateTime?            @map("paid_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
   lines         InvoiceLine[]
   installments  InvoiceInstallment[]
   reminders     InvoiceReminder[]
   receipts      Receipt[]
 
-  @@index([merchantId, createdAt(sort: Desc)])
+  @@unique([merchantId, livemode, number])
+  @@index([merchantId, livemode, createdAt(sort: Desc)])
   @@index([customerId, createdAt(sort: Desc)])
-  @@index([merchantId, status])
+  @@index([merchantId, livemode, status])
+  @@index([studentId])
   @@map("invoices")
 }
 
@@ -1226,17 +1256,23 @@ model InvoiceLine {
 // ─── Versements (T-75) ────────────────────────────────────────────────────────
 
 model InvoiceInstallment {
-  id            String            @id @default(uuid())
-  invoiceId     String            @map("invoice_id")
-  invoice       Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  dueDate       DateTime          @map("due_date") @db.Date
+  id            String               @id @default(uuid())
+  invoiceId     String               @map("invoice_id")
+  invoice       Invoice              @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  dueDate       DateTime             @map("due_date") @db.Date
   amount        BigInt
-  paidAmount    BigInt            @default(0) @map("paid_amount")
-  status        String            @default("PENDING")
-  paymentLinkId String?           @map("payment_link_id")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
+  paidAmount    BigInt               @default(0) @map("paid_amount")
+  // PENDING, PARTIAL, PAID, CANCELED
+  status        String               @default("PENDING")
+  position      Int                  @default(1)
+  label         String?
+  paymentLinkId String?              @unique @map("payment_link_id")
+  paidAt        DateTime?            @map("paid_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
   reminders     InvoiceReminder[]
+  receipts      Receipt[]
+  feeSchedules  StudentFeeSchedule[]
 
   @@index([invoiceId, dueDate])
   @@map("invoice_installments")
@@ -1258,41 +1294,48 @@ enum ReminderChannel {
 }
 
 model InvoiceReminder {
-  id             String              @id @default(uuid())
-  invoiceId      String              @map("invoice_id")
-  invoice        Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  installmentId  String?             @map("installment_id")
-  installment    InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
-  channel        ReminderChannel     @default(SMS)
-  status         ReminderStatus      @default(PENDING)
-  daysOffset     Int                 @map("days_offset")
-  scheduledFor   DateTime            @map("scheduled_for")
-  sentAt         DateTime?           @map("sent_at")
-  error          String?
-  createdAt      DateTime            @default(now()) @map("created_at")
+  id            String              @id @default(uuid())
+  invoiceId     String              @map("invoice_id")
+  invoice       Invoice             @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  installmentId String?             @map("installment_id")
+  installment   InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  channel       ReminderChannel     @default(SMS)
+  status        ReminderStatus      @default(PENDING)
+  daysOffset    Int                 @map("days_offset")
+  scheduledFor  DateTime            @map("scheduled_for")
+  sentAt        DateTime?           @map("sent_at")
+  error         String?
+  createdAt     DateTime            @default(now()) @map("created_at")
 
-  @@index([scheduledFor])
+  @@index([status, scheduledFor])
+  @@index([invoiceId, status])
   @@map("invoice_reminders")
 }
 
 // ─── Reçus (T-77) ─────────────────────────────────────────────────────────────
 
 model Receipt {
-  id            String    @id @default(uuid())
-  merchantId    String    @map("merchant_id")
-  merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  invoiceId     String?   @map("invoice_id")
-  invoice       Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  transactionId String?   @map("transaction_id")
+  id            String              @id @default(uuid())
+  merchantId    String              @map("merchant_id")
+  merchant      Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  invoiceId     String?             @map("invoice_id")
+  invoice       Invoice?            @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  installmentId String?             @map("installment_id")
+  installment   InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  // Un reçu par paiement réussi : un callback rejoué n'en crée pas un second.
+  transactionId String?             @unique @map("transaction_id")
   number        String
+  payerName     String?             @map("payer_name")
+  description   String?
   amount        BigInt
-  currency      String    @default("XAF")
-  livemode      Boolean   @default(false)
-  pdfKey        String?   @map("pdf_key")
-  sentAt        DateTime? @map("sent_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  currency      String              @default("XAF")
+  livemode      Boolean             @default(false)
+  pdfKey        String?             @map("pdf_key")
+  sentAt        DateTime?           @map("sent_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
 
-  @@index([merchantId, createdAt(sort: Desc)])
+  @@unique([merchantId, livemode, number])
+  @@index([merchantId, livemode, createdAt(sort: Desc)])
   @@map("receipts")
 }
 
@@ -1316,15 +1359,15 @@ model SchoolYear {
 }
 
 model SchoolClass {
-  id           String               @id @default(uuid())
-  schoolYearId String               @map("school_year_id")
-  schoolYear   SchoolYear           @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
-  merchantId   String               @map("merchant_id")
-  merchant     Merchant             @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  schoolYearId String     @map("school_year_id")
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  merchantId   String     @map("merchant_id")
+  merchant     Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   name         String
   capacity     Int?
-  createdAt    DateTime             @default(now()) @map("created_at")
-  updatedAt    DateTime             @updatedAt @map("updated_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
   students     Student[]
   feeGrids     FeeGrid[]
 
@@ -1348,24 +1391,28 @@ model Student {
   updatedAt      DateTime             @updatedAt @map("updated_at")
   guardians      Guardian[]
   feeSchedules   StudentFeeSchedule[]
+  invoices       Invoice[]
 
+  @@unique([merchantId, registrationNo])
   @@index([merchantId])
   @@index([schoolClassId])
   @@map("students")
 }
 
 model Guardian {
-  id         String   @id @default(uuid())
-  merchantId String   @map("merchant_id")
-  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  studentId  String   @map("student_id")
-  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  merchantId String    @map("merchant_id")
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  studentId  String    @map("student_id")
+  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   name       String
   phone      String?
   email      String?
   relation   String?
-  isPrimary  Boolean  @default(false) @map("is_primary")
-  createdAt  DateTime @default(now()) @map("created_at")
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  customerId String?   @map("customer_id")
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now()) @map("created_at")
 
   @@index([studentId])
   @@map("guardians")
@@ -1391,36 +1438,38 @@ model FeeGrid {
 }
 
 model FeeGridLine {
-  id          String               @id @default(uuid())
-  feeGridId   String               @map("fee_grid_id")
-  feeGrid     FeeGrid              @relation(fields: [feeGridId], references: [id], onDelete: Cascade)
-  label       String
-  amount      BigInt
-  dueDate     DateTime?            @map("due_date") @db.Date
-  sortOrder   Int                  @default(0) @map("sort_order")
-  schedules   StudentFeeSchedule[]
+  id        String               @id @default(uuid())
+  feeGridId String               @map("fee_grid_id")
+  feeGrid   FeeGrid              @relation(fields: [feeGridId], references: [id], onDelete: Cascade)
+  label     String
+  amount    BigInt
+  dueDate   DateTime?            @map("due_date") @db.Date
+  sortOrder Int                  @default(0) @map("sort_order")
+  schedules StudentFeeSchedule[]
 
   @@index([feeGridId, sortOrder])
   @@map("fee_grid_lines")
 }
 
 model StudentFeeSchedule {
-  id             String      @id @default(uuid())
-  merchantId     String      @map("merchant_id")
-  merchant       Merchant    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  studentId      String      @map("student_id")
-  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  feeGridLineId  String      @map("fee_grid_line_id")
-  feeGridLine    FeeGridLine @relation(fields: [feeGridLineId], references: [id])
-  invoiceId      String?     @map("invoice_id")
-  amount         BigInt
-  amountPaid     BigInt      @default(0) @map("amount_paid")
-  dueDate        DateTime?   @map("due_date") @db.Date
-  status         String      @default("PENDING")
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
+  id            String              @id @default(uuid())
+  merchantId    String              @map("merchant_id")
+  merchant      Merchant            @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  studentId     String              @map("student_id")
+  student       Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeGridLineId String              @map("fee_grid_line_id")
+  feeGridLine   FeeGridLine         @relation(fields: [feeGridLineId], references: [id])
+  invoiceId     String?             @map("invoice_id")
+  installmentId String?             @map("installment_id")
+  installment   InvoiceInstallment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  amount        BigInt
+  amountPaid    BigInt              @default(0) @map("amount_paid")
+  dueDate       DateTime?           @map("due_date") @db.Date
+  status        String              @default("PENDING")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
 
-  @@index([studentId])
+  @@unique([studentId, feeGridLineId])
   @@index([merchantId, status])
   @@map("student_fee_schedules")
 }
@@ -1428,22 +1477,22 @@ model StudentFeeSchedule {
 // ─── Facturation interne (T-81, §M11) ────────────────────────────────────────
 
 model BillingPlan {
-  id              String         @id @default(uuid())
-  code            String         @unique
-  label           String
-  priceMonthly    BigInt         @default(0) @map("price_monthly")
-  priceYearly     BigInt         @default(0) @map("price_yearly")
-  currency        String         @default("XAF")
-  includedModules String[]       @map("included_modules")
-  includedCredits Int            @default(0) @map("included_credits")
+  id                     String         @id @default(uuid())
+  code                   String         @unique
+  label                  String
+  priceMonthly           BigInt         @default(0) @map("price_monthly")
+  priceYearly            BigInt         @default(0) @map("price_yearly")
+  currency               String         @default("XAF")
+  includedModules        String[]       @map("included_modules")
+  includedCredits        Int            @default(0) @map("included_credits")
   // Limites du palier (§M11) ; null = sans limite.
-  maxStores       Int?           @map("max_stores")
-  maxTills        Int?           @map("max_tills")
-  maxMonthlyTransactions Int?    @map("max_monthly_transactions")
-  isActive        Boolean        @default(true) @map("is_active")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  subscriptions   Subscription[]
+  maxStores              Int?           @map("max_stores")
+  maxTills               Int?           @map("max_tills")
+  maxMonthlyTransactions Int?           @map("max_monthly_transactions")
+  isActive               Boolean        @default(true) @map("is_active")
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+  subscriptions          Subscription[]
 
   @@map("billing_plans")
 }
@@ -1457,42 +1506,42 @@ enum SubscriptionStatus {
 }
 
 model Subscription {
-  id            String             @id @default(uuid())
-  merchantId    String             @unique @map("merchant_id")
-  merchant      Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  planId        String             @map("plan_id")
-  plan          BillingPlan        @relation(fields: [planId], references: [id])
-  status        SubscriptionStatus @default(TRIAL)
-  periodStart   DateTime           @map("period_start") @db.Date
-  periodEnd     DateTime           @map("period_end") @db.Date
-  canceledAt    DateTime?          @map("canceled_at")
-  createdAt     DateTime           @default(now()) @map("created_at")
-  updatedAt     DateTime           @updatedAt @map("updated_at")
-  apInvoices    AlphapayInvoice[]
+  id          String             @id @default(uuid())
+  merchantId  String             @unique @map("merchant_id")
+  merchant    Merchant           @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  planId      String             @map("plan_id")
+  plan        BillingPlan        @relation(fields: [planId], references: [id])
+  status      SubscriptionStatus @default(TRIAL)
+  periodStart DateTime           @map("period_start") @db.Date
+  periodEnd   DateTime           @map("period_end") @db.Date
+  canceledAt  DateTime?          @map("canceled_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  apInvoices  AlphapayInvoice[]
 
   @@map("subscriptions")
 }
 
 model AlphapayInvoice {
-  id             String       @id @default(uuid())
-  merchantId     String       @map("merchant_id")
-  merchant       Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  subscriptionId String?      @map("subscription_id")
+  id             String        @id @default(uuid())
+  merchantId     String        @map("merchant_id")
+  merchant       Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  subscriptionId String?       @map("subscription_id")
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   amount         BigInt
-  currency       String       @default("XAF")
-  status         String       @default("PENDING")
+  currency       String        @default("XAF")
+  status         String        @default("PENDING")
   // SUBSCRIPTION (palier, planId) ou CREDIT_PACK (creditPackId).
-  kind           String       @default("SUBSCRIPTION")
-  planId         String?      @map("plan_id")
-  creditPackId   String?      @map("credit_pack_id")
+  kind           String        @default("SUBSCRIPTION")
+  planId         String?       @map("plan_id")
+  creditPackId   String?       @map("credit_pack_id")
   // Payée par un lien de paiement sur le compte marchand d'AlphaPay (§M11).
-  paymentLinkId  String?      @unique @map("payment_link_id")
-  transactionId  String?      @map("transaction_id")
-  dueDate        DateTime     @map("due_date") @db.Date
-  paidAt         DateTime?    @map("paid_at")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  paymentLinkId  String?       @unique @map("payment_link_id")
+  transactionId  String?       @map("transaction_id")
+  dueDate        DateTime      @map("due_date") @db.Date
+  paidAt         DateTime?     @map("paid_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
   @@index([merchantId, createdAt(sort: Desc)])
   @@map("alphapay_invoices")
@@ -1522,32 +1571,32 @@ enum StaffRole {
 }
 
 model StaffUser {
-  id             String           @id @default(uuid())
-  email          String           @unique
-  displayName    String           @map("display_name")
-  role           StaffRole        @default(SUPPORT)
-  passwordHash   String           @map("password_hash")
-  totpSecretEnc  String?          @map("totp_secret_enc")
-  totpEnabled    Boolean          @default(false) @map("totp_enabled")
-  isActive       Boolean          @default(true) @map("is_active")
-  lastLoginAt    DateTime?        @map("last_login_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-  sessions       StaffSession[]
-  accessLogs     StaffAccessLog[]
+  id            String           @id @default(uuid())
+  email         String           @unique
+  displayName   String           @map("display_name")
+  role          StaffRole        @default(SUPPORT)
+  passwordHash  String           @map("password_hash")
+  totpSecretEnc String?          @map("totp_secret_enc")
+  totpEnabled   Boolean          @default(false) @map("totp_enabled")
+  isActive      Boolean          @default(true) @map("is_active")
+  lastLoginAt   DateTime?        @map("last_login_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  sessions      StaffSession[]
+  accessLogs    StaffAccessLog[]
 
   @@map("staff_users")
 }
 
 model StaffSession {
-  id          String    @id @default(uuid())
-  staffId     String    @map("staff_id")
-  staff       StaffUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  tokenHash   String    @unique @map("token_hash")
-  ip          String?
-  userAgent   String?   @map("user_agent")
-  expiresAt   DateTime  @map("expires_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  staffId   String    @map("staff_id")
+  staff     StaffUser @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  ip        String?
+  userAgent String?   @map("user_agent")
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@index([staffId])
   @@index([expiresAt])
@@ -1568,4 +1617,3 @@ model StaffAccessLog {
   @@index([targetId, createdAt(sort: Desc)])
   @@map("staff_access_log")
 }
-

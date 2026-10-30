@@ -1,49 +1,95 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClient } from '@paybrain/database';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { Customer, PrismaClient, ReminderChannel } from '@paybrain/database';
+import { toE164 } from '@paybrain/shared';
+import { ApiError } from '../../common/errors/api-error';
+import { afterCursor, decodeCursor, page } from '../../common/pagination/cursor';
+import { CreateCustomerDto, PublicChannel, UpdateCustomerDto } from './invoicing.dto';
 
-export interface CreateCustomerDto {
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  metadata?: Record<string, unknown>;
+export function toChannels(channels?: PublicChannel[]): ReminderChannel[] | undefined {
+  return channels?.map((c) => c.toUpperCase() as ReminderChannel);
 }
 
+export function presentCustomer(c: Customer) {
+  return {
+    id: c.id,
+    object: 'customer',
+    livemode: c.livemode,
+    name: c.name,
+    phone: c.phone,
+    email: c.email,
+    address: c.address,
+    notes: c.notes,
+    channels: c.preferredChannels.map((ch) => ch.toLowerCase()),
+    created_at: c.createdAt,
+  };
+}
+
+/** Clients du marchand (§M7) : destinataires des factures, relances et reçus. */
 @Injectable()
 export class CustomersService {
   constructor(@Inject('PRISMA') private readonly prisma: PrismaClient) {}
 
-  create(merchantId: string, dto: CreateCustomerDto) {
-    return this.prisma.customer.create({
-      data: { merchantId, ...dto, metadata: (dto.metadata ?? {}) as any },
+  async create(merchantId: string, livemode: boolean, dto: CreateCustomerDto) {
+    const c = await this.prisma.customer.create({
+      data: {
+        merchantId,
+        livemode,
+        name: dto.name.trim(),
+        phone: dto.phone ? toE164(dto.phone) : null,
+        email: dto.email?.trim().toLowerCase() ?? null,
+        address: dto.address ?? null,
+        notes: dto.notes ?? null,
+        preferredChannels: toChannels(dto.channels) ?? (dto.phone ? ['SMS'] : dto.email ? ['EMAIL'] : ['SMS']),
+      },
     });
+    return presentCustomer(c);
   }
 
-  list(merchantId: string, cursor?: string, limit = 25) {
-    return this.prisma.customer.findMany({
-      where: { merchantId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+  async list(merchantId: string, livemode: boolean, limit: number, startingAfter?: string, q?: string) {
+    const rows = await this.prisma.customer.findMany({
+      where: {
+        merchantId,
+        livemode,
+        ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { phone: { contains: q } }, { email: { contains: q, mode: 'insensitive' } }] } : {}),
+        ...afterCursor(decodeCursor(startingAfter)),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
+    return page(rows, limit, presentCustomer);
   }
 
-  async get(merchantId: string, customerId: string) {
-    const c = await this.prisma.customer.findFirst({ where: { id: customerId, merchantId } });
-    if (!c) throw new NotFoundException('Client introuvable');
+  async find(merchantId: string, livemode: boolean, id: string): Promise<Customer> {
+    const c = await this.prisma.customer.findFirst({ where: { id, merchantId, livemode } });
+    if (!c) throw new ApiError(HttpStatus.NOT_FOUND, 'client_introuvable', 'Client introuvable', 'customer_id');
     return c;
   }
 
-  async update(merchantId: string, customerId: string, dto: Partial<CreateCustomerDto>) {
-    await this.get(merchantId, customerId);
-    return this.prisma.customer.update({
-      where: { id: customerId },
-      data: dto as any,
-    });
+  async get(merchantId: string, livemode: boolean, id: string) {
+    return presentCustomer(await this.find(merchantId, livemode, id));
   }
 
-  async remove(merchantId: string, customerId: string) {
-    await this.get(merchantId, customerId);
-    await this.prisma.customer.delete({ where: { id: customerId } });
+  async update(merchantId: string, livemode: boolean, id: string, dto: UpdateCustomerDto) {
+    await this.find(merchantId, livemode, id);
+    const c = await this.prisma.customer.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone ? toE164(dto.phone) : null } : {}),
+        ...(dto.email !== undefined ? { email: dto.email ? dto.email.trim().toLowerCase() : null } : {}),
+        ...(dto.address !== undefined ? { address: dto.address } : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        ...(dto.channels ? { preferredChannels: toChannels(dto.channels) } : {}),
+      },
+    });
+    return presentCustomer(c);
+  }
+
+  /** Un client qui a des factures ouvertes reste : on ne perd pas le destinataire des relances. */
+  async remove(merchantId: string, livemode: boolean, id: string): Promise<void> {
+    await this.find(merchantId, livemode, id);
+    const open = await this.prisma.invoice.count({ where: { customerId: id, status: { in: ['SENT', 'PARTIAL', 'OVERDUE'] } } });
+    if (open > 0) throw new ApiError(HttpStatus.CONFLICT, 'client_factures_ouvertes', 'Ce client a des factures en cours : annulez-les ou attendez leur paiement');
+    await this.prisma.customer.delete({ where: { id } });
   }
 }

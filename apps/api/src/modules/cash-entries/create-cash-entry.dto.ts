@@ -1,9 +1,9 @@
-import { IsDateString, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateCashEntryDto {
   /** Montant en unités mineures (XAF = francs entiers). */
   @IsInt()
-  @Min(0)
+  @Min(1)
   amount!: number;
 
   @IsOptional()
@@ -22,6 +22,6 @@ export class CreateCashEntryDto {
   note?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   till_id?: string;
 }
