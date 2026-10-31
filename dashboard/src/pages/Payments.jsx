@@ -178,7 +178,8 @@ export default function Payments() {
                 [tr('payments.detail.status'), <Pill key="s" status={detail.status} label={tr(`status.${detail.status}`)} />],
                 [tr('payments.detail.reference'), detail.reference],
                 [tr('payments.detail.operator'), OPERATORS[detail.operator] ?? detail.operator],
-                [tr('payments.detail.payer'), detail.payer_phone ?? '—'],
+                detail.card ? [tr('payments.detail.card'), `${detail.card.brand ?? ''} •••• ${detail.card.last4 ?? ''}`] : [tr('payments.detail.payer'), detail.payer_phone ?? '—'],
+                ...(detail.amount_refunded ? [[tr('payments.detail.refunded'), `${detail.amount_refunded.toLocaleString('fr-FR')} ${detail.currency}`]] : []),
                 [tr('payments.detail.till'), tillName(detail.till_id) ?? tr('payments.noTill')],
                 [tr('payments.detail.description'), detail.description ?? '—'],
                 [tr('payments.detail.providerRef'), detail.provider_reference ?? '—'],
@@ -191,6 +192,7 @@ export default function Payments() {
                 </div>
               ))}
             </Card>
+            <RefundsAndDisputes detail={detail} base={base} mode={mode} onChange={() => open(detail)} />
             <h3 style={{ fontSize: 14, fontWeight: 800, margin: '16px 0 8px' }}>{tr('payments.detail.history')}</h3>
             <Card>
               {detail.audit_trail.map((a, i) => (
@@ -203,6 +205,98 @@ export default function Payments() {
         )}
       </Drawer>
     </div>
+  )
+}
+
+/**
+ * Remboursements et litiges d'un paiement (§M13). Carte : remboursé par
+ * l'acquéreur. Mobile Money : l'opérateur n'offre pas de remboursement par
+ * API, le marchand rembourse depuis son compte puis le déclare ici.
+ */
+function RefundsAndDisputes({ detail, base, mode, onChange }) {
+  const { t } = useTheme()
+  const { t: tr } = useT()
+  const [amount, setAmount] = useState('')
+  const [reason, setReason] = useState('')
+  const [evidence, setEvidence] = useState('')
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const card = detail.payment_method === 'card'
+  const open = (detail.disputes ?? []).find((d) => d.status === 'OPEN')
+
+  const run = async (fn) => {
+    setBusy(true)
+    setError(null)
+    try {
+      await fn()
+      setAmount('')
+      setReason('')
+      setEvidence('')
+      onChange()
+    } catch (err) {
+      setError(errorMessage(err, tr('auth.error.generic')))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const refund = (e) => {
+    e.preventDefault()
+    if (!card && !window.confirm(tr('refunds.manualConfirm'))) return
+    run(() => authApi.post(`${base}/payments/${detail.id}/refunds`, { reason, ...(amount ? { amount: parseInt(amount, 10) } : {}), ...(card ? {} : { manual: true }) }, { params: { mode } }))
+  }
+  const sendEvidence = (e) => {
+    e.preventDefault()
+    run(() => authApi.post(`${base}/disputes/${open.id}/evidence`, { evidence }, { params: { mode } }))
+  }
+
+  if (!detail.refunds?.length && !detail.disputes?.length && !detail.can_refund) return null
+  return (
+    <>
+      {(detail.disputes ?? []).length > 0 && (
+        <>
+          <h3 style={{ fontSize: 14, fontWeight: 800, margin: '16px 0 8px' }}>{tr('disputes.title')}</h3>
+          <Card style={{ marginBottom: 12 }}>
+            {detail.disputes.map((d) => (
+              <div key={d.id} style={{ fontSize: 13, padding: '6px 0' }}>
+                <strong>{tr(`disputes.status.${d.status}`)}</strong> · {d.amount.toLocaleString('fr-FR')} {detail.currency} · {d.reason}
+                {d.evidence_due_at && d.status === 'OPEN' && <span style={{ color: '#dc2626' }}> · {fmt(tr('disputes.due'), { date: dateTime(d.evidence_due_at) })}</span>}
+              </div>
+            ))}
+            {open && (
+              <form onSubmit={sendEvidence} style={{ marginTop: 8 }}>
+                <Field label={tr('disputes.evidence')}>
+                  <textarea value={evidence} onChange={(e) => setEvidence(e.target.value)} rows={4}
+                    style={{ width: '100%', boxSizing: 'border-box', borderRadius: 10, border: `1px solid ${t.border}`, padding: 10, font: 'inherit', background: t.surface, color: t.text }} />
+                </Field>
+                <Button type="submit" disabled={busy || evidence.trim().length < 10}>{tr('disputes.send')}</Button>
+              </form>
+            )}
+          </Card>
+        </>
+      )}
+      <h3 style={{ fontSize: 14, fontWeight: 800, margin: '16px 0 8px' }}>{tr('refunds.title')}</h3>
+      <Card style={{ marginBottom: 12 }}>
+        {(detail.refunds ?? []).map((r) => (
+          <div key={r.id} style={{ display: 'flex', gap: 8, fontSize: 13, padding: '6px 0' }}>
+            <span style={{ flex: 1 }}>{r.amount_display} · {r.reason}{r.method === 'manual' ? ` · ${tr('refunds.declared')}` : ''}</span>
+            <Pill status={r.status} label={tr(`status.${r.status}`)} />
+          </div>
+        ))}
+        {detail.can_refund && !open && (
+          <form onSubmit={refund} style={{ marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: t.textMuted, margin: '0 0 8px' }}>{tr(card ? 'refunds.cardHint' : 'refunds.momoHint')}</p>
+            <Field label={tr('refunds.amount')}>
+              <Input inputMode="numeric" placeholder={tr('refunds.amountAll')} value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} />
+            </Field>
+            <Field label={tr('refunds.reason')}>
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+            </Field>
+            <Button type="submit" disabled={busy || reason.trim().length < 3}>{tr(card ? 'refunds.submit' : 'refunds.declare')}</Button>
+          </form>
+        )}
+        <ErrorBox error={error} />
+      </Card>
+    </>
   )
 }
 

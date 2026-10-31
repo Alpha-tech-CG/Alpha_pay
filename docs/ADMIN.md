@@ -75,6 +75,10 @@ Cas fréquents :
   saisi à la main) ; le marchand et ses webhooks sont notifiés.
 - **« La demande n'est jamais arrivée sur le téléphone »** : une demande opérateur en
   échec définitif (`DEAD`) se *relance* avec un motif.
+- **« Le client a été remboursé ? »** : le parcours montre les remboursements (par
+  la banque partenaire pour la carte, déclarés par le marchand pour le Mobile Money)
+  et les litiges carte avec les preuves envoyées. Le remboursement se fait par le
+  marchand, jamais par un agent : l'argent est sur son compte.
 - **« Mon serveur n'a pas reçu le webhook »** : *Renvoyer* la livraison (même
   événement, même identifiant) ; dans l'onglet Développeurs, *Tester* l'endpoint. La
   réponse HTTP du serveur du client s'affiche.
@@ -149,3 +153,11 @@ obligatoire). Conduite à tenir : `RUNBOOK.md`.
 Écran **Journal d'audit** : toutes les actions de tous les auteurs (personnel,
 utilisateurs marchands, clés API, système), filtrables par début d'action
 (`support.`, `merchant.`, `auth.`…) et par auteur.
+
+## Alertes d'exploitation
+
+Toutes les 5 minutes, les indicateurs de l'écran Santé sont comparés à des seuils
+(`OPS_ALERT_*`) ; ce qui dépasse part par email à `OPS_EMAIL`, une fois par heure au
+plus pour un même problème : paiements live bloqués, demandes opérateur en échec,
+files de tâches en échec ou Redis injoignable, taux d'échec d'un opérateur sur
+l'heure, webhooks et messages en échec, litiges carte proches de l'échéance.

@@ -39,7 +39,7 @@ describe('PaymentStatusPoller', () => {
     };
     queue = new InMemoryJobQueue();
     const mock = new MockMobileMoneyProvider({ now: () => now });
-    payments = new PaymentsService(prisma, { forMerchant: jest.fn().mockResolvedValue(mock) } as any, queue);
+    payments = new PaymentsService(prisma, { forMerchant: jest.fn().mockResolvedValue(mock) } as any, queue, {} as any);
     webhooks = {
       applyVerifiedStatus: jest.fn(async (tx, status) => {
         tx.status = status;

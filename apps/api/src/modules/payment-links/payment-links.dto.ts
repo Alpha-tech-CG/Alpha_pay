@@ -49,6 +49,14 @@ export class SendPaymentLinkDto {
 }
 
 /** Paiement depuis la page hébergée (public). */
+/** Paiement par carte d'un lien : seul le montant d'un lien libre est demandé. */
+export class PayLinkCardDto {
+  @ApiPropertyOptional({ description: 'Requis si le lien est à montant libre' })
+  @IsOptional()
+  @IsInt({ message: 'amount doit être un entier (pas de décimale)' })
+  amount?: number;
+}
+
 export class PayLinkDto {
   @ApiProperty({ example: '+242061234567' })
   @IsE164Phone()

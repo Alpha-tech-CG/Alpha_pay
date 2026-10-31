@@ -87,7 +87,7 @@ export function describeEmailContract(name: string, make: () => { provider: Emai
 /** Contrat commun des acquéreurs carte (page hébergée partenaire). */
 export function describeCardContract(
   name: string,
-  make: () => { acquirer: CardAcquirer; complete(sessionId: string, outcome: 'succeeded' | 'failed' | 'canceled'): IncomingRequest },
+  make: () => { acquirer: CardAcquirer; complete(sessionId: string, outcome: 'succeeded' | 'failed' | 'canceled'): Promise<IncomingRequest> },
 ): void {
   describe(`Contrat CardAcquirer — ${name}`, () => {
     const input = { amount: 25_000, currency: 'XAF', reference: 'ap_card_1', returnUrl: 'https://ex.cg/ok', cancelUrl: 'https://ex.cg/ko' };
@@ -103,18 +103,28 @@ export function describeCardContract(
     it.each(['succeeded', 'failed', 'canceled'] as const)('le retour %s est lu par webhook signé et par statut', async (outcome) => {
       const h = make();
       const s = await h.acquirer.createSession(input);
-      const parsed = h.acquirer.parseWebhook(h.complete(s.sessionId, outcome));
-      expect(parsed).toEqual(expect.objectContaining({ providerRef: s.sessionId, status: outcome }));
+      const parsed = h.acquirer.parseWebhook(await h.complete(s.sessionId, outcome));
+      expect(parsed).toEqual({ type: 'payment', payment: expect.objectContaining({ providerRef: s.sessionId, status: outcome }) });
       expect((await h.acquirer.getSessionStatus(s.sessionId)).status).toBe(outcome);
     });
 
     it('rejette un webhook altéré', async () => {
       const h = make();
       const s = await h.acquirer.createSession(input);
-      const req = h.complete(s.sessionId, 'failed');
+      const req = await h.complete(s.sessionId, 'failed');
       expect(() => h.acquirer.parseWebhook({ ...req, rawBody: req.rawBody!.replace('failed', 'succeeded') })).toThrow(
         expect.objectContaining({ code: 'invalid_signature' }),
       );
+    });
+
+    it('rembourse au plus le montant payé, sans doublon sur une même référence', async () => {
+      const h = make();
+      const s = await h.acquirer.createSession(input);
+      await h.complete(s.sessionId, 'succeeded');
+      const first = await h.acquirer.refund({ sessionId: s.sessionId, amount: 10_000, currency: 'XAF', reference: 'rf_1' });
+      expect(first.status).toBe('succeeded');
+      expect(await h.acquirer.refund({ sessionId: s.sessionId, amount: 10_000, currency: 'XAF', reference: 'rf_1' })).toEqual(first);
+      expect((await h.acquirer.refund({ sessionId: s.sessionId, amount: 20_000, currency: 'XAF', reference: 'rf_2' })).status).toBe('failed');
     });
   });
 }

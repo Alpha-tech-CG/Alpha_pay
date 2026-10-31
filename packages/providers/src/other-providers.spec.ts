@@ -23,6 +23,18 @@ describeCardContract('mock', () => {
   return { acquirer, complete: (id, outcome) => acquirer.complete(id, outcome) };
 });
 
+describe('Carte factice — carte refusée et marque', () => {
+  it('le numéro de test refusé échoue ; seuls la marque et les 4 derniers chiffres sont gardés', async () => {
+    const acquirer = new MockCardAcquirer({ webhookSecret: 's' });
+    const a = await acquirer.createSession({ amount: 1000, currency: 'XAF', reference: 'a', returnUrl: 'https://a', cancelUrl: 'https://b' });
+    await acquirer.complete(a.sessionId, 'succeeded', '4000 0000 0000 0002');
+    expect(await acquirer.getSessionStatus(a.sessionId)).toEqual({ status: 'failed', failureReason: 'CARD_DECLINED', card: { brand: 'visa', last4: '0002' } });
+    const b = await acquirer.createSession({ amount: 1000, currency: 'XAF', reference: 'b', returnUrl: 'https://a', cancelUrl: 'https://b' });
+    await acquirer.complete(b.sessionId, 'succeeded', '5555555555554444');
+    expect(JSON.stringify(await acquirer.getSessionStatus(b.sessionId))).not.toContain('555555555555');
+  });
+});
+
 describe('KYC factice — règles de décision', () => {
   it.each([
     ['Mabiala', 'approved'],

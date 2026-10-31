@@ -23,6 +23,12 @@ class PayTillDto {
   operator?: 'MTN' | 'AIRTEL';
 }
 
+class PayTillCardDto {
+  @ApiProperty({ example: 2500 })
+  @IsInt({ message: 'amount doit être un entier (pas de décimale)' })
+  amount!: number;
+}
+
 /** Fichiers de la page hébergée, lus une fois (copiés dans dist par nest-cli « assets »). */
 const PAGE_DIR = join(__dirname, 'public');
 let cache: { html: string; js: string } | undefined;
@@ -46,6 +52,12 @@ export class CheckoutApiController {
   @HttpCode(201)
   payTill(@Param('code') code: string, @Body() dto: PayTillDto) {
     return this.checkout.payTill(code, dto);
+  }
+
+  @Post('tills/:code/pay-card')
+  @HttpCode(201)
+  payTillCard(@Param('code') code: string, @Body() dto: PayTillCardDto) {
+    return this.checkout.payTillCard(code, dto);
   }
 
   @Get('payments/:id')

@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { TeamAuthModule } from '../team/auth/team-auth.module';
 import { MOBILE_MONEY_HTTP, MobileMoneyRegistry, TOKEN_CACHE } from './mobile-money.registry';
+import { CardAcquirerRegistry } from './card-acquirer.registry';
 import { ProviderConnectionsController } from './provider-connections.controller';
 import { ProviderConnectionsService } from './provider-connections.service';
 import { createTokenCache } from './redis-token-cache';
@@ -14,8 +15,9 @@ import { createTokenCache } from './redis-token-cache';
     { provide: TOKEN_CACHE, useFactory: createTokenCache },
     { provide: MOBILE_MONEY_HTTP, useValue: null },
     MobileMoneyRegistry,
+    CardAcquirerRegistry,
     ProviderConnectionsService,
   ],
-  exports: [MobileMoneyRegistry],
+  exports: [MobileMoneyRegistry, CardAcquirerRegistry],
 })
 export class ProvidersModule {}

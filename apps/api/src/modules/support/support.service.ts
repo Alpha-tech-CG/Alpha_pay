@@ -100,6 +100,8 @@ export class SupportService {
         audits: { orderBy: { createdAt: 'asc' } },
         outboxEvents: { orderBy: { createdAt: 'asc' } },
         webhookLogs: { orderBy: { processedAt: 'asc' }, select: { id: true, event: true, processedAt: true } },
+        refunds: { orderBy: { createdAt: 'asc' } },
+        disputes: { orderBy: { createdAt: 'asc' } },
       },
     });
     if (!tx) throw new NotFoundException('Paiement introuvable');
@@ -117,6 +119,10 @@ export class SupportService {
       till_id: tx.tillId,
       payment_link_id: tx.paymentLinkId,
       updated_at: tx.updatedAt,
+      card: tx.operator === 'CARD' ? { brand: tx.cardBrand, last4: tx.cardLast4 } : null,
+      amount_refunded: money(tx.amountRefunded, tx.currency),
+      refunds: tx.refunds.map((r) => ({ id: r.id, ...money(r.amount, r.currency), reason: r.reason, method: r.method, status: r.status, failure_reason: r.failureReason, actor_type: r.actorType, created_at: r.createdAt })),
+      disputes: tx.disputes.map((d) => ({ id: d.id, ...money(d.amount, d.currency), reason: d.reason, status: d.status, evidence_due_at: d.evidenceDueAt, evidence: d.evidenceText, created_at: d.createdAt })),
       stuck: tx.status === 'PENDING' && Date.now() - tx.createdAt.getTime() > STUCK_MS,
       history: tx.audits.map((a) => ({ from: a.fromStatus, to: a.toStatus, reason: a.reason, at: a.createdAt })),
       operator_requests: tx.outboxEvents.map((e) => ({ id: e.id, type: e.type, status: e.status, attempts: e.attempts, last_error: e.lastError, next_attempt_at: e.nextAttemptAt })),

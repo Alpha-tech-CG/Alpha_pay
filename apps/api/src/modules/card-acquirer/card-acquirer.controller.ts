@@ -1,92 +1,120 @@
-import { mockPagesAllowed } from '../../common/config/deployment';
-import {
-  Body, Controller, Get, Header, HttpCode, HttpStatus, NotFoundException,
-  Param, Post, Query, Req, UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, NotFoundException, Param, Post, Req, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
-import { SessionGuard } from '../auth/session.guard';
-import { RequireMemberGuard } from '../team/auth/require-member.guard';
-import { can } from '../team/permissions/permissions';
-import { CardAcquirerService, cardPaymentsEnabled } from './card-acquirer.service';
+import { mockPagesAllowed } from '../../common/config/deployment';
+import { formatAmount } from '../../common/money';
+import { CardAcquirerRegistry, cardPaymentsEnabled } from '../providers/card-acquirer.registry';
+import { isValidCallbackToken } from '../providers/callback-token';
+import { CardEventsService } from './card-events.service';
 
-function assertEnabled() {
-  if (!cardPaymentsEnabled()) throw new NotFoundException();
+const esc = (v: unknown) =>
+  String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+function incoming(req: any) {
+  return { headers: req.headers, body: req.body, rawBody: req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body ?? {}) };
 }
 
 /**
- * Paiements carte (T-95) — derrière FEATURE_CARD_PAYMENTS=true.
- * Tous les endpoints lèvent 404 quand la feature est désactivée :
- * aucune trace d'existence dans les réponses de production.
+ * Webhooks de l'acquéreur carte (§M13). Acquéreur réel : URL secrète propre à
+ * la connexion du marchand (comme D-041) en plus de la signature du
+ * partenaire. Acquéreur factice : `/webhooks/card/mock`, hors production.
  */
-@Controller('v1/merchants/:merchantId/card')
-@UseGuards(SessionGuard, RequireMemberGuard)
-export class CardAcquirerController {
-  constructor(private readonly acquirer: CardAcquirerService) {}
+@ApiExcludeController()
+@Controller('webhooks/card')
+export class CardWebhooksController {
+  constructor(
+    private readonly cards: CardAcquirerRegistry,
+    private readonly events: CardEventsService,
+  ) {}
 
-  @Post('sessions')
-  @HttpCode(HttpStatus.CREATED)
-  async createSession(
-    @Req() req: any,
-    @Param('merchantId') merchantId: string,
-    @Body() body: { amount: number; currency: string; reference: string; return_url: string },
-  ) {
-    assertEnabled();
-    if (!can(req.membership, 'payments:collect')) throw new NotFoundException();
-    return this.acquirer.createSession({
-      merchantId,
-      amount: body.amount,
-      currency: body.currency,
-      reference: body.reference,
-      returnUrl: body.return_url,
-    });
+  @Post('mock')
+  @HttpCode(200)
+  mock(@Req() req: any) {
+    if (!mockPagesAllowed()) throw new NotFoundException();
+    return this.events.handle(this.cards.mock, incoming(req));
+  }
+
+  @Post(':connectionId/:token')
+  @HttpCode(200)
+  async partner(@Param('connectionId') connectionId: string, @Param('token') token: string, @Req() req: any) {
+    if (!cardPaymentsEnabled() || !isValidCallbackToken(connectionId, token)) throw new NotFoundException();
+    const resolved = await this.cards.forConnection(connectionId);
+    if (!resolved) throw new NotFoundException();
+    return this.events.handle(resolved.acquirer, incoming(req), { merchantId: resolved.merchantId, livemode: resolved.livemode });
   }
 }
 
 /**
- * Page mock acquéreur (développement uniquement).
- * Absente si CARD_ACQUIRER_MOCK != true ou si NODE_ENV = production.
+ * Page de l'acquéreur factice (test et préproduction seulement) : imite la
+ * page hébergée d'un partenaire. Le numéro saisi choisit la marque et l'issue
+ * (4000 0000 0000 0002 = refusée) ; il n'est jamais conservé.
  */
 @ApiExcludeController()
 @Controller('mock/card')
 export class MockCardController {
-  constructor(private readonly acquirer: CardAcquirerService) {}
+  constructor(
+    private readonly cards: CardAcquirerRegistry,
+    private readonly events: CardEventsService,
+  ) {}
 
   private assertMock() {
-    if (!mockPagesAllowed() || !this.acquirer.isMock()) throw new NotFoundException();
+    if (!mockPagesAllowed() || !cardPaymentsEnabled()) throw new NotFoundException();
   }
 
   @Get(':sessionId')
   @Header('Content-Type', 'text/html; charset=utf-8')
-  page(
-    @Param('sessionId') sessionId: string,
-    @Query('amount') amount: string,
-    @Query('currency') currency: string,
-    @Query('ref') ref: string,
-    @Query('return') returnUrl: string,
-  ) {
+  @Header('Cache-Control', 'no-store')
+  async page(@Param('sessionId') sessionId: string) {
     this.assertMock();
-    const sid = sessionId.replace(/[^A-Za-z0-9]/g, '');
-    const amt = (parseInt(amount) / 100).toFixed(2);
-    return `<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Paiement carte (test)</title>
-<body style="font-family:system-ui;max-width:420px;margin:40px auto;padding:0 16px;color:#0B1E3D">
-<h1 style="font-size:20px">Paiement carte — mode test</h1>
-<p>Session : <code>${sid}</code><br>Montant : <b>${amt} ${currency ?? 'XAF'}</b><br>Réf : ${ref}</p>
-<form method="post" action="/mock/card/${sid}/pay">
-  <input type="hidden" name="return_url" value="${encodeURIComponent(returnUrl ?? '')}">
-  <p><label>N° carte (test) : <input name="card" value="4111111111111111" style="width:200px"></label></p>
-  <button style="height:48px;width:100%;border:0;border-radius:10px;background:#00B4D8;font-weight:700;font-size:16px">Payer</button>
-</form></body></html>`;
+    const s = await this.cards.mock.describe(sessionId).catch(() => null);
+    if (!s) throw new NotFoundException();
+    const sid = esc(sessionId);
+    const amount = esc(formatAmount(BigInt(s.amount), s.currency));
+    const done = s.status !== 'pending';
+    return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Paiement par carte (test)</title>
+<style>body{font:16px/1.45 system-ui,sans-serif;max-width:420px;margin:0 auto;padding:16px;color:#0B1E3D;background:#F4F7FA}
+.card{background:#fff;border:1px solid #DCE3EA;border-radius:14px;padding:20px}.test{background:#FFF4CE;color:#6B4E00;font-size:13px;padding:8px 12px;border-radius:8px}
+label{display:block;font-size:13px;font-weight:600;color:#5B6B7F;margin:14px 0 6px}input{width:100%;box-sizing:border-box;height:48px;border:1px solid #DCE3EA;border-radius:10px;padding:0 12px;font:inherit}
+.row{display:flex;gap:10px}button{width:100%;height:50px;border:0;border-radius:12px;font:700 16px system-ui;margin-top:16px;cursor:pointer}
+.pay{background:#00B4D8;color:#0B1E3D}.cancel{background:transparent;color:#0B1E3D;text-decoration:underline;height:auto}</style></head>
+<body><div class="card"><div class="test">Acquéreur factice : aucun argent réel. Carte refusée : 4000 0000 0000 0002.</div>
+<h1 style="font-size:20px">Paiement par carte</h1><p style="font:600 28px ui-monospace,monospace;margin:4px 0 8px">${amount}</p>
+${done ? '<p>Cette session est terminée.</p>' : `<form method="post" action="/mock/card/${sid}/pay">
+<label for="pan">Numéro de carte</label><input id="pan" name="pan" inputmode="numeric" autocomplete="cc-number" value="4242 4242 4242 4242">
+<div class="row"><div style="flex:1"><label for="exp">Expiration</label><input id="exp" name="exp" value="12/30"></div><div style="flex:1"><label for="cvc">CVC</label><input id="cvc" name="cvc" value="123"></div></div>
+<p style="font-size:13px;color:#5B6B7F">Validation 3-D Secure simulée.</p>
+<button class="pay" name="outcome" value="succeeded">Payer</button>
+<button class="cancel" name="outcome" value="canceled">Annuler et revenir au marchand</button></form>`}
+</div></body></html>`;
   }
 
   @Post(':sessionId/pay')
-  @Header('Content-Type', 'text/html; charset=utf-8')
-  pay(@Param('sessionId') sessionId: string, @Body() body: { return_url?: string }) {
+  async pay(@Param('sessionId') sessionId: string, @Body() body: { pan?: string; outcome?: string }, @Res() res: any) {
     this.assertMock();
-    const returnUrl = body.return_url ? decodeURIComponent(body.return_url) : '/';
-    const sid = sessionId.replace(/[^A-Za-z0-9]/g, '');
-    return `<!doctype html><meta charset="utf-8"><script>
-window.location.href = ${JSON.stringify(returnUrl + (returnUrl.includes('?') ? '&' : '?') + 'card_session=' + sid + '&status=SUCCESS')};
-</script><body>Redirection…</body>`;
+    const s = await this.cards.mock.describe(sessionId).catch(() => null);
+    if (!s) throw new NotFoundException();
+    const outcome = body.outcome === 'canceled' ? 'canceled' : 'succeeded';
+    if (s.status === 'pending') {
+      // Le « partenaire » prévient AlphaPay par webhook signé, comme le ferait un vrai acquéreur.
+      const webhook = await this.cards.mock.complete(sessionId, outcome, body.pan ?? '');
+      await this.events.handle(this.cards.mock, webhook);
+    }
+    res.redirect(303, outcome === 'canceled' ? s.cancelUrl : s.returnUrl);
+  }
+
+  /** Test : la banque du porteur ouvre un litige sur ce paiement. */
+  @Post(':sessionId/dispute')
+  @HttpCode(200)
+  async dispute(@Param('sessionId') sessionId: string, @Body() body: { reason?: string }) {
+    this.assertMock();
+    return this.events.handle(this.cards.mock, await this.cards.mock.openDispute(sessionId, body?.reason));
+  }
+
+  /** Test : l'acquéreur tranche un litige. */
+  @Post(':sessionId/dispute/:disputeRef/close')
+  @HttpCode(200)
+  async close(@Param('sessionId') sessionId: string, @Param('disputeRef') disputeRef: string, @Body() body: { won?: boolean }) {
+    this.assertMock();
+    return this.events.handle(this.cards.mock, await this.cards.mock.closeDispute(disputeRef, sessionId, body?.won === true));
   }
 }

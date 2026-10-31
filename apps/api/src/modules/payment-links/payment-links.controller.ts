@@ -9,7 +9,7 @@ import { SessionGuard } from '../auth/session.guard';
 import { RequireAction } from '../team/auth/require-action.decorator';
 import { RequireActionGuard } from '../team/auth/require-action.guard';
 import { RequireMemberGuard } from '../team/auth/require-member.guard';
-import { CreatePaymentLinkDto, PayLinkDto, SendPaymentLinkDto } from './payment-links.dto';
+import { CreatePaymentLinkDto, PayLinkCardDto, PayLinkDto, SendPaymentLinkDto } from './payment-links.dto';
 import { CreateLinkInput, LinkActor, PaymentLinksService } from './payment-links.service';
 
 function toInput(dto: CreatePaymentLinkDto): CreateLinkInput {
@@ -118,5 +118,11 @@ export class PublicPaymentLinksController {
   @HttpCode(201)
   pay(@Param('code') code: string, @Body() dto: PayLinkDto) {
     return this.links.pay(code, dto);
+  }
+
+  @Post(':code/pay-card')
+  @HttpCode(201)
+  payCard(@Param('code') code: string, @Body() dto: PayLinkCardDto) {
+    return this.links.payCard(code, dto);
   }
 }

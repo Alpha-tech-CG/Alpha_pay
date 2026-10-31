@@ -17,7 +17,12 @@ export function presentPayment(tx: Transaction) {
     currency: tx.currency,
     amount_display: formatAmount(tx.amount, tx.currency),
     operator: tx.operator.toLowerCase(),
+    payment_method: tx.operator === 'CARD' ? 'card' : 'mobile_money',
     payer_phone: tx.payerPhoneMask,
+    card: tx.operator === 'CARD' && (tx.cardBrand || tx.cardLast4) ? { brand: tx.cardBrand, last4: tx.cardLast4 } : null,
+    // Carte en attente : page de l'acquéreur où envoyer (ou renvoyer) le payeur.
+    redirect_url: tx.operator === 'CARD' && tx.status === 'PENDING' ? tx.checkoutUrl : null,
+    amount_refunded: toMajorAmount(tx.amountRefunded ?? 0n, tx.currency),
     reference: tx.externalId,
     description: tx.payerMessage,
     failure_reason: tx.failureReason,

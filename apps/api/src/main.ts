@@ -66,7 +66,8 @@ async function bootstrap() {
   app.use(
     bodyGuard({
       maxBytes: MAX_BODY_BYTES,
-      formUrlencodedPaths: ["/webhooks/notifications/africastalking"],
+      // Formulaire de la page de l'acquéreur carte factice (404 en production).
+      formUrlencodedPaths: ["/mock/card/"],
       // Pièces du dossier KYB (§M2) : 10 Mo par fichier.
       // Imports : élèves (§M8, CSV ou Excel) et relevé opérateur (§M6).
       multipartPaths: [

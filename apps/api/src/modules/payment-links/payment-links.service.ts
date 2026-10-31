@@ -1,3 +1,5 @@
+import { CardAcquirerRegistry } from '../providers/card-acquirer.registry';
+import { checkoutReturnUrl } from '../checkout/checkout.service';
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PaymentLink, Prisma, PrismaClient } from '@paybrain/database';
 import { AuditService } from '../../common/audit/audit.service';
@@ -43,6 +45,7 @@ export class PaymentLinksService {
     private readonly payments: PaymentsService,
     private readonly messaging: MessagingService,
     private readonly audit: AuditService,
+    private readonly cards: CardAcquirerRegistry,
   ) {}
 
   static checkoutUrl(code: string): string {
@@ -148,31 +151,31 @@ export class PaymentLinksService {
       state,
       message: STATE_MESSAGES[state],
       operators: operatorHints(),
+      card: state === 'actif' && (await this.cards.available(link.merchantId, link.livemode)),
     };
+  }
+
+  /** Paiement par carte depuis la page hébergée : renvoie la page de l'acquéreur où rediriger le payeur. */
+  async payCard(code: string, input: { amount?: number }) {
+    const { link, amount } = await this.payable(code, input.amount);
+    const tx = await this.payments.initiateCardPayment(
+      {
+        amount,
+        currency: link.currency,
+        description: link.description,
+        reference: `lien-${link.publicCode}-${newPublicCode(10)}`,
+        paymentLinkId: link.id,
+        returnUrl: (id) => checkoutReturnUrl('l', code, id),
+      },
+      link.merchantId,
+      link.livemode,
+    );
+    return { ...CheckoutService.started(tx), redirect_url: tx.checkoutUrl };
   }
 
   /** Paiement depuis la page hébergée. Refuse tout lien non actif, sans appel opérateur. */
   async pay(code: string, input: { phone: string; amount?: number; operator?: MobileMoneyOperator }) {
-    const link = await this.findByCode(code);
-    // Marchand suspendu par AlphaPay (§M12) : ses liens n'encaissent plus.
-    const state = link.merchant.isActive ? this.stateOf(link, await this.paidCount(link)) : 'désactivé';
-    if (state !== 'actif') throw new ApiError(HttpStatus.GONE, STATE_CODES[state], STATE_MESSAGES[state]);
-
-    if (!link.multiUse) {
-      const pending = await this.prisma.transaction.count({ where: { paymentLinkId: link.id, livemode: link.livemode, status: 'PENDING' } });
-      if (pending > 0) throw new ApiError(HttpStatus.CONFLICT, 'paiement_en_cours', 'Un paiement est déjà en cours sur ce lien');
-    }
-
-    let amount: number;
-    if (link.amount != null) {
-      amount = toMajorAmount(link.amount, link.currency);
-    } else {
-      if (!Number.isInteger(input.amount) || input.amount! < 1 || input.amount! > AMOUNT_MAX) {
-        throw new ApiError(HttpStatus.BAD_REQUEST, 'validation_echouee', `amount : entier entre 1 et ${AMOUNT_MAX}`, 'amount');
-      }
-      amount = input.amount!;
-    }
-
+    const { link, amount } = await this.payable(code, input.amount);
     const tx = await this.payments.initiatePayment(
       {
         amount,
@@ -187,6 +190,30 @@ export class PaymentLinksService {
       link.livemode,
     );
     return CheckoutService.started(tx);
+  }
+
+  /** Lien actif, sans paiement en cours s'il est à usage unique, et montant à payer. */
+  private async payable(code: string, requested?: number) {
+    const link = await this.findByCode(code);
+    // Marchand suspendu par AlphaPay (§M12) : ses liens n'encaissent plus.
+    const state = link.merchant.isActive ? this.stateOf(link, await this.paidCount(link)) : 'désactivé';
+    if (state !== 'actif') throw new ApiError(HttpStatus.GONE, STATE_CODES[state], STATE_MESSAGES[state]);
+
+    if (!link.multiUse) {
+      const pending = await this.prisma.transaction.count({ where: { paymentLinkId: link.id, livemode: link.livemode, status: 'PENDING' } });
+      if (pending > 0) throw new ApiError(HttpStatus.CONFLICT, 'paiement_en_cours', 'Un paiement est déjà en cours sur ce lien');
+    }
+
+    let amount: number;
+    if (link.amount != null) {
+      amount = toMajorAmount(link.amount, link.currency);
+    } else {
+      if (!Number.isInteger(requested) || requested! < 1 || requested! > AMOUNT_MAX) {
+        throw new ApiError(HttpStatus.BAD_REQUEST, 'validation_echouee', `amount : entier entre 1 et ${AMOUNT_MAX}`, 'amount');
+      }
+      amount = requested!;
+    }
+    return { link, amount };
   }
 
   // ─── Interne ─────────────────────────────────────────────────────────────

@@ -35,7 +35,7 @@ describe('PaymentsService', () => {
     provider = { requestPayment: jest.fn(), getPaymentStatus: jest.fn() };
     registry = { forMerchant: jest.fn().mockResolvedValue(provider) };
     queue = new InMemoryJobQueue();
-    service = new PaymentsService(prisma, registry as any, queue);
+    service = new PaymentsService(prisma, registry as any, queue, {} as any);
   });
 
   it('résout l’opérateur depuis le préfixe et envoie la demande avec l’id de transaction comme référence', async () => {

@@ -66,7 +66,9 @@
 
   "ALPHAPAY_BILLING_MERCHANT_ID": "<id du marchand AlphaPay qui encaisse les abonnements>",
   "BILLING_GRACE_DAYS": "7",
-  "FEATURE_CARD_PAYMENTS": "false",
+  "FEATURE_CARD_PAYMENTS": "true",
+  "CARD_ACQUIRER": "",
+  "MOCK_CARD_WEBHOOK_SECRET": "<32+ caractères, préproduction seulement>",
 
   "SENTRY_DSN": ""
 }

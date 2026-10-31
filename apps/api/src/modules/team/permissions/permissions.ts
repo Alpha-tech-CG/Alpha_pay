@@ -32,6 +32,8 @@ export type MemberAction =
   | 'payments:view' // tous les paiements du marchand
   | 'payments:view_own_till' // seulement ceux de ses caisses
   | 'payments:collect'
+  | 'payments:refund'
+  | 'disputes:manage'
   | 'cash:declare'
   | 'paylinks:write'
   | 'reconciliation:view'
@@ -65,6 +67,8 @@ const MATRIX: Record<MemberAction, readonly MemberRole[]> = {
   'payments:view': ['OWNER', 'ADMIN', 'ACCOUNTANT'],
   'payments:view_own_till': ['CASHIER'],
   'payments:collect': ['OWNER', 'ADMIN', 'CASHIER'],
+  'payments:refund': OWNER_ADMIN,
+  'disputes:manage': OWNER_ADMIN,
   'cash:declare': ['OWNER', 'ADMIN', 'CASHIER'],
   'paylinks:write': OWNER_ADMIN,
   'reconciliation:view': ['OWNER', 'ADMIN', 'ACCOUNTANT'],

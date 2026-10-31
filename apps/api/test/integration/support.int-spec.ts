@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { prisma } from '@paybrain/database';
 import { MOCK_MOBILE_MONEY_NUMBERS } from '@paybrain/providers';
 import { WebhooksService } from '../../src/modules/webhooks/webhooks.service';
+import { OpsAlertsService } from '../../src/modules/support/ops-alerts.service';
 import { accounts } from './accounts';
 import { createTestApp, TestApp } from './app';
 import { resetDatabase } from './db';
@@ -152,5 +153,16 @@ describe('M12 Assistance et service développeur du back-office (HTTP, Postgres 
 
     const audit = await a.http().get('/internal/support/audit').query({ action: 'support.' }).set(admin.headers).expect(200);
     expect(audit.body.map((r: any) => r.action)).toEqual(['support.queue_retried']);
+  });
+
+  it('alertes d’exploitation : un paiement bloqué prévient l’équipe par email, une fois par heure', async () => {
+    const { owner } = await merchantWithKey();
+    await prisma.transaction.create({ data: { merchantId: owner.merchantId, livemode: true, externalId: 'bloque-2', amount: 1000n, operator: 'MTN', createdAt: new Date(Date.now() - 3_600_000) } });
+    const alerts = t.app.get(OpsAlertsService);
+    const sent = await alerts.run();
+    expect(sent.map((x) => x.key)).toContain('stuck');
+    await t.queue.drain('messages');
+    expect(t.providers.outbox.sent.some((m: any) => m.channel === 'email' && /alerte/.test(JSON.stringify(m)))).toBe(true);
+    expect((await alerts.run()).map((x) => x.key)).not.toContain('stuck');
   });
 });

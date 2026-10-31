@@ -27,7 +27,7 @@ x-api-env: &api-env
   ALLOWED_ORIGINS: http://localhost:5174,http://localhost:5180
   MOBILE_MONEY_TEST_PROVIDER: mock
   MTN_SANDBOX_CURRENCY: EUR
-  FEATURE_CARD_PAYMENTS: "false"
+  FEATURE_CARD_PAYMENTS: "true"
   # Clés de développement (base64, 32 octets) — jamais en préproduction ni en production.
   PII_ENCRYPTION_KEY: ZGV2LW9ubHktcGlpLWtleS0wMDAwMDAwMDAwMDAwMDA=
   PROVIDER_CREDENTIALS_KEY: ZGV2LW9ubHktcHJvdmlkZXItY3JlZHMtMDAwMDAwMDA=

@@ -50,7 +50,8 @@ export default function PaymentDetail({ id, onClose }) {
         [t('pay.amount'), p.display],
         [t('pay.operator'), p.operator],
         [t('pay.mode'), p.livemode ? 'live' : 'test'],
-        [t('pay.payer'), p.payer_phone],
+        p.card ? [t('pay.card'), `${p.card.brand ?? ''} •••• ${p.card.last4 ?? ''}`] : [t('pay.payer'), p.payer_phone],
+        p.amount_refunded?.amount ? [t('pay.refunded'), p.amount_refunded.display] : null,
         [t('pay.providerRef'), <code style={{ fontSize: 12 }}>{p.provider_reference ?? '—'}</code>],
         [t('pay.id'), <code style={{ fontSize: 12 }}>{p.id}</code>],
         [t('pay.failure'), p.failure_reason],
@@ -69,6 +70,21 @@ export default function PaymentDetail({ id, onClose }) {
         renderRow={(h, i) => (
           <tr key={i}><td style={td}>{h.from}</td><td style={td}><Badge value={h.to} /></td><td style={td}>{h.reason}</td><td style={{ ...td, fontSize: 12 }}>{when(h.at)}</td></tr>
         )} />
+
+      {(p.refunds.length > 0 || p.disputes.length > 0) && (
+        <>
+          <h3 style={{ fontSize: 13, margin: '16px 0 6px' }}>{t('pay.refunds')}</h3>
+          <Table columns={[t('pay.col.date'), t('pay.amount'), t('pay.col.reason'), t('pay.col.type'), t('pay.col.status')]} rows={p.refunds} empty={t('pay.noRefund')}
+            renderRow={(r) => (
+              <tr key={r.id}><td style={{ ...td, fontSize: 12 }}>{when(r.created_at)}</td><td style={td}>{r.display}</td><td style={td}>{r.reason}</td><td style={td}>{r.method === 'manual' ? t('pay.refundManual') : t('pay.refundProvider')}</td><td style={td}><Badge value={r.status} /></td></tr>
+            )} />
+          <h3 style={{ fontSize: 13, margin: '16px 0 6px' }}>{t('pay.disputes')}</h3>
+          <Table columns={[t('pay.col.date'), t('pay.amount'), t('pay.col.reason'), t('pay.col.status'), t('pay.evidence')]} rows={p.disputes} empty={t('pay.noDispute')}
+            renderRow={(d) => (
+              <tr key={d.id}><td style={{ ...td, fontSize: 12 }}>{when(d.created_at)}</td><td style={td}>{d.display}</td><td style={td}>{d.reason}</td><td style={td}><Badge value={d.status} /></td><td style={{ ...td, fontSize: 12 }}>{d.evidence ?? '—'}</td></tr>
+            )} />
+        </>
+      )}
 
       <h3 style={{ fontSize: 13, margin: '16px 0 6px' }}>{t('pay.requests')}</h3>
       <Table columns={[t('pay.col.type'), t('pay.col.status'), t('pay.col.attempts'), t('pay.col.error'), '']} rows={p.operator_requests} empty={t('pay.noRequest')}

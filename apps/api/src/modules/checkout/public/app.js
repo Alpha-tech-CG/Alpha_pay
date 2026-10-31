@@ -64,6 +64,7 @@
     $('fixed').hidden = fixedAmount == null;
     $('free').hidden = fixedAmount != null;
     if (fixedAmount != null) $('fixed').textContent = fcfa(fixedAmount);
+    $('cardbox').hidden = !v.card;
     show('form');
     (fixedAmount == null ? $('amount') : $('phone')).focus();
   }
@@ -121,10 +122,38 @@
     }).then(function () { $('pay').disabled = false; });
   });
 
+  // Carte : la saisie se fait sur la page de la banque partenaire, puis retour ici.
+  $('paycard').addEventListener('click', function () {
+    $('err').textContent = '';
+    var body = {};
+    if (fixedAmount == null) body.amount = parseInt($('amount').value, 10);
+    if (fixedAmount == null && !(body.amount > 0)) { $('err').textContent = 'Saisissez le montant.'; return; }
+    $('paycard').disabled = true;
+    request('POST', base + '/pay-card', body).then(function (r) {
+      if (!r.redirect_url) throw { message: 'Le paiement par carte n’a pas pu être lancé.' };
+      location.href = r.redirect_url;
+    }).then(null, function (err) {
+      $('err').textContent = err.message || 'Le paiement par carte n’a pas pu être lancé.';
+      $('paycard').disabled = false;
+    });
+  });
+
   $('again').addEventListener('click', function () {
     clearTimeout(pollTimer);
     if (view) render(view);
   });
+
+  // Retour de la page de la banque : on reprend le suivi du paiement carte.
+  var query = new URLSearchParams(location.search);
+  if (query.get('payment') && query.get('token')) {
+    request('GET', base).then(function (v) { view = v; fixedAmount = kind === 'links' ? v.amount : null; }, function () {});
+    history.replaceState(null, '', location.pathname);
+    $('waittitle').textContent = 'Paiement par carte';
+    $('waitmsg').textContent = 'Confirmation de votre banque en cours…';
+    show('wait');
+    poll(query.get('payment'), query.get('token'), Date.now());
+    return;
+  }
 
   request('GET', base).then(render, function (err) {
     finish(false, 'Paiement impossible', err.message || 'Ce lien n’existe pas.', false);

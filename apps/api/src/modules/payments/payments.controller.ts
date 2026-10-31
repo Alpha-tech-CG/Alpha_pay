@@ -8,7 +8,8 @@ import { RequiredScopes } from '../../common/decorators/scopes.decorator';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { afterCursor, decodeCursor, page, parseLimit } from '../../common/pagination/cursor';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import { CreatePaymentDto, CreateRefundDto } from './dto/create-payment.dto';
+import { presentRefund, RefundsService } from './refunds.service';
 import { presentPayment } from './payment.presenter';
 
 export const STATUS_BY_LABEL = Object.fromEntries(Object.entries(PUBLIC_PAYMENT_STATUS).map(([k, v]) => [v, k])) as Record<
@@ -25,20 +26,47 @@ export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     @Inject('PRISMA') private readonly prisma: PrismaClient,
+    private readonly refunds: RefundsService,
   ) {}
 
   @Post()
   @HttpCode(201)
   @RequiredScopes('payments:write')
   @UseInterceptors(IdempotencyInterceptor)
-  @ApiOperation({ summary: 'Créer un paiement Mobile Money (MTN, Airtel)' })
+  @ApiOperation({ summary: 'Créer un paiement Mobile Money (MTN, Airtel) ou par carte (redirect_url à ouvrir)' })
   async create(@Body() dto: CreatePaymentDto, @Req() req: any) {
+    if (dto.method === 'card') {
+      const tx = await this.paymentsService.initiateCardPayment(
+        { amount: dto.amount, currency: dto.currency, reference: dto.reference, description: dto.description, tillId: dto.till_id, returnUrl: dto.return_url!, cancelUrl: dto.cancel_url },
+        req.merchant.id,
+        req.livemode === true,
+      );
+      return presentPayment(tx);
+    }
     const tx = await this.paymentsService.initiatePayment(
       { ...dto, tillId: dto.till_id },
       req.merchant.id,
       req.livemode === true,
     );
     return presentPayment(tx);
+  }
+
+  @Post(':id/refunds')
+  @HttpCode(201)
+  @RequiredScopes('payments:write')
+  @UseInterceptors(IdempotencyInterceptor)
+  @ApiOperation({ summary: 'Rembourser un paiement réussi (total ou partiel)' })
+  async refund(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateRefundDto, @Req() req: any) {
+    const refund = await this.refunds.create(id, req.merchant.id, req.livemode === true, dto, { type: 'api_key', id: req.apiKeyId, ip: req.ip });
+    return presentRefund(refund);
+  }
+
+  @Get(':id/refunds')
+  @RequiredScopes('payments:read')
+  @ApiOperation({ summary: "Lister les remboursements d'un paiement" })
+  async listRefunds(@Param('id', ParseUUIDPipe) id: string, @Req() req: any) {
+    await this.paymentsService.findOne(id, req.merchant.id, req.livemode === true);
+    return { object: 'list', data: (await this.refunds.list(id, req.merchant.id, req.livemode === true)).map(presentRefund) };
   }
 
   @Get(':id')

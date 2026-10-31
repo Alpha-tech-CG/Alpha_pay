@@ -1,4 +1,6 @@
-import { Controller, ForbiddenException, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Inject, NotFoundException, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { CreateRefundDto } from './dto/create-payment.dto';
+import { presentRefund, RefundsService } from './refunds.service';
 import { ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { PrismaClient, TransactionStatus } from '@paybrain/database';
 import { afterCursor, decodeCursor, page, parseLimit } from '../../common/pagination/cursor';
@@ -24,7 +26,18 @@ export class MerchantPaymentsController {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly stores: StoresService,
+    private readonly refunds: RefundsService,
   ) {}
+
+  /** Remboursement depuis le tableau de bord : propriétaire et administrateur seulement. */
+  @Post(':txId/refunds')
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Rembourser un paiement réussi (carte : par l’acquéreur ; Mobile Money : déclaration)' })
+  async refund(@Param('txId', ParseUUIDPipe) txId: string, @Query('mode') mode: string | undefined, @Body() dto: CreateRefundDto, @Req() req: any) {
+    if (!can(req.membership.role, 'payments:refund')) throw new ForbiddenException('Remboursement réservé au propriétaire et aux administrateurs');
+    const refund = await this.refunds.create(txId, req.membership.merchantId, mode === 'live', dto, { type: 'user', id: req.appUser.id, ip: req.ip });
+    return presentRefund(refund);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Lister les paiements (filtres : mode, caisse, statut, opérateur, dates, recherche ; pagination par curseur)' })
@@ -124,7 +137,7 @@ export class MerchantPaymentsController {
 
     const tx = await this.prisma.transaction.findFirst({
       where: { id: txId, merchantId },
-      include: { audits: { orderBy: { createdAt: 'asc' } } },
+      include: { audits: { orderBy: { createdAt: 'asc' } }, refunds: { orderBy: { createdAt: 'asc' } }, disputes: { orderBy: { createdAt: 'asc' } } },
     });
     if (!tx) throw new NotFoundException('Paiement introuvable');
 
@@ -134,6 +147,9 @@ export class MerchantPaymentsController {
 
     return {
       ...presentPayment(tx),
+      refunds: tx.refunds.map(presentRefund),
+      disputes: tx.disputes.map((d) => ({ id: d.id, status: d.status, reason: d.reason, amount: toMajorAmount(d.amount, d.currency), evidence_due_at: d.evidenceDueAt, created_at: d.createdAt })),
+      can_refund: tx.status === 'SUCCEEDED' && tx.amountRefunded < tx.amount && can(req.membership.role, 'payments:refund'),
       audit_trail: tx.audits.map((a) => ({
         from: a.fromStatus,
         to: a.toStatus,

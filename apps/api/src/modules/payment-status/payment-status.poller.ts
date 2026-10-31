@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@paybrain/database';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
-import { PaymentsService } from '../payments/payments.service';
+import { CARD_EXPIRY_MS, PaymentsService } from '../payments/payments.service';
 import { WebhooksService } from '../webhooks/webhooks.service';
 
 export interface PaymentStatusJob {
@@ -53,7 +53,8 @@ export class PaymentStatusPoller {
     const tx = await this.prisma.transaction.findUnique({ where: { id: transactionId } });
     if (!tx || tx.status !== 'PENDING' || !tx.mtnReferenceId) return;
 
-    if (Date.now() - tx.createdAt.getTime() >= paymentExpiryMs()) {
+    const expiry = tx.operator === 'CARD' ? CARD_EXPIRY_MS : paymentExpiryMs();
+    if (Date.now() - tx.createdAt.getTime() >= expiry) {
       await this.webhooks.applyVerifiedStatus(tx, 'EXPIRED', 'delai_depasse', 'relance : expiration');
       return;
     }

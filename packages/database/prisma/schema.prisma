@@ -23,6 +23,21 @@ enum Operator {
   CINETPAY
   WALLET
   BANK
+  // Carte bancaire (§M13) : page hébergée par l'acquéreur, aucun numéro de carte chez AlphaPay.
+  CARD
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN // ouvert par le porteur, réponse du marchand attendue
+  UNDER_REVIEW // preuves envoyées, décision de l'acquéreur attendue
+  WON
+  LOST
 }
 
 enum OutboxStatus {
@@ -224,6 +239,15 @@ model Transaction {
   version        Int                @default(0)
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
+  // Carte (§M13) : données renvoyées par l'acquéreur, jamais le numéro complet.
+  cardBrand      String?            @map("card_brand")
+  cardLast4      String?            @map("card_last4")
+  // Page de paiement de l'acquéreur, pour rediriger de nouveau le payeur.
+  checkoutUrl    String?            @map("checkout_url")
+  // Total remboursé (unités mineures) ; le statut du paiement reste « réussi ».
+  amountRefunded BigInt             @default(0) @map("amount_refunded")
+  refunds        Refund[]
+  disputes       Dispute[]
   webhookLogs    WebhookLog[]
   outboxEvents   OutboxEvent[]
   audits         TransactionAudit[]
@@ -1616,4 +1640,56 @@ model StaffAccessLog {
   @@index([staffId, createdAt(sort: Desc)])
   @@index([targetId, createdAt(sort: Desc)])
   @@map("staff_access_log")
+}
+
+// Remboursement d'un paiement réussi, total ou partiel. Carte : demandé à
+// l'acquéreur. Mobile Money : par l'opérateur quand l'adaptateur le permet,
+// sinon déclaré par le marchand (fait depuis son compte opérateur).
+model Refund {
+  id            String       @id @default(uuid())
+  transactionId String       @map("transaction_id")
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+  merchantId    String       @map("merchant_id")
+  livemode      Boolean
+  amount        BigInt
+  currency      String
+  reason        String
+  // provider = demandé au fournisseur ; manual = déclaré par le marchand.
+  method        String
+  status        RefundStatus @default(PENDING)
+  providerRef   String?      @map("provider_ref")
+  failureReason String?      @map("failure_reason")
+  // user | api_key | staff
+  actorType     String       @map("actor_type")
+  actorId       String?      @map("actor_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@index([transactionId])
+  @@index([merchantId, livemode, createdAt])
+  @@map("refunds")
+}
+
+// Litige carte (rétrofacturation) ouvert par le porteur auprès de sa banque.
+model Dispute {
+  id             String        @id @default(uuid())
+  transactionId  String        @map("transaction_id")
+  transaction    Transaction   @relation(fields: [transactionId], references: [id])
+  merchantId     String        @map("merchant_id")
+  livemode       Boolean
+  amount         BigInt
+  currency       String
+  reason         String
+  status         DisputeStatus @default(OPEN)
+  providerRef    String        @unique @map("provider_ref")
+  evidenceDueAt  DateTime?     @map("evidence_due_at")
+  evidenceText   String?       @map("evidence_text")
+  evidenceSentAt DateTime?     @map("evidence_sent_at")
+  closedAt       DateTime?     @map("closed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([transactionId])
+  @@index([merchantId, livemode, status])
+  @@map("disputes")
 }

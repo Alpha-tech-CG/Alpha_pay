@@ -6,6 +6,7 @@ import { ApiError } from '../../common/errors/api-error';
 import { decryptField, deterministicHash, encryptField, maskPhone } from '../../common/security/pii-crypto';
 import { toMinor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
+import { CardAcquirerRegistry, cardPaymentsEnabled } from '../providers/card-acquirer.registry';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
 import { monthlyQuota } from '../billing/monthly-quota';
 
@@ -35,6 +36,22 @@ export interface InitiatePaymentInput {
   paymentLinkId?: string;
 }
 
+/** Paiement par carte (§M13) : page hébergée par l'acquéreur, retour vers `returnUrl`. */
+export interface InitiateCardPaymentInput {
+  amount: number;
+  currency: string;
+  reference: string;
+  description?: string | null;
+  tillId?: string;
+  paymentLinkId?: string;
+  /** URL de retour après paiement ; une fonction la construit à partir de l'id du paiement. */
+  returnUrl: string | ((transactionId: string) => string);
+  cancelUrl?: string | ((transactionId: string) => string);
+}
+
+/** Un paiement carte sans réponse reste ouvert le temps de la session de l'acquéreur. */
+export const CARD_EXPIRY_MS = 35 * 60_000;
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -43,6 +60,7 @@ export class PaymentsService {
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly registry: MobileMoneyRegistry,
     @Inject(JobQueue) private readonly queue: JobQueue,
+    private readonly cards: CardAcquirerRegistry,
   ) {}
 
   /**
@@ -66,12 +84,7 @@ export class PaymentsService {
       throw new ApiError(400, 'telephone_invalide', err.message, 'phone');
     }
 
-    let storeId: string | undefined;
-    if (input.tillId) {
-      const till = await this.prisma.till.findFirst({ where: { id: input.tillId, merchantId, active: true }, select: { storeId: true } });
-      if (!till) throw new ApiError(404, 'caisse_introuvable', 'Caisse introuvable ou désactivée', 'till_id');
-      storeId = till.storeId;
-    }
+    const storeId = await this.storeOf(merchantId, input.tillId);
 
     const transaction = await this.prisma.transaction.create({
       data: {
@@ -102,6 +115,76 @@ export class PaymentsService {
       });
     } catch (err) {
       await this.handleRequestFailure(transaction.id, operator, livemode, err);
+    }
+    return this.prisma.transaction.findUniqueOrThrow({ where: { id: transaction.id } });
+  }
+
+  private async storeOf(merchantId: string, tillId?: string): Promise<string | undefined> {
+    if (!tillId) return undefined;
+    const till = await this.prisma.till.findFirst({ where: { id: tillId, merchantId, active: true }, select: { storeId: true } });
+    if (!till) throw new ApiError(404, 'caisse_introuvable', 'Caisse introuvable ou désactivée', 'till_id');
+    return till.storeId;
+  }
+
+  /**
+   * Crée un paiement carte (§M13) : session chez l'acquéreur du marchand, puis
+   * le payeur est redirigé vers `checkoutUrl`. Aucun numéro de carte ne passe
+   * par AlphaPay. Même référence = même paiement (idempotent).
+   */
+  async initiateCardPayment(input: InitiateCardPaymentInput, merchantId: string, livemode = false): Promise<Transaction> {
+    if (!cardPaymentsEnabled()) throw new ApiError(400, 'methode_indisponible', "Le paiement par carte n'est pas disponible", 'method');
+    const existing = await this.prisma.transaction.findFirst({ where: { merchantId, livemode, externalId: input.reference } });
+    if (existing) return existing;
+    if (livemode) await this.assertLiveAllowed(merchantId);
+
+    let acquirer;
+    try {
+      acquirer = await this.cards.forMerchant(merchantId, livemode);
+    } catch (err) {
+      if (err instanceof ProviderError && err.code === 'not_configured') {
+        throw new ApiError(422, 'carte_non_connectee', "Le paiement par carte n'est pas encore ouvert pour ce marchand (contrat carte non connecté).");
+      }
+      throw err;
+    }
+
+    const storeId = await this.storeOf(merchantId, input.tillId);
+    const transaction = await this.prisma.transaction.create({
+      data: {
+        merchantId,
+        operator: 'CARD',
+        livemode,
+        storeId,
+        tillId: input.tillId,
+        paymentLinkId: input.paymentLinkId,
+        externalId: input.reference,
+        amount: toMinor(input.amount, input.currency),
+        currency: input.currency,
+        status: 'PENDING',
+        payerMessage: input.description,
+      },
+    });
+    const url = (u: string | ((id: string) => string) | undefined) => (typeof u === 'function' ? u(transaction.id) : u);
+    try {
+      const session = await acquirer.createSession({
+        amount: Number(transaction.amount),
+        currency: input.currency,
+        // Référence envoyée = id du paiement : un rejeu ne crée pas de doublon chez l'acquéreur (D-020).
+        reference: transaction.id,
+        description: input.description ?? undefined,
+        returnUrl: url(input.returnUrl)!,
+        cancelUrl: url(input.cancelUrl) ?? url(input.returnUrl)!,
+      });
+      await this.prisma.transaction.update({ where: { id: transaction.id }, data: { mtnReferenceId: session.sessionId, checkoutUrl: session.redirectUrl } });
+      await this.prisma.outboxEvent.create({
+        data: { transactionId: transaction.id, type: 'payment.initiated', payload: { referenceId: session.sessionId, operator: 'CARD' }, status: 'SENT' },
+      });
+      // Le payeur saisit sa carte : première lecture du statut après 30 s, puis intervalles croissants.
+      await this.queue.enqueue(QUEUES.paymentStatus, 'poll', { transactionId: transaction.id, attempt: 0 }, { delayMs: 30_000, jobId: `poll-${transaction.id}-0` });
+    } catch (err) {
+      const reason = err instanceof ProviderError ? `${err.code}: ${err.message}` : (err as Error)?.message ?? 'Erreur acquéreur';
+      this.logger.warn(`Session carte impossible pour ${transaction.id}: ${reason}`);
+      await this.prisma.transaction.update({ where: { id: transaction.id }, data: { status: 'FAILED', failureReason: reason } });
+      throw new ApiError(502, 'acquereur_indisponible', "Le paiement par carte est momentanément indisponible. Réessayez ou payez par Mobile Money.");
     }
     return this.prisma.transaction.findUniqueOrThrow({ where: { id: transaction.id } });
   }
@@ -187,8 +270,20 @@ export class PaymentsService {
     });
   }
 
-  /** Lit le statut chez l'opérateur — seule source de vérité avant une transition (D-021). */
-  async fetchProviderStatus(tx: { merchantId: string; operator: string; livemode: boolean; mtnReferenceId: string }) {
+  /**
+   * Lit le statut chez l'opérateur ou l'acquéreur — seule source de vérité
+   * avant une transition (D-021). Carte : enregistre au passage la marque et
+   * les 4 derniers chiffres renvoyés par l'acquéreur.
+   */
+  async fetchProviderStatus(tx: { id?: string; merchantId: string; operator: string; livemode: boolean; mtnReferenceId: string }) {
+    if (tx.operator === 'CARD') {
+      const acquirer = await this.cards.forMerchant(tx.merchantId, tx.livemode);
+      const result = await acquirer.getSessionStatus(tx.mtnReferenceId);
+      if (tx.id && result.card && (result.card.brand || result.card.last4)) {
+        await this.prisma.transaction.update({ where: { id: tx.id }, data: { cardBrand: result.card.brand ?? null, cardLast4: result.card.last4 ?? null } });
+      }
+      return toStoredStatus(result);
+    }
     const provider = await this.registry.forMerchant(tx.merchantId, tx.operator as MobileMoneyOperator, tx.livemode);
     return toStoredStatus(await provider.getPaymentStatus(tx.mtnReferenceId));
   }

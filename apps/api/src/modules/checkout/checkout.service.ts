@@ -6,6 +6,8 @@ import { ApiError } from '../../common/errors/api-error';
 import { toMajorAmount } from '../../common/money';
 import { PaymentsService } from '../payments/payments.service';
 import { checkoutToken, isValidCheckoutToken, publicDocumentUrl } from '../providers/callback-token';
+import { checkoutUrl } from '../../common/codes/public-code';
+import { CardAcquirerRegistry } from '../providers/card-acquirer.registry';
 import { MobileMoneyOperator } from '../providers/mobile-money.registry';
 
 const AMOUNT_MAX = 5_000_000;
@@ -14,6 +16,11 @@ const AMOUNT_MAX = 5_000_000;
 export function operatorHints() {
   const config = operatorConfig();
   return { country_code: config.countryCode, national_length: config.nationalNumberLength, prefixes: config.prefixes };
+}
+
+/** Retour de l'acquéreur carte vers la page hébergée, qui reprend le suivi du paiement. */
+export function checkoutReturnUrl(kind: 'l' | 'c', code: string, transactionId: string): string {
+  return `${checkoutUrl(kind, code)}?payment=${transactionId}&token=${checkoutToken(transactionId)}`;
 }
 
 const STATUS_MESSAGES: Record<string, string> = {
@@ -33,6 +40,7 @@ export class CheckoutService {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
     private readonly payments: PaymentsService,
+    private readonly cards: CardAcquirerRegistry,
   ) {}
 
   /**
@@ -62,7 +70,29 @@ export class CheckoutService {
       state: active ? 'actif' : 'désactivé',
       message: active ? null : "Cette caisse n'accepte plus de paiements. Adressez-vous au vendeur.",
       operators: operatorHints(),
+      card: active && (await this.cards.available(till.merchantId, livemode)),
     };
+  }
+
+  async payTillCard(code: string, input: { amount: number }) {
+    const { till, active, livemode } = await this.tillContext(code);
+    if (!active) throw new ApiError(HttpStatus.GONE, 'caisse_desactivee', "Cette caisse n'accepte plus de paiements.");
+    if (!Number.isInteger(input.amount) || input.amount < 1 || input.amount > AMOUNT_MAX) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, 'validation_echouee', `amount : entier entre 1 et ${AMOUNT_MAX}`, 'amount');
+    }
+    const tx = await this.payments.initiateCardPayment(
+      {
+        amount: input.amount,
+        currency: 'XAF',
+        description: `${till.store.name} - ${till.name}`,
+        reference: `caisse-${code}-${newPublicCode(10)}`,
+        tillId: till.id,
+        returnUrl: (id) => checkoutReturnUrl('c', code, id),
+      },
+      till.merchantId,
+      livemode,
+    );
+    return { ...CheckoutService.started(tx), redirect_url: tx.checkoutUrl };
   }
 
   async payTill(code: string, input: { phone: string; amount: number; operator?: MobileMoneyOperator }) {
@@ -110,7 +140,8 @@ export class CheckoutService {
       currency: tx.currency,
       operator: tx.operator.toLowerCase(),
       merchant_name: tx.merchant.name,
-      message: STATUS_MESSAGES[status],
+      message: tx.operator === 'CARD' && status === 'en_attente' ? 'Paiement par carte en cours de confirmation…' : STATUS_MESSAGES[status],
+      card: tx.operator === 'CARD' && tx.cardLast4 ? { brand: tx.cardBrand, last4: tx.cardLast4 } : null,
       // Reçu PDF du payeur (§M7), par lien signé, dès qu'il est émis.
       receipt_url: receipt ? publicDocumentUrl('receipt', receipt.id) : null,
     };

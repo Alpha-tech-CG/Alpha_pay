@@ -5,11 +5,13 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
 import { StoresModule } from '../stores/stores.module';
 import { TeamAuthModule } from '../team/auth/team-auth.module';
 import { MerchantPaymentsController } from './merchant-payments.controller';
+import { RefundsService } from './refunds.service';
+import { WebhooksOutModule } from '../webhooks-out/webhooks-out.module';
 
 @Module({
-  imports: [StoresModule, TeamAuthModule],
+  imports: [StoresModule, TeamAuthModule, WebhooksOutModule],
   controllers: [PaymentsController, MerchantPaymentsController],
-  providers: [PaymentsService, IdempotencyInterceptor],
-  exports: [PaymentsService],
+  providers: [PaymentsService, RefundsService, IdempotencyInterceptor],
+  exports: [PaymentsService, RefundsService],
 })
 export class PaymentsModule {}

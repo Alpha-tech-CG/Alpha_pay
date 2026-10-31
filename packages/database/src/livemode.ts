@@ -21,6 +21,8 @@ export const LIVEMODE_MODELS = new Set([
   'OtpAudit',
   'CreditLedger',
   'ApiRequestLog',
+  'Refund',
+  'Dispute',
 ]);
 
 /**

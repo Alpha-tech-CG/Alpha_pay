@@ -12,7 +12,13 @@ export interface CreatePaymentInput {
   /** Unités majeures (XAF : francs entiers). */
   amount: number;
   currency?: 'XAF' | 'EUR' | 'USD';
-  phone: string;
+  /** Mobile Money (défaut) ou carte : la réponse porte alors `redirect_url`, à ouvrir pour le payeur. */
+  method?: 'mobile_money' | 'card';
+  /** Obligatoire pour le Mobile Money. */
+  phone?: string;
+  /** Carte : page où revient le payeur après paiement (obligatoire) et après abandon. */
+  return_url?: string;
+  cancel_url?: string;
   /** Référence du marchand, unique par mode. */
   reference: string;
   operator?: 'mtn' | 'airtel';
@@ -28,8 +34,14 @@ export interface Payment {
   status: 'en_attente' | 'réussi' | 'échoué' | 'expiré' | 'annulé';
   amount: number;
   currency: string;
-  operator: 'mtn' | 'airtel';
+  operator: 'mtn' | 'airtel' | 'card';
+  payment_method: 'mobile_money' | 'card';
   payer_phone: string | null;
+  /** Carte : marque et 4 derniers chiffres, jamais le numéro complet. */
+  card: { brand: string | null; last4: string | null } | null;
+  /** Carte en attente : page de l'acquéreur où envoyer le payeur. */
+  redirect_url: string | null;
+  amount_refunded: number;
   reference: string;
   description: string | null;
   failure_reason: string | null;
@@ -37,6 +49,33 @@ export interface Payment {
   till_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Refund {
+  id: string;
+  object: 'refund';
+  payment_id: string;
+  livemode: boolean;
+  amount: number;
+  currency: string;
+  reason: string;
+  method: 'provider' | 'manual';
+  status: 'en_attente' | 'réussi' | 'échoué';
+  failure_reason: string | null;
+  created_at: string;
+}
+
+export interface Dispute {
+  id: string;
+  object: 'dispute';
+  payment_id: string;
+  livemode: boolean;
+  amount: number;
+  currency: string;
+  reason: string;
+  status: 'ouvert' | 'en_examen' | 'gagné' | 'perdu';
+  evidence_due_at: string | null;
+  created_at: string;
 }
 
 export interface List<T> {
@@ -91,6 +130,23 @@ export class PayBrain {
   listPayments(params: { limit?: number; starting_after?: string; status?: Payment['status'] } = {}): Promise<List<Payment>> {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]));
     return this.request('GET', `/v1/payments${qs.size ? `?${qs}` : ''}`);
+  }
+
+  /** Rembourse un paiement réussi ; sans `amount`, tout le montant restant. */
+  createRefund(paymentId: string, input: { amount?: number; reason: string; manual?: boolean }, idempotencyKey: string = randomUUID()): Promise<Refund> {
+    return this.request('POST', `/v1/payments/${encodeURIComponent(paymentId)}/refunds`, input, { 'Idempotency-Key': idempotencyKey });
+  }
+
+  listRefunds(paymentId: string): Promise<{ object: 'list'; data: Refund[] }> {
+    return this.request('GET', `/v1/payments/${encodeURIComponent(paymentId)}/refunds`);
+  }
+
+  listDisputes(): Promise<{ object: 'list'; data: Dispute[] }> {
+    return this.request('GET', '/v1/disputes');
+  }
+
+  submitDisputeEvidence(disputeId: string, evidence: string): Promise<Dispute> {
+    return this.request('POST', `/v1/disputes/${encodeURIComponent(disputeId)}/evidence`, { evidence });
   }
 
   createPaylink(input: { amount: number; currency: string; description: string; expiresInMinutes?: number }) {

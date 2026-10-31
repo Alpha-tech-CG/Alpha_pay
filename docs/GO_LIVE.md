@@ -74,10 +74,17 @@ Responsable : Miche, sauf mention contraire. Cocher au fur et à mesure.
 
 ## Carte bancaire
 
-- [ ] **Partenaire d'acceptation carte** : non signé. L'option reste désactivée
-  (`FEATURE_CARD_PAYMENTS=false`) : aucune trace de la carte dans l'interface ni
-  l'API. À la signature : adaptateur du partenaire derrière `CardAcquirer`, puis
-  activation.
+- [ ] **Partenaire d'acceptation carte** (chemin critique) : la carte fonctionne de bout
+  en bout en test (acquéreur factice). En live, elle n'apparaît qu'une fois branchée :
+  1. signer avec un acquéreur qui **règle les fonds directement au marchand** (page
+     hébergée, 3-D Secure, API de remboursement et de litiges, environnement de test) ;
+  2. écrire son adaptateur dans `packages/providers/src/card/` (interface
+     `CardAcquirer`, tests de contrat) et l'enregistrer dans `CARD_ACQUIRER_FACTORIES`,
+     avec ses champs d'identifiants dans les Comptes opérateur ;
+  3. `CARD_ACQUIRER=<nom>` ; chaque marchand connecte son contrat carte ; un paiement
+     réel de faible montant, un remboursement ;
+  4. questionnaire **PCI DSS SAQ A** (page hébergée) ;
+  5. déclarer l'URL de webhook affichée dans les Comptes opérateur chez l'acquéreur.
 
 ## Divers
 
@@ -86,6 +93,8 @@ Responsable : Miche, sauf mention contraire. Cocher au fur et à mesure.
   à défaut, badge aux couleurs de l'opérateur.
 - [ ] **Suivi des erreurs** : projet Sentry, `SENTRY_DSN`.
 - [ ] **Sonde externe** sur `https://<API_DOMAIN>/ready`.
+- [ ] **Alertes d'exploitation** : `OPS_EMAIL` vers une boîte lue par l'équipe, seuils
+  `OPS_ALERT_*` ajustés après quelques jours de trafic réel.
 - [ ] **Test d'intrusion de base** après la livraison (§8.1).
 - [ ] **Limite du palier Gratuit** : fixée à 100 paiements live réussis par mois
   (migration 31) ; à ajuster dans le back-office si besoin (D-061).
