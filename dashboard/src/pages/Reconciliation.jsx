@@ -8,7 +8,7 @@ import { Drawer, Empty, ErrorBox, ListRow, ModeSwitch, PageHeader, Pill, Stat, S
 import { Exports } from './Payments'
 import Locked from './Locked'
 
-const DAY_STATUS = { pending: 'non_rapproché', reconciled: 'rapproché', discrepancy: 'écart' }
+const DAY_STATUS = { pending: 'non_rapproché', ok: 'rapproché', discrepancy: 'écart' }
 
 /**
  * Rapprochement journalier (§M6) : par caisse, total MTN, total Airtel et cash
@@ -93,7 +93,7 @@ export default function Reconciliation() {
 function DayDrawer({ base, mode, date, day, onClose, onSaved }) {
   const { t } = useTheme()
   const { t: tr } = useT()
-  const [status, setStatus] = useState('RECONCILED')
+  const [status, setStatus] = useState('OK')
   const [comment, setComment] = useState('')
   const [file, setFile] = useState(null)
   const [result, setResult] = useState(null)
@@ -102,7 +102,7 @@ function DayDrawer({ base, mode, date, day, onClose, onSaved }) {
 
   useEffect(() => {
     if (!day) return
-    setStatus(day.status === 'discrepancy' ? 'DISCREPANCY' : 'RECONCILED')
+    setStatus(day.status === 'discrepancy' ? 'DISCREPANCY' : 'OK')
     setComment(day.comment ?? '')
     setResult(null)
     setError(null)
@@ -157,7 +157,7 @@ function DayDrawer({ base, mode, date, day, onClose, onSaved }) {
       <Card style={{ marginBottom: 12 }}>
         <Field label={tr('recon.statusLabel')}>
           <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="RECONCILED">{tr('recon.status.reconciled')}</option>
+            <option value="OK">{tr('recon.status.ok')}</option>
             <option value="DISCREPANCY">{tr('recon.status.discrepancy')}</option>
             <option value="PENDING">{tr('recon.status.pending')}</option>
           </Select>

@@ -38,6 +38,10 @@ x-api-env: &api-env
   JWT_SECRET: dev-only-jwt-secret-not-for-production-000000
   OTP_HMAC_SECRET: dev-only-otp-secret-not-for-production-0000
   CALLBACK_SIGNING_SECRET: dev-only-callback-secret-not-for-production-00
+  # Comptes du jeu de démonstration (demo:seed) : mot de passe de développement.
+  DEMO_PASSWORD: Demo-AlphaPay-2026
+  # Relances envoyées toutes les 15 s en local (5 min par défaut) : recette sans attente.
+  REMINDERS_CRON: "*/15 * * * * *"
   MESSAGING_WEBHOOK_TOKEN: dev-only-messaging-webhook-token-00000000
   # Emails réels capturés par MailHog ; SMS et WhatsApp factices (GET /dev/outbox).
   EMAIL_PROVIDER: smtp

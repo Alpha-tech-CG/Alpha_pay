@@ -5,7 +5,7 @@ import { newPublicCode } from '../../common/codes/public-code';
 import { ApiError } from '../../common/errors/api-error';
 import { toMajorAmount } from '../../common/money';
 import { PaymentsService } from '../payments/payments.service';
-import { checkoutToken, isValidCheckoutToken } from '../providers/callback-token';
+import { checkoutToken, isValidCheckoutToken, publicDocumentUrl } from '../providers/callback-token';
 import { MobileMoneyOperator } from '../providers/mobile-money.registry';
 
 const AMOUNT_MAX = 5_000_000;
@@ -101,6 +101,7 @@ export class CheckoutService {
     });
     if (!tx) throw new ApiError(HttpStatus.NOT_FOUND, 'paiement_introuvable', 'Paiement introuvable');
     const status = publicPaymentStatus(tx.status);
+    const receipt = tx.status === 'SUCCEEDED' ? await this.prisma.receipt.findUnique({ where: { transactionId: tx.id }, select: { id: true } }) : null;
     return {
       id: tx.id,
       status,
@@ -110,6 +111,8 @@ export class CheckoutService {
       operator: tx.operator.toLowerCase(),
       merchant_name: tx.merchant.name,
       message: STATUS_MESSAGES[status],
+      // Reçu PDF du payeur (§M7), par lien signé, dès qu'il est émis.
+      receipt_url: receipt ? publicDocumentUrl('receipt', receipt.id) : null,
     };
   }
 }

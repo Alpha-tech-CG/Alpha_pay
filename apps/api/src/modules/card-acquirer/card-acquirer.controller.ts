@@ -1,3 +1,4 @@
+import { mockPagesAllowed } from '../../common/config/deployment';
 import {
   Body, Controller, Get, Header, HttpCode, HttpStatus, NotFoundException,
   Param, Post, Query, Req, UseGuards,
@@ -51,7 +52,7 @@ export class MockCardController {
   constructor(private readonly acquirer: CardAcquirerService) {}
 
   private assertMock() {
-    if (process.env.NODE_ENV === 'production' || !this.acquirer.isMock()) throw new NotFoundException();
+    if (!mockPagesAllowed() || !this.acquirer.isMock()) throw new NotFoundException();
   }
 
   @Get(':sessionId')

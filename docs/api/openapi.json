@@ -1112,16 +1112,33 @@
         ]
       }
     },
-    "/v1/payments": {
+    "/v1/merchants/{merchantId}/cash-entries": {
       "post": {
-        "operationId": "PaymentsController_create",
-        "parameters": [],
+        "operationId": "CashEntriesController_create",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePaymentDto"
+                "$ref": "#/components/schemas/CreateCashEntryDto"
               }
             }
           }
@@ -1133,19 +1150,27 @@
         },
         "security": [
           {
-            "ApiKey": []
+            "Bearer": []
           }
         ],
-        "summary": "Créer un paiement Mobile Money (MTN, Airtel)",
+        "summary": "Déclarer du cash",
         "tags": [
-          "Paiements"
+          "Cash déclaré (tableau de bord)"
         ]
       },
       "get": {
-        "operationId": "PaymentsController_list",
+        "operationId": "CashEntriesController_list",
         "parameters": [
           {
-            "name": "status",
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
             "required": true,
             "in": "query",
             "schema": {
@@ -1154,6 +1179,262 @@
           },
           {
             "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lister le cash déclaré (filtre : date, caisse)",
+        "tags": [
+          "Cash déclaré (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/cash-entries/{entryId}": {
+      "delete": {
+        "operationId": "CashEntriesController_remove",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Supprimer une entrée (auteur ou admin/propriétaire)",
+        "tags": [
+          "Cash déclaré (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/exports": {
+      "post": {
+        "operationId": "ExportsController_create",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lancer un export (mode=test|live) ; le fichier est produit par le worker",
+        "tags": [
+          "Exports (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "ExportsController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Exports (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/exports/{jobId}": {
+      "get": {
+        "operationId": "ExportsController_status",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Exports (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/exports/{jobId}/download": {
+      "get": {
+        "operationId": "ExportsController_download",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Télécharger le fichier d'un export terminé",
+        "tags": [
+          "Exports (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/customers": {
+      "post": {
+        "operationId": "InvoicingController_createCustomer",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicingController_listCustomers",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
             "required": true,
             "in": "query",
             "schema": {
@@ -1175,6 +1456,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1184,18 +1473,647 @@
         },
         "security": [
           {
-            "ApiKey": []
+            "Bearer": []
           }
         ],
-        "summary": "Lister les paiements (pagination par curseur : limit, starting_after)",
         "tags": [
-          "Paiements"
+          "Recouvrer (tableau de bord)"
         ]
       }
     },
-    "/v1/payments/{id}": {
+    "/v1/merchants/{merchantId}/customers/{customerId}": {
       "get": {
-        "operationId": "PaymentsController_get",
+        "operationId": "InvoicingController_getCustomer",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      },
+      "patch": {
+        "operationId": "InvoicingController_updateCustomer",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      },
+      "delete": {
+        "operationId": "InvoicingController_deleteCustomer",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "customerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices": {
+      "post": {
+        "operationId": "InvoicingController_createInvoice",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Créer une facture (brouillon, ou envoyée avec send=true)",
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicingController_listInvoices",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}": {
+      "get": {
+        "operationId": "InvoicingController_getInvoice",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}/send": {
+      "post": {
+        "operationId": "InvoicingController_sendInvoice",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Envoyer : numéro, lien(s) de paiement, relances, message au client",
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}/resend": {
+      "post": {
+        "operationId": "InvoicingController_resendInvoice",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Renvoyer la facture au client",
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}/void": {
+      "post": {
+        "operationId": "InvoicingController_voidInvoice",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}/installments": {
+      "put": {
+        "operationId": "InvoicingController_setInstallments",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetInstallmentsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Remplacer l'échéancier (brouillon uniquement)",
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/invoices/{invoiceId}/pdf": {
+      "get": {
+        "operationId": "InvoicingController_invoicePdf",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/receipts": {
+      "get": {
+        "operationId": "InvoicingController_listReceipts",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoice_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/receipts/{receiptId}/pdf": {
+      "get": {
+        "operationId": "InvoicingController_receiptPdf",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "receiptId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/recovery-settings": {
+      "get": {
+        "operationId": "InvoicingController_getSettings",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      },
+      "patch": {
+        "operationId": "InvoicingController_updateSettings",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoverySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Recouvrer (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/customers": {
+      "post": {
+        "operationId": "PublicInvoicingController_createCustomer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Créer un client",
+        "tags": [
+          "Factures"
+        ]
+      }
+    },
+    "/v1/customers/{id}": {
+      "get": {
+        "operationId": "PublicInvoicingController_getCustomer",
         "parameters": [
           {
             "name": "id",
@@ -1216,229 +2134,22 @@
             "ApiKey": []
           }
         ],
-        "summary": "Lire un paiement",
+        "summary": "Lire un client",
         "tags": [
-          "Paiements"
+          "Factures"
         ]
       }
     },
-    "/v1/merchants/{merchantId}/payments": {
-      "get": {
-        "operationId": "MerchantPaymentsController_list",
-        "parameters": [
-          {
-            "name": "merchantId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "mode",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "till_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "starting_after",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "summary": "Lister les paiements (filtres : mode, caisse, statut ; pagination par curseur)",
-        "tags": [
-          "Paiements (tableau de bord)"
-        ]
-      }
-    },
-    "/webhooks/{operator}": {
+    "/v1/invoices": {
       "post": {
-        "operationId": "WebhooksController_handle",
-        "parameters": [
-          {
-            "name": "operator",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/webhooks/operators/{operator}/{connectionId}/{token}": {
-      "post": {
-        "operationId": "WebhooksController_handleConnectionCallback",
-        "parameters": [
-          {
-            "name": "operator",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "connectionId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/v1/merchants/{merchantId}/verif/stream-ticket": {
-      "post": {
-        "operationId": "VerifController_ticket",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "summary": "Ticket à usage unique pour ouvrir le flux temps réel (60 s)",
-        "tags": [
-          "Vérif"
-        ]
-      }
-    },
-    "/v1/merchants/{merchantId}/verif/today": {
-      "get": {
-        "operationId": "VerifController_today",
-        "parameters": [
-          {
-            "name": "mode",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "till_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "summary": "Écran Caisse : paiements réussis du jour",
-        "tags": [
-          "Vérif"
-        ]
-      }
-    },
-    "/v1/merchants/{merchantId}/verif/push/config": {
-      "get": {
-        "operationId": "VerifController_pushConfig",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "tags": [
-          "Vérif"
-        ]
-      }
-    },
-    "/v1/merchants/{merchantId}/verif/push-subscriptions": {
-      "post": {
-        "operationId": "VerifController_subscribe",
+        "operationId": "PublicInvoicingController_createInvoice",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PushSubscriptionDto"
+                "$ref": "#/components/schemas/CreateInvoiceDto"
               }
             }
           }
@@ -1450,26 +2161,17 @@
         },
         "security": [
           {
-            "Bearer": []
+            "ApiKey": []
           }
         ],
+        "summary": "Créer une facture (send=true pour l’envoyer avec son lien de paiement)",
         "tags": [
-          "Vérif"
+          "Factures"
         ]
       },
-      "delete": {
-        "operationId": "VerifController_unsubscribe",
+      "get": {
+        "operationId": "PublicInvoicingController_listInvoices",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeletePushDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": ""
@@ -1477,26 +2179,70 @@
         },
         "security": [
           {
-            "Bearer": []
+            "ApiKey": []
           }
         ],
+        "summary": "Lister les factures (pagination par curseur)",
         "tags": [
-          "Vérif"
+          "Factures"
         ]
       }
     },
-    "/v1/verif/stream": {
+    "/v1/invoices/{id}": {
       "get": {
-        "operationId": "VerifStreamController_stream",
-        "parameters": [],
+        "operationId": "PublicInvoicingController_getInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "Confirmations en temps réel (text/event-stream)",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lire une facture",
         "tags": [
-          "Vérif"
+          "Factures"
+        ]
+      }
+    },
+    "/v1/invoices/{id}/send": {
+      "post": {
+        "operationId": "PublicInvoicingController_sendInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Envoyer une facture en brouillon",
+        "tags": [
+          "Factures"
         ]
       }
     },
@@ -1843,6 +2589,1671 @@
         },
         "tags": [
           "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/payments": {
+      "post": {
+        "operationId": "PaymentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Créer un paiement Mobile Money (MTN, Airtel)",
+        "tags": [
+          "Paiements"
+        ]
+      },
+      "get": {
+        "operationId": "PaymentsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lister les paiements (pagination par curseur : limit, starting_after)",
+        "tags": [
+          "Paiements"
+        ]
+      }
+    },
+    "/v1/payments/{id}": {
+      "get": {
+        "operationId": "PaymentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lire un paiement",
+        "tags": [
+          "Paiements"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payments": {
+      "get": {
+        "operationId": "MerchantPaymentsController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operator",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date_from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date_to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lister les paiements (filtres : mode, caisse, statut, opérateur, dates, recherche ; pagination par curseur)",
+        "tags": [
+          "Paiements (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payments/summary": {
+      "get": {
+        "operationId": "MerchantPaymentsController_summary",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Totaux du jour/semaine/mois pour le tableau de bord Paiements",
+        "tags": [
+          "Paiements (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payments/{txId}": {
+      "get": {
+        "operationId": "MerchantPaymentsController_detail",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "txId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Détail d'un paiement avec son journal d'audit",
+        "tags": [
+          "Paiements (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/dashboard": {
+      "get": {
+        "operationId": "SchoolController_dashboard",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Encaissé, attendu, impayés de l’année, par classe",
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/late-students": {
+      "get": {
+        "operationId": "SchoolController_late",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "class_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/late-students.csv": {
+      "get": {
+        "operationId": "SchoolController_lateCsv",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "class_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/years": {
+      "post": {
+        "operationId": "SchoolController_createYear",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSchoolYearDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "SchoolController_listYears",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/years/{yearId}/activate": {
+      "post": {
+        "operationId": "SchoolController_activateYear",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yearId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/years/{yearId}/classes": {
+      "post": {
+        "operationId": "SchoolController_createClass",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yearId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClassDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "SchoolController_listClasses",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yearId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/students": {
+      "post": {
+        "operationId": "SchoolController_createStudent",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "SchoolController_listStudents",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "class_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "starting_after",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/students/{studentId}": {
+      "get": {
+        "operationId": "SchoolController_getStudent",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      },
+      "patch": {
+        "operationId": "SchoolController_updateStudent",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStudentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/students/{studentId}/guardians": {
+      "post": {
+        "operationId": "SchoolController_addGuardian",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuardianDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/students/{studentId}/guardians/{guardianId}": {
+      "delete": {
+        "operationId": "SchoolController_removeGuardian",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "guardianId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/students/{studentId}/send-links": {
+      "post": {
+        "operationId": "SchoolController_sendStudentLinks",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Envoyer au responsable le lien de paiement de l’élève",
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/import-template": {
+      "get": {
+        "operationId": "SchoolController_template",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/classes/{classId}/import": {
+      "post": {
+        "operationId": "SchoolController_importStudents",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Importer les élèves d’une classe (CSV ou Excel) ; rapport d’erreurs ligne par ligne",
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/classes/{classId}/send-links": {
+      "post": {
+        "operationId": "SchoolController_sendClassLinks",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/years/{yearId}/fee-grids": {
+      "post": {
+        "operationId": "SchoolController_createFeeGrid",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yearId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeeGridDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      },
+      "get": {
+        "operationId": "SchoolController_listFeeGrids",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "yearId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/school/fee-grids/{feeGridId}/apply": {
+      "post": {
+        "operationId": "SchoolController_applyFeeGrid",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "feeGridId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Générer les factures et échéanciers des élèves de la classe",
+        "tags": [
+          "Pack École (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/plans": {
+      "get": {
+        "operationId": "BillingController_listPlans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/subscription": {
+      "get": {
+        "operationId": "BillingController_getSubscription",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/subscribe": {
+      "post": {
+        "operationId": "BillingController_subscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/cancel": {
+      "post": {
+        "operationId": "BillingController_cancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/credits": {
+      "get": {
+        "operationId": "BillingController_getCredits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/credits/packs": {
+      "get": {
+        "operationId": "BillingController_listPacks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/credits/purchase": {
+      "post": {
+        "operationId": "BillingController_purchasePack",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/modules": {
+      "get": {
+        "operationId": "BillingController_modules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/modules/{key}/access": {
+      "get": {
+        "operationId": "BillingController_checkAccess",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/billing/invoices": {
+      "get": {
+        "operationId": "BillingController_listInvoices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Facturation AlphaPay"
+        ]
+      }
+    },
+    "/internal/supervision/payments/failures": {
+      "get": {
+        "operationId": "SupervisionController_paymentFailures",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Supervision"
+        ]
+      }
+    },
+    "/internal/supervision/messages/stats": {
+      "get": {
+        "operationId": "SupervisionController_messageStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Supervision"
+        ]
+      }
+    },
+    "/internal/supervision/webhooks/failures": {
+      "get": {
+        "operationId": "SupervisionController_webhookFailures",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Supervision"
+        ]
+      }
+    },
+    "/internal/supervision/dashboard": {
+      "get": {
+        "operationId": "SupervisionController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Supervision"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/card/sessions": {
+      "post": {
+        "operationId": "CardAcquirerController_createSession",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CardAcquirer"
+        ]
+      }
+    },
+    "/webhooks/{operator}": {
+      "post": {
+        "operationId": "WebhooksController_handle",
+        "parameters": [
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/webhooks/operators/{operator}/{connectionId}/{token}": {
+      "post": {
+        "operationId": "WebhooksController_handleConnectionCallback",
+        "parameters": [
+          {
+            "name": "operator",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/stream-ticket": {
+      "post": {
+        "operationId": "VerifController_ticket",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Ticket à usage unique pour ouvrir le flux temps réel (60 s)",
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/today": {
+      "get": {
+        "operationId": "VerifController_today",
+        "parameters": [
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Écran Caisse : paiements réussis du jour",
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/push/config": {
+      "get": {
+        "operationId": "VerifController_pushConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/verif/push-subscriptions": {
+      "post": {
+        "operationId": "VerifController_subscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      },
+      "delete": {
+        "operationId": "VerifController_unsubscribe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePushDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Vérif"
+        ]
+      }
+    },
+    "/v1/verif/stream": {
+      "get": {
+        "operationId": "VerifStreamController_stream",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Confirmations en temps réel (text/event-stream)",
+        "tags": [
+          "Vérif"
         ]
       }
     },
@@ -2516,6 +4927,192 @@
         ]
       }
     },
+    "/v1/merchants/{merchantId}/kyb": {
+      "get": {
+        "operationId": "KybController_view",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Dossier KYB"
+        ]
+      },
+      "patch": {
+        "operationId": "KybController_update",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateKybDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Dossier KYB"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/kyb/documents/{type}": {
+      "post": {
+        "operationId": "KybController_upload",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Déposer une pièce (PDF, JPEG, PNG, 10 Mo) : RCCM_EXTRACT, NIU_CERTIFICATE, DIRECTOR_ID",
+        "tags": [
+          "Dossier KYB"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/kyb/documents/{documentId}/url": {
+      "get": {
+        "operationId": "KybController_documentUrl",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Dossier KYB"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/kyb/kyc": {
+      "post": {
+        "operationId": "KybController_startKyc",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lien de verification d'identite du dirigeant (fournisseur KYC)",
+        "tags": [
+          "Dossier KYB"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/kyb/submit": {
+      "post": {
+        "operationId": "KybController_submit",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Dossier KYB"
+        ]
+      }
+    },
     "/stats": {
       "get": {
         "operationId": "StatsController_getStats",
@@ -2532,6 +5129,43 @@
         ],
         "tags": [
           "Statistiques"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/stats": {
+      "get": {
+        "operationId": "MerchantStatsController_get",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Indicateurs jour/semaine/mois, répartition opérateur, taux d'échec",
+        "tags": [
+          "Statistiques (tableau de bord)"
         ]
       }
     },
@@ -2610,6 +5244,279 @@
         ]
       }
     },
+    "/v1/merchants/{merchantId}/reconciliation": {
+      "get": {
+        "operationId": "MerchantReconciliationController_list",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lister les journées de rapprochement (filtre : dates, caisse)",
+        "tags": [
+          "Rapprochement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/reconciliation/{date}/tills": {
+      "get": {
+        "operationId": "MerchantReconciliationController_dayByTills",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Vue journalière par caisse : MTN, Airtel, cash déclaré, statut (date AAAA-MM-JJ)",
+        "tags": [
+          "Rapprochement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/reconciliation/{date}": {
+      "get": {
+        "operationId": "MerchantReconciliationController_getDay",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Lire (et recalculer) un jour — format date : YYYY-MM-DD",
+        "tags": [
+          "Rapprochement (tableau de bord)"
+        ]
+      },
+      "patch": {
+        "operationId": "MerchantReconciliationController_patchDay",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchReconciliationDayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Mettre à jour le statut ou le commentaire d'un jour",
+        "tags": [
+          "Rapprochement (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/reconciliation/{date}/import-csv": {
+      "post": {
+        "operationId": "MerchantReconciliationController_importCsv",
+        "parameters": [
+          {
+            "name": "merchantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "till_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Importer un relevé opérateur (CSV, champ « file ») et comparer ligne à ligne",
+        "tags": [
+          "Rapprochement (tableau de bord)"
+        ]
+      }
+    },
     "/webhooks/notifications/africastalking": {
       "post": {
         "operationId": "NotificationWebhookController_africaTalking",
@@ -2659,246 +5566,6 @@
         },
         "tags": [
           "PushToken"
-        ]
-      }
-    },
-    "/v1/kyc": {
-      "get": {
-        "operationId": "KycController_myCase",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Kyc"
-        ]
-      }
-    },
-    "/v1/kyc/documents": {
-      "post": {
-        "operationId": "KycController_addDocument",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddKycDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Kyc"
-        ]
-      }
-    },
-    "/v1/kyc/documents/upload-url": {
-      "post": {
-        "operationId": "KycController_createUploadUrl",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateKycUploadDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Kyc"
-        ]
-      }
-    },
-    "/v1/kyc/submit": {
-      "post": {
-        "operationId": "KycController_submit",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Kyc"
-        ]
-      }
-    },
-    "/internal/kyc/cases": {
-      "get": {
-        "operationId": "KycAdminController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "KycAdmin"
-        ]
-      }
-    },
-    "/internal/kyc/cases/{id}": {
-      "get": {
-        "operationId": "KycAdminController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "KycAdmin"
-        ]
-      }
-    },
-    "/internal/kyc/cases/{id}/decide": {
-      "post": {
-        "operationId": "KycAdminController_decide",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DecideKycDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "KycAdmin"
-        ]
-      }
-    },
-    "/webhooks/kyc/smile": {
-      "post": {
-        "operationId": "KycWebhookController_receiveSmile",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SmileResultDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "KycWebhook"
-        ]
-      }
-    },
-    "/internal/onboarding/pending": {
-      "get": {
-        "operationId": "OnboardingController_listPending",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Onboarding"
-        ]
-      }
-    },
-    "/internal/onboarding/{id}/approve": {
-      "post": {
-        "operationId": "OnboardingController_approve",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Onboarding"
-        ]
-      }
-    },
-    "/internal/onboarding/{id}/reject": {
-      "post": {
-        "operationId": "OnboardingController_reject",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RejectDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Onboarding"
         ]
       }
     },
@@ -3736,69 +6403,182 @@
         "type": "object",
         "properties": {}
       },
-      "CreatePaymentDto": {
+      "CreateCashEntryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateExportDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCustomerDto": {
         "type": "object",
         "properties": {
-          "amount": {
-            "type": "number",
-            "example": 5000
-          },
-          "currency": {
+          "name": {
             "type": "string",
-            "default": "XAF"
+            "example": "Jean Mabiala"
           },
           "phone": {
             "type": "string",
             "example": "+242061234567"
           },
-          "reference": {
-            "type": "string",
-            "description": "Référence du marchand, unique par mode (commande, facture…)",
-            "example": "cmd-1042"
-          },
-          "operator": {
-            "type": "string",
-            "enum": [
-              "mtn",
-              "airtel"
-            ]
-          },
-          "description": {
+          "email": {
             "type": "string"
           },
-          "till_id": {
-            "type": "string",
-            "description": "Caisse qui encaisse (§M6)"
+          "address": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "channels": {
+            "description": "Canaux des relances et reçus, dans l’ordre d’essai",
+            "example": [
+              "whatsapp",
+              "sms"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
-          "amount",
-          "phone",
-          "reference"
+          "name"
         ]
       },
-      "PushKeysDto": {
+      "UpdateCustomerDto": {
         "type": "object",
         "properties": {}
       },
-      "PushSubscriptionDto": {
+      "InvoiceLineDto": {
         "type": "object",
         "properties": {
-          "endpoint": {
-            "type": "string"
+          "description": {
+            "type": "string",
+            "example": "Sac de ciment 50 kg"
           },
-          "keys": {
-            "$ref": "#/components/schemas/PushKeysDto"
+          "quantity": {
+            "type": "number",
+            "example": 2
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Prix unitaire en unités majeures (XAF : francs entiers)",
+            "example": 7500
+          },
+          "tax_rate": {
+            "type": "number",
+            "description": "Taux de taxe en %",
+            "example": 18
           }
         },
         "required": [
-          "endpoint",
-          "keys"
+          "description",
+          "quantity",
+          "unit_price"
         ]
       },
-      "DeletePushDto": {
+      "InstallmentDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "due_date": {
+            "type": "string",
+            "example": "2026-12-15"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Montant en unités majeures",
+            "example": 50000
+          },
+          "label": {
+            "type": "string",
+            "example": "1er trimestre"
+          }
+        },
+        "required": [
+          "due_date",
+          "amount"
+        ]
+      },
+      "CreateInvoiceDto": {
+        "type": "object",
+        "properties": {
+          "customer_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "default": "XAF"
+          },
+          "due_date": {
+            "type": "string",
+            "example": "2026-11-30"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceLineDto"
+            }
+          },
+          "installments": {
+            "description": "Échéancier : la somme doit égaler le total",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallmentDto"
+            }
+          },
+          "send": {
+            "type": "boolean",
+            "description": "Envoyer la facture tout de suite (numéro, lien de paiement, relances)"
+          }
+        },
+        "required": [
+          "lines"
+        ]
+      },
+      "SetInstallmentsDto": {
+        "type": "object",
+        "properties": {
+          "installments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstallmentDto"
+            }
+          }
+        },
+        "required": [
+          "installments"
+        ]
+      },
+      "RecoverySettingsDto": {
+        "type": "object",
+        "properties": {
+          "reminder_offsets": {
+            "description": "Jours par rapport à l’échéance (négatif = avant)",
+            "example": [
+              -3,
+              0,
+              3,
+              7
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "send_from_hour": {
+            "type": "number",
+            "example": 8
+          },
+          "send_until_hour": {
+            "type": "number",
+            "example": 19
+          }
+        }
       },
       "CreatePaymentLinkDto": {
         "type": "object",
@@ -3873,6 +6653,193 @@
           "phone"
         ]
       },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 5000
+          },
+          "currency": {
+            "type": "string",
+            "default": "XAF"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+242061234567"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Référence du marchand, unique par mode (commande, facture…)",
+            "example": "cmd-1042"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "mtn",
+              "airtel"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "till_id": {
+            "type": "string",
+            "description": "Caisse qui encaisse (§M6)"
+          }
+        },
+        "required": [
+          "amount",
+          "phone",
+          "reference"
+        ]
+      },
+      "CreateSchoolYearDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "2026-2027"
+          },
+          "starts_on": {
+            "type": "string",
+            "example": "2026-10-01"
+          },
+          "ends_on": {
+            "type": "string",
+            "example": "2027-07-15"
+          }
+        },
+        "required": [
+          "label",
+          "starts_on",
+          "ends_on"
+        ]
+      },
+      "CreateClassDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "CM2 A"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateStudentDto": {
+        "type": "object",
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "registration_no": {
+            "type": "string",
+            "description": "Matricule (unique dans l’école)"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "UpdateStudentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GuardianDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Marie Mabiala"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "FeeGridLineDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Scolarité 1er trimestre"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Montant en unités majeures",
+            "example": 45000
+          },
+          "due_date": {
+            "type": "string",
+            "example": "2026-10-15"
+          }
+        },
+        "required": [
+          "label",
+          "amount",
+          "due_date"
+        ]
+      },
+      "CreateFeeGridDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "example": "Frais CM2 2026-2027"
+          },
+          "school_class_id": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeGridLineDto"
+            }
+          }
+        },
+        "required": [
+          "label",
+          "school_class_id",
+          "lines"
+        ]
+      },
+      "SubscribeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PurchaseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PushKeysDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PushSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeysDto"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ]
+      },
+      "DeletePushDto": {
+        "type": "object",
+        "properties": {}
+      },
       "PayTillDto": {
         "type": "object",
         "properties": {
@@ -3901,31 +6868,48 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateKybDto": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string"
+          },
+          "legalForm": {
+            "type": "string",
+            "example": "SARL"
+          },
+          "rccm": {
+            "type": "string",
+            "example": "CG-BZV-01-2024-B12-00123"
+          },
+          "niu": {
+            "type": "string",
+            "example": "M2024000012345X"
+          },
+          "address": {
+            "type": "string"
+          },
+          "sector": {
+            "type": "string",
+            "example": "Commerce de détail"
+          },
+          "directorFirstName": {
+            "type": "string"
+          },
+          "directorLastName": {
+            "type": "string"
+          }
+        }
+      },
       "RunReconciliationDto": {
         "type": "object",
         "properties": {}
       },
+      "PatchReconciliationDayDto": {
+        "type": "object",
+        "properties": {}
+      },
       "RegisterPushTokenDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "AddKycDocumentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateKycUploadDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "DecideKycDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "SmileResultDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RejectDto": {
         "type": "object",
         "properties": {}
       },

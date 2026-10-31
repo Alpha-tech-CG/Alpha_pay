@@ -36,7 +36,7 @@ const TX_HEADERS = ['ID', 'Date', 'Statut', 'Opérateur', 'Montant', 'Devise', '
 const RECON_HEADERS = ['Date', 'Caisse', 'Statut', 'Paiements', 'Montant numérique', 'Cash déclaré', 'Relevé', 'Devise', 'Commentaire'];
 
 const STATUS_BY_LABEL = Object.fromEntries(Object.entries(PUBLIC_PAYMENT_STATUS).map(([k, v]) => [v, k])) as Record<string, TransactionStatus>;
-const RECON_STATUS: Record<string, string> = { PENDING: 'non_rapproché', RECONCILED: 'rapproché', DISCREPANCY: 'écart' };
+const RECON_STATUS: Record<string, string> = { PENDING: 'non_rapproché', OK: 'rapproché', DISCREPANCY: 'écart' };
 
 /**
  * Neutralise l'injection de formules (CSV/Excel) : une cellule texte qui

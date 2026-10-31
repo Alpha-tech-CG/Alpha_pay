@@ -104,6 +104,43 @@ jobs:
       - name: Tests d'intégration
         run: pnpm --filter @paybrain/api test:integration
 
+  e2e:
+    name: Parcours de bout en bout (Playwright)
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      # Pile complète en une commande, fournisseurs factices, MailHog (§10.2).
+      - name: Pile locale
+        run: |
+          docker compose up -d --build --wait api worker dashboard mailhog
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:3000/ready
+      - run: pnpm install --frozen-lockfile
+      - name: Navigateur
+        run: pnpm --filter @paybrain/e2e exec playwright install --with-deps chromium
+      # §9 : inscription → KYB → QR → Vérif → reçu ; import école → relance → paiement → facture payée.
+      - name: Parcours 1 et 2
+        run: pnpm --filter @paybrain/e2e e2e
+      - name: Rapport en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/e2e/playwright-report
+            apps/e2e/test-results
+      - name: Journaux de la pile
+        if: failure()
+        run: docker compose logs --no-color api worker | tail -300
+
   audit:
     name: Audit des dépendances
     runs-on: ubuntu-latest

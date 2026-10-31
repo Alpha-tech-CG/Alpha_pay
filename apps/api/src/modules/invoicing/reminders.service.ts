@@ -1,5 +1,6 @@
-import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { CronJob } from 'cron';
 import { InvoiceStatus, PrismaClient, RecoverySettings } from '@paybrain/database';
 import { AuditService } from '../../common/audit/audit.service';
 import { ApiError } from '../../common/errors/api-error';
@@ -37,8 +38,9 @@ function windowOf(s: RecoverySettings | null): SendWindow {
  * une relance n'est jamais décidée sur un état périmé.
  */
 @Injectable()
-export class RemindersService {
+export class RemindersService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RemindersService.name);
+  private job?: CronJob;
 
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
@@ -123,7 +125,26 @@ export class RemindersService {
 
   // ─── Envoi ────────────────────────────────────────────────────────────────
 
-  @Cron('0 */5 * * * *')
+  /**
+   * Toutes les 5 min ; plus fréquent en recette (REMINDERS_CRON, ex. toutes les
+   * 15 s). Planifié au démarrage, une fois les secrets chargés (un décorateur
+   * @Cron lirait la variable avant le fichier de secrets).
+   */
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    this.job = CronJob.from({
+      cronTime: process.env.REMINDERS_CRON || '0 */5 * * * *',
+      onTick: () => {
+        this.tick().catch((err) => this.logger.error(`Relances : ${(err as Error).message}`));
+      },
+      start: true,
+    });
+  }
+
+  onModuleDestroy() {
+    void this.job?.stop();
+  }
+
   async tick() {
     await this.cronLock.runExclusive('invoice-reminders', async () => {
       await this.sendDue();

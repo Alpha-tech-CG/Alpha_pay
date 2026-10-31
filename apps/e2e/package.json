@@ -1,0 +1,13 @@
+{
+  "name": "@paybrain/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Parcours de bout en bout de la V1 (§9) : Playwright contre une pile lancée (locale ou préproduction).",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  }
+}

@@ -10,8 +10,11 @@
 import { prisma, StaffRole } from '@paybrain/database';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { loadSecrets } from '../secrets/secrets-loader';
 
 async function main() {
+  // Production : DATABASE_URL vient du fichier de secrets monté (SECRETS_FILE).
+  await loadSecrets();
   const [email, roleArg = 'SUPER_ADMIN', ...name] = process.argv.slice(2);
   const role = roleArg.toUpperCase() as StaffRole;
   if (!email || !/^[^@\s]+@[^@\s]+$/.test(email) || !Object.values(StaffRole).includes(role)) {

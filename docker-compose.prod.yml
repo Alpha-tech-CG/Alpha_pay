@@ -1,10 +1,13 @@
-# AlphaPay — stack de production sur un VPS unique (OVH).
-# Guide pas-à-pas : docs/DEPLOYMENT_VPS.md
+# AlphaPay — stack de production (et de préproduction) sur un VPS (OVH).
+# Guide pas-à-pas : docs/DEPLOYMENT_VPS.md ; exploitation : docs/RUNBOOK.md
 #
 #   docker compose -f docker-compose.prod.yml --env-file infra/vps/vps.env up -d --build
+#   (préproduction : --env-file infra/vps/preprod.env, sur son propre VPS)
 #
-# Seul Caddy publie des ports (80/443). Postgres et Redis vivent sur un réseau
-# interne sans accès Internet ; l'API est le seul service présent sur les deux.
+# Seul Caddy publie des ports (80/443) : il sert le tableau de bord et le
+# back-office et relaie l'API. Postgres et Redis vivent sur un réseau interne
+# sans accès Internet ; l'API et le worker sont sur les deux (le worker appelle
+# les opérateurs et les fournisseurs de messages).
 # Les secrets sont des fichiers montés sous /run/secrets (jamais de variables
 # d'environnement, jamais de .env) — cf. infra/vps/secrets/.
 name: alphapay
@@ -33,7 +36,10 @@ x-api: &api
 
 services:
   caddy:
-    image: caddy:2.8-alpine
+    image: alphapay-web:${API_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: infra/vps/web.Dockerfile
     restart: unless-stopped
     ports:
       - "80:80"
@@ -41,9 +47,12 @@ services:
       - "443:443/udp"
     environment:
       API_DOMAIN: ${API_DOMAIN:?API_DOMAIN requis (ex. api.alphapay.cg)}
+      PAY_DOMAIN: ${PAY_DOMAIN:?PAY_DOMAIN requis (ex. pay.alphapay.cg)}
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?DASHBOARD_DOMAIN requis (ex. app.alphapay.cg)}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:?ADMIN_DOMAIN requis (ex. admin.alphapay.cg)}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:?ADMIN_ALLOWED_IPS requis (IP ou plages CIDR du personnel AlphaPay)}
       ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL requis (certificats Let's Encrypt)}
     volumes:
-      - ./infra/vps/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -56,6 +65,34 @@ services:
   api:
     <<: *api
     restart: unless-stopped
+    volumes:
+      - api_storage:/data/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks:
+      - edge
+      - data
+
+  # File de tâches (D-008) : relances de statut des paiements, envois de
+  # messages, webhooks sortants, exports, relances de factures. Sans lui, rien
+  # de différé ne part. Même stockage que l'API (exports écrits ici, servis par l'API).
+  worker:
+    <<: *api
+    command: ["node", "dist/worker"]
+    restart: unless-stopped
+    environment:
+      SECRETS_FILE: /run/secrets/app_env
+      SERVICE_NAME: alphapay-worker
+    volumes:
+      - api_storage:/data/storage
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'node dist/worker' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -137,6 +174,7 @@ networks:
     internal: true
 
 volumes:
+  api_storage:
   postgres_data:
   redis_data:
   caddy_data:

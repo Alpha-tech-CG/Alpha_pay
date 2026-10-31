@@ -38,3 +38,16 @@ allowBuilds:
   core-js: false
   msgpackr-extract: false
   protobufjs: false
+
+# Correctifs de sécurité des dépendances indirectes (pnpm audit, T-105) : même
+# version majeure, montée au correctif publié. Les montées majeures (nodemailer,
+# OpenTelemetry, Prisma) sont suivies à part (docs/PROGRESS.md).
+overrides:
+  proxy-addr: ^2.0.8
+  body-parser@2: ^2.4.0
+  multer@2: ^2.5.0
+  js-yaml@4: ^4.3.2
+  brace-expansion@1: ^1.1.20
+  brace-expansion@2: ^2.1.6
+  nanoid@5: ^5.1.16
+  zod@4: ^4.6.6

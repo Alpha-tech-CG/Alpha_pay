@@ -110,7 +110,7 @@ export class PaymentLinksService {
 
   /** Envoie le lien par WhatsApp (bascule SMS) ou SMS au numéro donné (§M4 « partage en un clic »). */
   async send(merchantId: string, livemode: boolean, id: string, phone: string, channel: 'whatsapp' | 'sms') {
-    const link = await this.prisma.paymentLink.findFirst({ where: { id, merchantId, livemode }, include: { merchant: { select: { name: true } } } });
+    const link = await this.prisma.paymentLink.findFirst({ where: { id, merchantId, livemode }, include: { merchant: { select: { name: true, isActive: true } } } });
     if (!link) throw new ApiError(HttpStatus.NOT_FOUND, 'lien_introuvable', 'Lien de paiement introuvable', 'id');
     const state = this.stateOf(link, await this.paidCount(link));
     if (state !== 'actif') throw new ApiError(HttpStatus.UNPROCESSABLE_ENTITY, 'lien_inactif', `Ce lien est ${state}`);
@@ -135,7 +135,8 @@ export class PaymentLinksService {
   /** Ce que la page hébergée affiche ; un lien non payable renvoie son état, pas d'erreur. */
   async publicView(code: string) {
     const link = await this.findByCode(code);
-    const state = this.stateOf(link, await this.paidCount(link));
+    // Marchand suspendu par AlphaPay (§M12) : ses liens n'encaissent plus.
+    const state = link.merchant.isActive ? this.stateOf(link, await this.paidCount(link)) : 'désactivé';
     return {
       object: 'payment_link',
       code,
@@ -153,7 +154,8 @@ export class PaymentLinksService {
   /** Paiement depuis la page hébergée. Refuse tout lien non actif, sans appel opérateur. */
   async pay(code: string, input: { phone: string; amount?: number; operator?: MobileMoneyOperator }) {
     const link = await this.findByCode(code);
-    const state = this.stateOf(link, await this.paidCount(link));
+    // Marchand suspendu par AlphaPay (§M12) : ses liens n'encaissent plus.
+    const state = link.merchant.isActive ? this.stateOf(link, await this.paidCount(link)) : 'désactivé';
     if (state !== 'actif') throw new ApiError(HttpStatus.GONE, STATE_CODES[state], STATE_MESSAGES[state]);
 
     if (!link.multiUse) {
@@ -194,7 +196,7 @@ export class PaymentLinksService {
   }
 
   private async findByCode(code: string) {
-    const link = await this.prisma.paymentLink.findUnique({ where: { publicCode: code }, include: { merchant: { select: { name: true } } } });
+    const link = await this.prisma.paymentLink.findUnique({ where: { publicCode: code }, include: { merchant: { select: { name: true, isActive: true } } } });
     if (!link) throw new ApiError(HttpStatus.NOT_FOUND, 'lien_introuvable', 'Ce lien de paiement n’existe pas');
     return link;
   }

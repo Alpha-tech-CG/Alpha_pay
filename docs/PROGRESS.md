@@ -2,6 +2,27 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 31 octobre 2026 (15) — S9 recette et livraison (en cours)
+
+### Fait
+- **T-102** Jeu de démonstration `demo-seed` (vrais services de l'API) : « Quincaillerie du Plateau » (2 boutiques, 3 caisses, une caissière, ~200 paiements sur 30 jours, cash déclaré, rapprochements, 6 factures dans tous les états, relances, reçus) et « École Les Manguiers » (3 classes, 50 élèves, grilles, échéanciers, versements payés, retardataires). Mot de passe : `DEMO_PASSWORD`.
+- **T-100** Recette Playwright `apps/e2e` (mobile) : parcours 1 (inscription → KYB → paiement test par QR → Vérif → reçu → validation back-office → live ouvert) et parcours 2 (import école → relance automatique → paiement du parent → facture payée). Job CI `e2e`. D-058.
+- **T-103** Production et préproduction : worker, stockage partagé, image web (tableau de bord + back-office) sur quatre domaines, secrets réécrits, `DEPLOYMENT_ENV=preproduction`, sauvegarde base + fichiers, `restore.sh`. D-059.
+- **T-104** `README.md`, `docs/API.md`, `RUNBOOK.md`, `ADMIN.md`, `GO_LIVE.md` ; `DEPLOYMENT_VPS.md` mis à jour ; guide du portail (factures) ; OpenAPI régénérée (153 routes).
+- **T-105** Correctifs de sécurité des dépendances (plus aucune alerte critique) ; test automatique du vocabulaire interdit ; liens de paiement bloqués pour un marchand suspendu. D-060.
+- Défauts trouvés et corrigés : statut de rapprochement `OK` (l'écran envoyait `RECONCILED`, refusé) ; `REMINDERS_CRON` ignoré quand il vient du fichier de secrets ; scripts d'exploitation sans lecture des secrets en production ; page KYC factice inaccessible en préproduction ; limite anti-abus remise à zéro avant la recette locale.
+
+### Vérifié
+- Parcours 1 et 2 verts sur la pile de développement **et** sur une copie locale de la pile de production (HTTPS Caddy, domaines `*.localhost`, secrets en fichier, worker).
+- Sauvegarde puis restauration de contrôle sur cette pile : 33 migrations, tables clés et 6 fichiers restaurés.
+- Unitaires 57 suites / 330 tests verts après les correctifs de dépendances ; fronts construits.
+
+### Reste
+- **T-101 couverture 80 %** : atteinte. Mesure unitaires + intégration fusionnées (lignes) : paiements 86 %, OTP 95 %, crédits 91 %, recouvrement 87 %, contrôle d'accès 89 % ; total 88 % (branches 65 %). Ajouts : tests des clients M7 (recherche, pagination, modification, suppression refusée avec facture ouverte, cloisonnement) et du guard interne. Restent sous 80 % : `merchant-payments.controller.ts` (64 %), `invoicing.controller.ts` (80 %). Mesure à lancer Supabase arrêté (sinon la VM Docker de 8 Go sature et Docker tombe).
+- Audit : nodemailer 6 → ≥ 10, OpenTelemetry → ≥ 0.217, Prisma (`deepmerge-ts`), `follow-redirects` (D-060).
+- Premier déploiement réel sur les VPS OVH (préproduction puis production) et recette en préproduction.
+- Accueil du tableau de bord à refaire ; trous M11 (limite du palier Gratuit, verrouillage serveur Messages/Développeurs).
+
 ## Session du 30 octobre 2026 (14) — M7 Recouvrer et M8 Pack École réécrits, écrans Gérer / Recouvrer / École
 
 ### Constat

@@ -231,7 +231,7 @@ export class BillingService implements OnModuleInit {
     };
   }
 
-  /** Paiement réussi sur le compte AlphaPay : applique la facture correspondante (une seule fois). */
+  /** Paiement réussi sur le compte marchand d'AlphaPay : applique la facture correspondante (une seule fois). */
   private async onPaymentSucceeded(tx: Transaction) {
     if (!tx.paymentLinkId) return;
     const inv = await this.prisma.alphapayInvoice.findUnique({ where: { paymentLinkId: tx.paymentLinkId } });

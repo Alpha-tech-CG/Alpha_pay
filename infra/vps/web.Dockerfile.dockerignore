@@ -1,0 +1,9 @@
+# Contexte de infra/vps/web.Dockerfile : seulement les deux fronts et le Caddyfile.
+*
+!dashboard
+!admin
+!infra/vps/Caddyfile
+**/node_modules
+**/dist
+**/.env
+**/.env.*

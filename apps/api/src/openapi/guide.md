@@ -96,6 +96,26 @@ $payment = json_decode(curl_exec($ch), true);
 
 `POST /v1/payment-links` crée un lien à partager par WhatsApp ou SMS : montant fixe (`amount`) ou libre (sans `amount`), date d'expiration (`expires_at`), usage unique (par défaut) ou multiple (`multi_use: true`). La réponse contient l'`url` de la page de paiement et des liens de partage `share.whatsapp` et `share.sms` prêts à l'emploi. Un lien expiré, désactivé ou déjà payé affiche un message clair et ne déclenche aucun paiement.
 
+# Factures et clients
+
+Module Recouvrer (palier qui l'inclut). `POST /v1/customers` crée un client : `name`, `phone` (format local ou E.164), `email`, et `channels`, l'ordre des canaux pour la facture, les relances et le reçu (`["whatsapp","sms"]` : WhatsApp, puis SMS en cas d'échec).
+
+`POST /v1/invoices` crée une facture : `customer_id`, `lines` (`description`, `quantity`, `unit_price` en XAF, `tax_rate` facultatif en %), `due_date`, ou un échéancier `installments` (au moins deux versements `due_date` + `amount` dont la somme égale le total). Avec `send: true`, la facture est envoyée tout de suite :
+
+- elle reçoit son numéro définitif, sans trou (`FAC-000042` ; en test `FAC-T-000042`) ;
+- un lien de paiement est créé (un par versement), payable sur **votre** compte MTN MoMo ou Airtel Money ;
+- les relances sont planifiées (par défaut J-3, J0, J+3, J+7, entre 8 h et 19 h heure de Brazzaville, réglables dans le tableau de bord) et s'arrêtent dès le paiement.
+
+```bash
+curl https://api.alphapay.cg/v1/invoices \
+  -H "Authorization: Bearer ap_test_…" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id":"…","due_date":"2026-12-15","lines":[{"description":"Sac de ciment","quantity":4,"unit_price":7500}],"send":true}'
+```
+
+`GET /v1/invoices/:id` renvoie le statut (`brouillon`, `envoyée`, `partiellement_payée`, `payée`, `en_retard`, `annulée`), les montants payés et dus, l'échéancier, le `payment_url` du prochain versement dû, le `pdf_url` de la facture et les reçus. Chaque paiement réussi produit un reçu numéroté (`REC-000042`) envoyé au client, et les webhooks `installment.paid` puis `invoice.paid`.
+
 # Idempotence
 
 Ajoutez un en-tête `Idempotency-Key` (UUID) à chaque `POST`. Il est **obligatoire** sur `POST /v1/payments`. Si la même requête est renvoyée avec la même clé dans les 24 heures (coupure réseau, nouvelle tentative), AlphaPay renvoie la même réponse sans refaire l'action, avec l'en-tête `Idempotency-Replayed: true`. La même clé avec un corps différent renvoie `422`.

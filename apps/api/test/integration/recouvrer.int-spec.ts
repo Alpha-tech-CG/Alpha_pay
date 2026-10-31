@@ -233,6 +233,47 @@ describe('M7 Recouvrer (HTTP, Postgres réel)', () => {
     expect(overdue.body.payment_url).toEqual(expect.stringContaining('/l/')); // toujours payable
   });
 
+  it('clients : recherche, pagination, modification, suppression refusée tant qu’une facture est ouverte, cloisonnement', async () => {
+    const { owner, base, customerId } = await setup();
+    const add = (body: object) => a.http().post(`${base}/customers`).set('Authorization', owner.auth).send(body).expect(201);
+    const mail = await add({ name: 'Awa Ngoma', email: 'Awa@Exemple.CG' });
+    expect(mail.body).toMatchObject({ email: 'awa@exemple.cg', channels: ['email'], phone: null });
+    await add({ name: 'Paul Okemba', phone: '055443322' });
+
+    const found = await a.http().get(`${base}/customers?q=ngoma`).set('Authorization', owner.auth).expect(200);
+    expect(found.body.data.map((c: any) => c.name)).toEqual(['Awa Ngoma']);
+    const byPhone = await a.http().get(`${base}/customers?q=055443`).set('Authorization', owner.auth).expect(200);
+    expect(byPhone.body.data.map((c: any) => c.name)).toEqual(['Paul Okemba']);
+    const p1 = await a.http().get(`${base}/customers?limit=2`).set('Authorization', owner.auth).expect(200);
+    expect(p1.body).toMatchObject({ has_more: true, next_cursor: expect.any(String) });
+    const p2 = await a.http().get(`${base}/customers?limit=2&starting_after=${p1.body.next_cursor}`).set('Authorization', owner.auth).expect(200);
+    expect(p2.body.has_more).toBe(false);
+    expect([...p1.body.data, ...p2.body.data].map((c: any) => c.id).sort()).toHaveLength(3);
+    await a.http().get(`${base}/customers?starting_after=pas-un-curseur`).set('Authorization', owner.auth).expect(400);
+
+    const patched = await a
+      .http()
+      .patch(`${base}/customers/${mail.body.id}`)
+      .set('Authorization', owner.auth)
+      .send({ name: '  Awa N. ', phone: '069998877', email: null, notes: 'Paie en fin de mois', channels: ['whatsapp'] })
+      .expect(200);
+    expect(patched.body).toMatchObject({ name: 'Awa N.', phone: '+242069998877', email: null, notes: 'Paie en fin de mois', channels: ['whatsapp'] });
+
+    // Facture ouverte : le destinataire des relances ne peut pas disparaître.
+    await a.http().post(`${base}/invoices`).set('Authorization', owner.auth)
+      .send({ customer_id: customerId, lines: [{ description: 'Tôles', quantity: 1, unit_price: 5000 }], send: true }).expect(201);
+    const conflict = await a.http().delete(`${base}/customers/${customerId}`).set('Authorization', owner.auth).expect(409);
+    expect(conflict.body.error.code).toBe('client_factures_ouvertes');
+    await a.http().delete(`${base}/customers/${mail.body.id}`).set('Authorization', owner.auth).expect(204);
+    await a.http().get(`${base}/customers/${mail.body.id}`).set('Authorization', owner.auth).expect(404);
+
+    // Un autre marchand ne voit ni ne modifie les clients du premier ; le mode live est séparé du test.
+    const other = await a.signUp();
+    await a.http().get(`/v1/merchants/${other.merchantId}/customers/${customerId}`).set('Authorization', other.auth).expect(404);
+    await a.http().get(`${base}/customers/${customerId}`).set('Authorization', other.auth).expect(403);
+    await a.http().get(`${base}/customers/${customerId}?mode=live`).set('Authorization', owner.auth).expect(404);
+  });
+
   it('API publique : /v1/customers et /v1/invoices avec une clé ap_test_, idempotente', async () => {
     const { owner } = await setup();
     const key = await a.http().post(`/v1/merchants/${owner.merchantId}/api-keys`).set('Authorization', owner.auth).send({ name: 'ERP', mode: 'test' }).expect(201);

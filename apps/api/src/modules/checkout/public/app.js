@@ -68,6 +68,14 @@
     (fixedAmount == null ? $('amount') : $('phone')).focus();
   }
 
+  // Le reçu est émis juste après la confirmation : quelques relectures au besoin.
+  function showReceipt(id, token, tries) {
+    request('GET', '/v1/public/payments/' + id + '?token=' + encodeURIComponent(token)).then(function (s) {
+      if (s.receipt_url) { $('receipt').href = s.receipt_url; $('receipt').hidden = false; }
+      else if (tries > 0) setTimeout(function () { showReceipt(id, token, tries - 1); }, 1500);
+    }, function () {});
+  }
+
   function poll(id, token, startedAt) {
     request('GET', '/v1/public/payments/' + id + '?token=' + encodeURIComponent(token)).then(function (s) {
       if (!s.final) {
@@ -76,7 +84,11 @@
         pollTimer = setTimeout(function () { poll(id, token, startedAt); }, wait);
         return;
       }
-      if (s.status === 'réussi') finish(true, 'Paiement réussi', fcfa(s.amount) + ' payés à ' + s.merchant_name + '.', false);
+      if (s.status === 'réussi') {
+        finish(true, 'Paiement réussi', fcfa(s.amount) + ' payés à ' + s.merchant_name + '.', false);
+        if (s.receipt_url) { $('receipt').href = s.receipt_url; $('receipt').hidden = false; }
+        else showReceipt(id, token, 4);
+      }
       else finish(false, 'Paiement non abouti', s.message, true);
     }, function () {
       pollTimer = setTimeout(function () { poll(id, token, startedAt); }, 5000); // coupure réseau : on insiste

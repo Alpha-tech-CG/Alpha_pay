@@ -6,6 +6,7 @@ import { ApiConsumes, ApiExcludeController, ApiOperation, ApiPropertyOptional, A
 import { KybDocumentType, KybStatus } from '@paybrain/database';
 import { MockKycProvider } from '@paybrain/providers';
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { mockPagesAllowed } from '../../common/config/deployment';
 import { ApiError } from '../../common/errors/api-error';
 import { RequireStaffRole, STAFF_WRITE, StaffGuard } from '../staff/staff.guard';
 import { SessionGuard } from '../auth/session.guard';
@@ -177,7 +178,7 @@ export class KycWebhookController {
 /**
  * Page factice du fournisseur KYC (développement et recette sans contrat
  * Sumsub) : le « dirigeant » valide, et un webhook signé est rejoué comme le
- * ferait le vrai fournisseur. Absente en production.
+ * ferait le vrai fournisseur. Absente en production (présente en préproduction déclarée).
  */
 @ApiExcludeController()
 @Controller('mock/kyc')
@@ -188,7 +189,7 @@ export class MockKycController {
   ) {}
 
   private mock(): MockKycProvider {
-    if (process.env.NODE_ENV === 'production' || !(this.provider instanceof MockKycProvider)) throw new NotFoundException();
+    if (!mockPagesAllowed() || !(this.provider instanceof MockKycProvider)) throw new NotFoundException();
     return this.provider;
   }
 
