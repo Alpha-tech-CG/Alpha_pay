@@ -207,9 +207,9 @@ api_key VARCHAR(255) UNIQUE NOT NULL,
 **Localisation** : `paybrain/.env.example`
 
 ```
-MTN_SUBSCRIPTION_KEY=4d952767ab594fe096641ac90598f7bd
-MTN_API_USER_ID=604c51ad-e956-4de7-a699-3e0f404a2d83
-MTN_API_KEY=b067e739354e42c79f04bf6590547253
+MTN_SUBSCRIPTION_KEY=<masqué, à révoquer chez MTN>
+MTN_API_USER_ID=<masqué, à révoquer chez MTN>
+MTN_API_KEY=<masqué, à révoquer chez MTN>
 JWT_SECRET=paybrain_secret_groupe_alpha_2026
 API_KEY_SALT=alpha_salt_2026
 ```

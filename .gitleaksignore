@@ -1,0 +1,19 @@
+# Faux positifs Gitleaks, vérifiés un par un. Ne jamais y mettre un vrai secret :
+# un secret réellement divulgué se révoque, il ne s'ignore pas.
+
+# Clés de chiffrement factices du compose de développement (« dev-only-…-0000 »).
+0765f7630670ecba4c7de9ba29bd976dd3a6b425:docker-compose.yml:generic-api-key:32
+0765f7630670ecba4c7de9ba29bd976dd3a6b425:docker-compose.yml:generic-api-key:33
+eb92e9611d4575f39c9548f3ff939ecebecf5c84:docker-compose.yml:generic-api-key:34
+# Mot de passe de test d'un test d'intégration.
+9a0491f68cf7688fd1a29fa3c7b196469abd7803:apps/api/test/integration/auth-team.int-spec.ts:generic-api-key:153
+# Exemples curl de documentation (`ap_test_xxxxxxxx_votre_secret`, `YOUR_API_KEY`).
+65f0df3b09cc353f1ac9ce4f9cf223ec61eafddf:apps/api/src/openapi/guide.md:curl-auth-header:10
+448c0e691a6a9fa13c326e7cfbf0097200c4e543:apps/prototype/src/app/developer/docs/page.tsx:curl-auth-header:16
+448c0e691a6a9fa13c326e7cfbf0097200c4e543:apps/prototype/src/app/developer/overview/page.tsx:curl-auth-header:8
+# Clés factices des données de démonstration de l'application mobile.
+a25cd867d313d5f41bbaba2063875af1ee8fad56:mobile/src/merchant-data.ts:stripe-access-token:64
+
+# NON ignorés volontairement : identifiants MTN sandbox réels publiés dans les
+# commits a9b2dad5 (juin 2026) et fef59e43. Ils restent signalés par un scan
+# complet de l'historique tant qu'ils n'ont pas été révoqués chez MTN.
