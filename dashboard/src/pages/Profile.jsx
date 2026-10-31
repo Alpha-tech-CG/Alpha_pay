@@ -66,7 +66,7 @@ export default function Profile() {
       </Card>
 
       {/* Profil marchand */}
-      <SectionTitle>Profil marchand</SectionTitle>
+      <SectionTitle>{tr('profile.merchant')}</SectionTitle>
       <Card>
         <Field label={tr('profile.legalName')}><Input value={data.legalName || ''} onChange={update('legalName')} /></Field>
         <Field label={tr('profile.tradeName')}><Input value={data.tradeName || ''} onChange={update('tradeName')} /></Field>

@@ -1,23 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTheme } from '../theme'
 import { useT } from '../i18n'
+import { fmt } from '../merchant'
 import { Card, Button, Field, Input, Select } from '../ui'
 import { useTeamApi } from '../team/useTeamApi'
+import { errorMessage } from '../auth/session'
 import { assignableRoles, can, canActOn, invitableRoles } from '../team/permissions'
 
-const ROLE_LABEL = { OWNER: 'Propriétaire', ADMIN: 'Administrateur', ACCOUNTANT: 'Comptable', CASHIER: 'Caissier', DEVELOPER: 'Développeur' }
-const STATUS_LABEL = { ACTIVE: 'Actif', SUSPENDED: 'Suspendu', INVITED: 'Invité', REMOVED: 'Retiré' }
 const STATUS_COLOR = { ACTIVE: '#16a34a', SUSPENDED: '#d97706', INVITED: '#64748b', REMOVED: '#dc2626' }
-const EVENT_LABEL = {
-  INVITATION_SENT: 'Invitation envoyée',
-  INVITATION_ACCEPTED: 'Invitation acceptée',
-  INVITATION_REVOKED: 'Invitation révoquée',
-  ROLE_CHANGED: 'Rôle modifié',
-  MEMBER_SUSPENDED: 'Membre suspendu',
-  MEMBER_REACTIVATED: 'Membre réactivé',
-  MEMBER_REMOVED: 'Membre retiré',
-  OWNERSHIP_TRANSFERRED: 'Propriété transférée',
-}
 
 function Pill({ color, children }) {
   return (
@@ -30,11 +20,13 @@ function Pill({ color, children }) {
 
 function RoleBadge({ role }) {
   const { t } = useTheme()
-  return <Pill color={role === 'OWNER' ? t.primary : '#475569'}>{ROLE_LABEL[role] || role}</Pill>
+  const { t: tr } = useT()
+  return <Pill color={role === 'OWNER' ? t.primary : '#475569'}>{tr(`team.role.${role}`)}</Pill>
 }
 
 function StatusBadge({ status }) {
-  return <Pill color={STATUS_COLOR[status] || '#64748b'}>{STATUS_LABEL[status] || status}</Pill>
+  const { t: tr } = useT()
+  return <Pill color={STATUS_COLOR[status] || '#64748b'}>{tr(`team.status.${status}`)}</Pill>
 }
 
 function Row({ children }) {
@@ -99,7 +91,7 @@ export default function Team() {
         setMyRole(mine.role)
         await load(mine.merchantId, mine.role)
       } catch (err) {
-        if (!cancelled) setError(err.response?.data?.message || 'Impossible de charger l’équipe')
+        if (!cancelled) setError(errorMessage(err, tr('team.error.load')))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -112,7 +104,7 @@ export default function Team() {
   const withBusy = (id, fn) => async (...args) => {
     setBusyId(id)
     try { await fn(...args); await reload() }
-    catch (err) { setError(err.response?.data?.message || 'Action impossible') }
+    catch (err) { setError(errorMessage(err, tr('team.error.action'))) }
     finally { setBusyId(null) }
   }
 
@@ -120,7 +112,7 @@ export default function Team() {
   const handleSuspend = (memberId) => withBusy(memberId, () => teamApi.suspend(merchantId, memberId))()
   const handleReactivate = (memberId) => withBusy(memberId, () => teamApi.reactivate(merchantId, memberId))()
   const handleRemove = (memberId) => {
-    if (!window.confirm('Retirer ce membre de l’équipe ?')) return
+    if (!window.confirm(tr('team.removeConfirm'))) return
     withBusy(memberId, () => teamApi.remove(merchantId, memberId))()
   }
   const handleRevoke = (invitationId) => withBusy(invitationId, () => teamApi.revokeInvitation(merchantId, invitationId))()
@@ -133,20 +125,20 @@ export default function Team() {
       setInviteEmail(''); setInviteOpen(false)
       await reload()
     } catch (err) {
-      setInviteError(err.response?.data?.message || 'Échec de l’invitation')
+      setInviteError(errorMessage(err, tr('team.error.invite')))
     } finally { setInviteBusy(false) }
   }
 
   const handleTransfer = async () => {
     if (!transferTarget) return
-    if (!window.confirm('Transférer la propriété du marchand ? Vous deviendrez Admin.')) return
+    if (!window.confirm(tr('team.transferConfirm'))) return
     setTransferBusy(true); setTransferError(null)
     try {
       await teamApi.transferOwnership(merchantId, transferTarget)
       setMyRole('ADMIN'); setTransferTarget('')
       await load(merchantId, 'ADMIN')
     } catch (err) {
-      setTransferError(err.response?.data?.message || 'Échec du transfert')
+      setTransferError(errorMessage(err, tr('team.error.transfer')))
     } finally { setTransferBusy(false) }
   }
 
@@ -163,7 +155,7 @@ export default function Team() {
     return (
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 16 }}>{tr('nav.team')}</h1>
-        <Card>Aucun marchand associé à ce compte pour l’instant.</Card>
+        <Card>{tr('team.noMerchant')}</Card>
       </div>
     )
   }
@@ -180,18 +172,18 @@ export default function Team() {
           <button onClick={() => setInviteOpen((o) => !o)} style={{
             background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
             color: t.primary, fontWeight: 700, fontSize: 14,
-          }}>{inviteOpen ? '– Fermer' : '+ Inviter un membre'}</button>
+          }}>{inviteOpen ? tr('team.invite.close') : tr('team.invite.open')}</button>
           {inviteOpen && (
             <form onSubmit={handleInvite} style={{ marginTop: 14 }}>
               <Field label={tr('team.invite.contact')}>
-                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="caissier@boutique.cg / 06 123 45 67" required />
+                <Input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder={tr('team.invite.placeholder')} required />
               </Field>
-              <Field label="Rôle">
+              <Field label={tr('team.invite.role')}>
                 <Select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                  {invitableRoles(myRole).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                  {invitableRoles(myRole).map((r) => <option key={r} value={r}>{tr(`team.role.${r}`)}</option>)}
                 </Select>
               </Field>
-              <Button type="submit" disabled={inviteBusy}>{inviteBusy ? 'Envoi…' : 'Envoyer l’invitation'}</Button>
+              <Button type="submit" disabled={inviteBusy}>{inviteBusy ? tr('team.invite.sending') : tr('team.invite.send')}</Button>
               {inviteError && <div style={{ marginTop: 10, color: '#e11d48', fontSize: 13 }}>⚠️ {inviteError}</div>}
             </form>
           )}
@@ -199,7 +191,7 @@ export default function Team() {
       )}
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Membres ({members.length})</div>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{fmt(tr('team.members'), { n: members.length })}</div>
         {members.map((m) => {
           const editable = canActOn(myRole, m.role)
           return (
@@ -220,15 +212,15 @@ export default function Team() {
                     onChange={(e) => handleChangeRole(m.id, e.target.value)}
                     style={{ width: 130 }}
                   >
-                    {assignableRoles(myRole).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                    {assignableRoles(myRole).map((r) => <option key={r} value={r}>{tr(`team.role.${r}`)}</option>)}
                   </Select>
                   {m.status === 'ACTIVE' && (
-                    <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleSuspend(m.id)}>Suspendre</Button>
+                    <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleSuspend(m.id)}>{tr('team.suspend')}</Button>
                   )}
                   {m.status === 'SUSPENDED' && (
-                    <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleReactivate(m.id)}>Réactiver</Button>
+                    <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleReactivate(m.id)}>{tr('team.reactivate')}</Button>
                   )}
-                  <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleRemove(m.id)}>Retirer</Button>
+                  <Button variant="ghost" disabled={busyId === m.id} onClick={() => handleRemove(m.id)}>{tr('team.remove')}</Button>
                 </>
               )}
             </Row>
@@ -238,15 +230,15 @@ export default function Team() {
 
       {can(myRole, 'team:invite') && invitations.filter((i) => i.status === 'PENDING').length > 0 && (
         <Card style={{ marginBottom: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Invitations en attente</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tr('team.pending')}</div>
           {invitations.filter((i) => i.status === 'PENDING').map((inv) => (
             <Row key={inv.id}>
               <div style={{ flex: '1 1 200px', fontSize: 13 }}>{inv.email || inv.phone}</div>
               <RoleBadge role={inv.role} />
               <div style={{ fontSize: 12, color: t.textMuted }}>
-                expire le {new Date(inv.expiresAt).toLocaleDateString('fr-FR')}
+                {fmt(tr('team.expires'), { date: new Date(inv.expiresAt).toLocaleDateString('fr-FR') })}
               </div>
-              <Button variant="ghost" disabled={busyId === inv.id} onClick={() => handleRevoke(inv.id)}>Révoquer</Button>
+              <Button variant="ghost" disabled={busyId === inv.id} onClick={() => handleRevoke(inv.id)}>{tr('team.revoke')}</Button>
             </Row>
           ))}
         </Card>
@@ -254,19 +246,19 @@ export default function Team() {
 
       {myRole === 'OWNER' && eligibleTransferTargets.length > 0 && (
         <Card style={{ marginBottom: 20, borderColor: '#fca5a5' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Transférer la propriété</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{tr('team.transfer.title')}</div>
           <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12 }}>
-            Vous deviendrez Admin ; la personne choisie devient Owner. Action réversible en refaisant un transfert.
+            {tr('team.transfer.intro')}
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <Select value={transferTarget} onChange={(e) => setTransferTarget(e.target.value)} style={{ maxWidth: 280 }}>
-              <option value="">Choisir un membre…</option>
+              <option value="">{tr('team.transfer.choose')}</option>
               {eligibleTransferTargets.map((m) => (
                 <option key={m.userId} value={m.userId}>{m.fullName || m.email}</option>
               ))}
             </Select>
             <Button variant="ghost" disabled={!transferTarget || transferBusy} onClick={handleTransfer}>
-              {transferBusy ? 'Transfert…' : 'Transférer'}
+              {transferBusy ? tr('team.transfer.busy') : tr('team.transfer.submit')}
             </Button>
           </div>
           {transferError && <div style={{ marginTop: 10, color: '#e11d48', fontSize: 13 }}>⚠️ {transferError}</div>}
@@ -278,13 +270,13 @@ export default function Team() {
           <button onClick={loadEvents} style={{
             background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
             color: t.primary, fontWeight: 700, fontSize: 14,
-          }}>{eventsOpen ? '– Masquer le journal d’activité' : '+ Journal d’activité'}</button>
+          }}>{eventsOpen ? tr('team.log.hide') : tr('team.log.show')}</button>
           {eventsOpen && (
             <div style={{ marginTop: 14 }}>
-              {events.length === 0 && <div style={{ fontSize: 13, color: t.textMuted }}>Aucun événement.</div>}
+              {events.length === 0 && <div style={{ fontSize: 13, color: t.textMuted }}>{tr('team.log.none')}</div>}
               {events.map((ev) => (
                 <Row key={ev.id}>
-                  <div style={{ flex: 1, fontSize: 13 }}>{EVENT_LABEL[ev.eventType] || ev.eventType}</div>
+                  <div style={{ flex: 1, fontSize: 13 }}>{tr(`team.event.${ev.eventType}`)}</div>
                   <div style={{ fontSize: 12, color: t.textMuted }}>{new Date(ev.createdAt).toLocaleString('fr-FR')}</div>
                 </Row>
               ))}

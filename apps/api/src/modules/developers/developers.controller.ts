@@ -6,6 +6,7 @@ import { AuditService } from '../../common/audit/audit.service';
 import { afterCursor, decodeCursor, page, parseLimit } from '../../common/pagination/cursor';
 import { apiKeyRateLimit } from '../../common/security/api-usage';
 import { ApiKeysService } from '../api-keys/api-keys.service';
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import { CreateApiKeyDto } from '../api-keys/dto/create-api-key.dto';
 import { SessionGuard } from '../auth/session.guard';
 import { RequireAction } from '../team/auth/require-action.decorator';
@@ -37,11 +38,13 @@ const isLive = (mode?: string) => mode === 'live';
  * Espace Développeurs du tableau de bord (T-56, T-57) : clés API (secret
  * affiché une seule fois), journal des requêtes, endpoints webhook, journal des
  * livraisons et renvoi. Propriétaire, administrateurs et développeurs.
+ * Les clés API restent ouvertes à tous les paliers (l'API de paiement fait partie
+ * d'Encaisser) ; journal et webhooks relèvent du module payant M10 (§M11).
  */
 @ApiTags('Développeurs (tableau de bord)')
 @ApiSecurity('Bearer')
 @Controller('v1/merchants/:merchantId')
-@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard)
+@UseGuards(SessionGuard, RequireMemberGuard, RequireActionGuard, ModuleAccessGuard)
 export class DevelopersController {
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
@@ -92,6 +95,7 @@ export class DevelopersController {
   // ─── Journal des requêtes API (30 jours) ────────────────────────────────
 
   @Get('api-logs')
+  @RequireModule('m10_developers')
   @RequireAction('apilogs:view')
   async logs(
     @Param('merchantId') merchantId: string,
@@ -126,12 +130,14 @@ export class DevelopersController {
   // ─── Webhooks ────────────────────────────────────────────────────────────
 
   @Get('webhook-endpoints')
+  @RequireModule('m10_developers')
   @RequireAction('webhooks:write')
   async listEndpoints(@Param('merchantId') merchantId: string, @Query('mode') mode?: string) {
     return { data: await this.endpoints.list(merchantId, isLive(mode)), events: WEBHOOK_EVENTS };
   }
 
   @Post('webhook-endpoints')
+  @RequireModule('m10_developers')
   @HttpCode(201)
   @RequireAction('webhooks:write')
   async createEndpoint(@Param('merchantId') merchantId: string, @Query('mode') mode: string | undefined, @Body() dto: CreateWebhookEndpointDto, @Req() req: any) {
@@ -141,6 +147,7 @@ export class DevelopersController {
   }
 
   @Patch('webhook-endpoints/:id')
+  @RequireModule('m10_developers')
   @RequireAction('webhooks:write')
   async updateEndpoint(
     @Param('merchantId') merchantId: string,
@@ -155,6 +162,7 @@ export class DevelopersController {
   }
 
   @Delete('webhook-endpoints/:id')
+  @RequireModule('m10_developers')
   @RequireAction('webhooks:write')
   async deleteEndpoint(@Param('merchantId') merchantId: string, @Param('id', ParseUUIDPipe) id: string, @Query('mode') mode: string | undefined, @Req() req: any) {
     const res = await this.endpoints.remove(merchantId, isLive(mode), id);
@@ -163,12 +171,14 @@ export class DevelopersController {
   }
 
   @Get('webhook-endpoints/:id/deliveries')
+  @RequireModule('m10_developers')
   @RequireAction('webhooks:write')
   async deliveries(@Param('merchantId') merchantId: string, @Param('id', ParseUUIDPipe) id: string, @Query('mode') mode?: string) {
     return { data: await this.endpoints.deliveries(merchantId, isLive(mode), id) };
   }
 
   @Post('webhook-endpoints/:id/deliveries/:deliveryId/resend')
+  @RequireModule('m10_developers')
   @HttpCode(200)
   @RequireAction('webhooks:write')
   async resend(
@@ -184,6 +194,7 @@ export class DevelopersController {
   }
 
   @Post('webhook-endpoints/:id/test')
+  @RequireModule('m10_developers')
   @HttpCode(200)
   @RequireAction('webhooks:write')
   test(@Param('merchantId') merchantId: string, @Param('id', ParseUUIDPipe) id: string, @Query('mode') mode?: string) {

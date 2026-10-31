@@ -1,14 +1,15 @@
-import { Global, Module } from "@nestjs/common";
-import { NotificationService } from "./notification.service";
-import { NotificationWebhookController } from "./notification-webhook.controller";
-import { NotificationWebhookGuard } from "./notification-webhook.guard";
+import { Module } from "@nestjs/common";
 import { PushTokenController } from "./push-token.controller";
 import { PushTokenService } from "./push-token.service";
 
-@Global()
+/**
+ * Jetons de notification de l'application mobile (hors V1, conservés pour elle).
+ * Les envois passent tous par M9 (MessagingService) ; l'ancien envoi
+ * Africa's Talking / Postmark et ses accusés de livraison sont retirés.
+ */
 @Module({
-  controllers: [NotificationWebhookController, PushTokenController],
-  providers: [NotificationService, NotificationWebhookGuard, PushTokenService],
-  exports: [NotificationService, PushTokenService],
+  controllers: [PushTokenController],
+  providers: [PushTokenService],
+  exports: [PushTokenService],
 })
 export class NotificationModule {}

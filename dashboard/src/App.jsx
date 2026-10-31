@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ForgotPasswordPage, SignInPage, SignUpPage } from './auth/AuthPages'
 import { useAuth } from './auth/session'
 import { useT } from './i18n'
@@ -18,12 +18,6 @@ import PaymentLinks from './pages/PaymentLinks'
 import Invoices from './pages/Invoices'
 import School from './pages/School'
 import InviteAccept from './pages/InviteAccept'
-import Checkout from './Checkout'
-
-function CheckoutRoute() {
-  const { id } = useParams()
-  return <Checkout linkId={id} />
-}
 
 /** Routes réservées aux utilisateurs connectés (le serveur revérifie chaque requête). */
 function Protected({ children }) {
@@ -52,8 +46,6 @@ export default function App() {
       <Route path="/sign-up" element={<GuestOnly><SignUpPage /></GuestOnly>} />
       <Route path="/forgot-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
 
-      {/* Checkout public (lien de paiement) */}
-      <Route path="/pay/:id" element={<CheckoutRoute />} />
 
       {/* Invitation d'équipe : aperçu public, acceptation une fois connecté */}
       <Route path="/invite" element={<InviteAccept />} />

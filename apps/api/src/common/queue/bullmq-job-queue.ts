@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions } from 'bullmq';
 import { runWithRequestId } from '../logging/request-context';
-import { DEFAULT_ATTEMPTS, DEFAULT_BACKOFF_MS, EnqueueOptions, JobHandler, JobQueue, QueueName } from './job-queue';
+import { DEFAULT_ATTEMPTS, DEFAULT_BACKOFF_MS, EnqueueOptions, JobHandler, JobQueue, QueueCounts, QueueName, QUEUES } from './job-queue';
 
 /** Options de connexion BullMQ dérivées de REDIS_URL (redis:// ou rediss://). */
 export function connectionFromUrl(url: string): ConnectionOptions {
@@ -80,6 +80,21 @@ export class BullMqJobQueue extends JobQueue {
       this.logger.warn(`Tâche ${queue}/${job?.name} ${job?.id} en échec${final ? ' définitif' : ''} : ${err?.message}`);
     });
     this.workers.push(worker);
+  }
+
+  async counts(): Promise<QueueCounts[]> {
+    return Promise.all(
+      Object.values(QUEUES).map(async (queue) => {
+        const c = await this.queue(queue).getJobCounts('waiting', 'active', 'delayed', 'failed');
+        return { queue, waiting: c.waiting ?? 0, active: c.active ?? 0, delayed: c.delayed ?? 0, failed: c.failed ?? 0 };
+      }),
+    );
+  }
+
+  async retryFailed(queue: QueueName): Promise<number> {
+    const failed = await this.queue(queue).getJobs(['failed'], 0, 999);
+    await Promise.all(failed.map((job) => job.retry('failed')));
+    return failed.length;
   }
 
   async close(): Promise<void> {

@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import { ScopesGuard } from '../../common/guards/scopes.guard';
 import { RequiredScopes } from '../../common/decorators/scopes.decorator';
 import { WebhookEndpointsService } from './webhook-endpoints.service';
@@ -9,7 +10,8 @@ import { CreateWebhookEndpointDto, UpdateWebhookEndpointDto } from './dto/create
 @ApiTags('Webhooks')
 @ApiSecurity('ApiKey')
 @Controller('v1/webhook-endpoints')
-@UseGuards(ApiKeyGuard, ScopesGuard)
+@UseGuards(ApiKeyGuard, ScopesGuard, ModuleAccessGuard)
+@RequireModule('m10_developers')
 export class WebhooksOutController {
   constructor(private readonly endpoints: WebhookEndpointsService) {}
 

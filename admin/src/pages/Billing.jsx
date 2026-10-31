@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '../i18n';
 import { api, errorText } from '../api';
 import { can } from '../rbac';
 import { useStaff } from '../session';
@@ -26,17 +27,17 @@ export default function Billing() {
     setMsg(null);
     try {
       await api.patch(`/internal/billing/${kind}/${code}`, body);
-      setMsg({ error: false, text: 'Enregistré : pris en compte immédiatement.' });
+      setMsg({ error: false, text: t('billing.saved') });
       await load();
     } catch (err) { setMsg({ error: true, text: errorText(err) }); }
   };
 
   return (
     <div>
-      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Paliers et prix</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t('billing.title')}</h1>
       {msg && <div style={{ color: msg.error ? '#f87171' : '#4ade80', fontSize: 13, marginBottom: 12 }}>{msg.text}</div>}
-      <Card title="Paliers (prix mensuel, XAF)">
-        <Table columns={['Palier', 'Prix mensuel', 'Modules', 'Crédits inclus', 'Actif', '']} rows={plans} empty="Aucun palier"
+      <Card title={t('billing.plans')}>
+        <Table columns={[t('billing.col.plan'), t('billing.col.price'), t('billing.col.modules'), t('billing.col.credits'), t('billing.col.txLimit'), t('billing.col.active'), '']} rows={plans} empty={t('billing.noPlan')}
           renderRow={(p) => (
             <tr key={p.code}>
               <td style={td}>{p.label} <span style={{ color: '#7b86a3' }}>({p.code})</span></td>
@@ -45,15 +46,22 @@ export default function Billing() {
                 : p.price_monthly}</td>
               <td style={{ ...td, fontSize: 12 }}>{p.included_modules.join(', ')}</td>
               <td style={td}>{p.included_credits}</td>
-              <td style={td}>{p.is_active ? 'oui' : 'non'}</td>
-              <td style={td}>{editable && draft[`plan:${p.code}`] != null && (
-                <Button onClick={() => save('plans', p.code, { price_monthly: Number(draft[`plan:${p.code}`]) })}>Enregistrer</Button>
+              <td style={td}>{editable
+                ? <input style={field} inputMode="numeric" placeholder={t('billing.unlimited')} value={draft[`tx:${p.code}`] ?? p.max_monthly_transactions ?? ''} onChange={(e) => set(`tx:${p.code}`, e.target.value.replace(/\D/g, ''))} />
+                : p.max_monthly_transactions ?? t('billing.unlimited')}</td>
+              <td style={td}>{p.is_active ? t('common.yes') : t('common.no')}</td>
+              <td style={td}>{editable && (draft[`plan:${p.code}`] != null || draft[`tx:${p.code}`] != null) && (
+                <Button onClick={() => save('plans', p.code, {
+                  ...(draft[`plan:${p.code}`] != null ? { price_monthly: Number(draft[`plan:${p.code}`]) } : {}),
+                  // Champ vidé = illimité.
+                  ...(draft[`tx:${p.code}`] != null ? { max_monthly_transactions: draft[`tx:${p.code}`] === '' ? null : Number(draft[`tx:${p.code}`]) } : {}),
+                })}>{t('common.save')}</Button>
               )}</td>
             </tr>
           )} />
       </Card>
-      <Card title="Packs de crédits de messages">
-        <Table columns={['Pack', 'Crédits', 'Prix (XAF)', 'Actif', '']} rows={packs} empty="Aucun pack"
+      <Card title={t('billing.packs')}>
+        <Table columns={[t('billing.col.pack'), t('billing.col.packCredits'), t('billing.col.packPrice'), t('billing.col.active'), '']} rows={packs} empty={t('billing.noPack')}
           renderRow={(k) => (
             <tr key={k.code}>
               <td style={td}>{k.label} <span style={{ color: '#7b86a3' }}>({k.code})</span></td>
@@ -61,14 +69,14 @@ export default function Billing() {
               <td style={td}>{editable
                 ? <input style={field} inputMode="numeric" value={draft[`pack:${k.code}`] ?? k.price} onChange={(e) => set(`pack:${k.code}`, e.target.value.replace(/\D/g, ''))} />
                 : k.price}</td>
-              <td style={td}>{k.is_active ? 'oui' : 'non'}</td>
+              <td style={td}>{k.is_active ? t('common.yes') : t('common.no')}</td>
               <td style={td}>{editable && draft[`pack:${k.code}`] != null && (
-                <Button onClick={() => save('packs', k.code, { price: Number(draft[`pack:${k.code}`]) })}>Enregistrer</Button>
+                <Button onClick={() => save('packs', k.code, { price: Number(draft[`pack:${k.code}`]) })}>{t('common.save')}</Button>
               )}</td>
             </tr>
           )} />
       </Card>
-      {!editable && <div style={{ color: '#7b86a3', fontSize: 12 }}>Lecture seule : seul le super-administrateur modifie les prix.</div>}
+      {!editable && <div style={{ color: '#7b86a3', fontSize: 12 }}>{t('billing.readonly')}</div>}
     </div>
   );
 }

@@ -145,8 +145,8 @@ jobs:
     name: Audit des dépendances
     runs-on: ubuntu-latest
     needs: secrets-scan
-    # Non bloquant pendant la construction ; bloquant avant la livraison (T-105, §8.1).
-    continue-on-error: true
+    # Bloquant (§8.1) : aucune alerte critique ou haute ; exceptions motivées dans
+    # pnpm-workspace.yaml (auditConfig.ignoreGhsas).
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

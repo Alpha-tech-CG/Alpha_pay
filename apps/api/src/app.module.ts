@@ -31,6 +31,7 @@ import { InvoicingModule } from './modules/invoicing/invoicing.module';
 import { SchoolModule } from './modules/school/school.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { SupportModule } from './modules/support/support.module';
 import { CardAcquirerModule } from './modules/card-acquirer/card-acquirer.module';
 import { AuditModule } from './common/audit/audit.service';
 import { PaymentStatusModule } from './modules/payment-status/payment-status.module';
@@ -55,6 +56,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     SchoolModule,
     BillingModule,
     StaffModule,
+    SupportModule,
     CardAcquirerModule,
     PaymentStatusModule,
     SchedulingModule,

@@ -54,7 +54,7 @@ utilisateur, contrôle par rôle) et ne font pas partie de l'API publique.
 | 400 | Requête invalide | `validation_echouee`, `curseur_invalide` |
 | 401 | Clé absente ou invalide | `non_authentifie` |
 | 402 | Crédits de messages insuffisants | `credits_insuffisants` |
-| 403 | Droits, palier ou KYB | `kyb_non_valide`, `module_non_inclus`, `lecture_seule` |
+| 403 | Droits, palier ou KYB | `kyb_non_valide`, `module_non_inclus`, `lecture_seule`, `limite_palier` |
 | 404 | Introuvable | `paiement_introuvable`, `facture_introuvable`, `client_introuvable` |
 | 409 | Conflit d'état | `facture_deja_payee`, `facture_non_modifiable` |
 | 422 | Règle métier | `operateur_non_connecte`, `echeancier_incoherent` |

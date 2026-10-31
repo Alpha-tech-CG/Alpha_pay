@@ -31,11 +31,24 @@ export interface JobContext {
 
 export type JobHandler<T = any> = (data: T, ctx: JobContext) => Promise<void>;
 
+/** État d'une file, pour la supervision du back-office. */
+export interface QueueCounts {
+  queue: QueueName;
+  waiting: number;
+  active: number;
+  delayed: number;
+  failed: number;
+}
+
 export abstract class JobQueue {
   abstract enqueue<T>(queue: QueueName, name: string, data: T, opts?: EnqueueOptions): Promise<void>;
   /** Enregistre le traitement d'une file. Seul le process worker démarre les traitements. */
   abstract process<T>(queue: QueueName, handler: JobHandler<T>, opts?: { concurrency?: number }): void;
   abstract close(): Promise<void>;
+  /** Nombre de tâches par état et par file. */
+  abstract counts(): Promise<QueueCounts[]>;
+  /** Relance les tâches en échec définitif d'une file ; renvoie leur nombre. */
+  abstract retryFailed(queue: QueueName): Promise<number>;
 }
 
 export const DEFAULT_ATTEMPTS = 5;

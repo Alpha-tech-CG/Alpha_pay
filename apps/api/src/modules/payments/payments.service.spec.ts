@@ -28,6 +28,9 @@ describe('PaymentsService', () => {
       outboxEvent: { create: jest.fn() },
       merchant: { findUnique: jest.fn().mockResolvedValue({ onboardingStatus: 'APPROVED' }) },
       till: { findFirst: jest.fn() },
+      // Palier sans plafond mensuel (quota M11 testé en intégration).
+      subscription: { findUnique: jest.fn().mockResolvedValue(null) },
+      billingPlan: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     provider = { requestPayment: jest.fn(), getPaymentStatus: jest.fn() };
     registry = { forMerchant: jest.fn().mockResolvedValue(provider) };

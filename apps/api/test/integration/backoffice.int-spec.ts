@@ -104,4 +104,34 @@ describe('M12 Back-office : personnel, rôles, OTP obligatoire (HTTP, Postgres r
     const list = await a.http().get('/internal/staff/users').set(admin.headers).expect(200);
     expect(list.body.find((u: any) => u.email === 'nouveau@alphapay.cg')).toMatchObject({ role: 'SUPPORT', totpEnabled: false });
   });
+
+  it('agent désactivé : sessions fermées aussitôt, plus de connexion ; pas d’auto-désactivation ; TOTP réinitialisé', async () => {
+    const admin = await staffSession(t, 'SUPER_ADMIN');
+    const agent = await staffSession(t, 'SUPPORT');
+    await a.http().get('/internal/staff/me').set(agent.headers).expect(200);
+
+    await a.http().post(`/internal/staff/users/${admin.id}/active`).set(admin.headers).send({ active: false }).expect(409);
+    await a.http().post(`/internal/staff/users/${agent.id}/active`).set(agent.headers).send({ active: false }).expect(403); // Support : lecture seule
+    await a.http().post(`/internal/staff/users/${agent.id}/active`).set(admin.headers).send({ active: false }).expect(200);
+    await a.http().get('/internal/staff/me').set(agent.headers).expect(401);
+    const retry = await a.http().post('/internal/staff/login').send({ email: agent.email, password: agent.password });
+    expect(retry.status).toBeGreaterThanOrEqual(400);
+
+    await a.http().post(`/internal/staff/users/${agent.id}/active`).set(admin.headers).send({ active: true }).expect(200);
+    await a.http().post(`/internal/staff/users/${agent.id}/reset-totp`).set(admin.headers).expect(200);
+    const relog = await a.http().post('/internal/staff/login').send({ email: agent.email, password: agent.password }).expect(200);
+    expect(relog.body.step).toBe('enroll'); // nouvel enrôlement après réinitialisation
+    expect(await prisma.auditLog.count({ where: { action: { in: ['staff.user_active_changed', 'staff.totp_reset'] } } })).toBe(3);
+  });
+
+  it('limites d’un palier modifiables sans déploiement ; champ vide = illimité', async () => {
+    const admin = await staffSession(t, 'SUPER_ADMIN');
+    await prisma.billingPlan.create({ data: { code: 'gratuit', label: 'Gratuit', priceMonthly: 0n, includedModules: [], maxMonthlyTransactions: 100 } });
+    await a.http().patch('/internal/billing/plans/gratuit').set(admin.headers).send({ max_monthly_transactions: 250, max_tills: 2 }).expect(200);
+    let plan = (await a.http().get('/internal/billing/plans').set(admin.headers).expect(200)).body.find((p: any) => p.code === 'gratuit');
+    expect(plan).toMatchObject({ max_monthly_transactions: 250, max_tills: 2 });
+    await a.http().patch('/internal/billing/plans/gratuit').set(admin.headers).send({ max_monthly_transactions: null }).expect(200);
+    plan = (await a.http().get('/internal/billing/plans').set(admin.headers).expect(200)).body.find((p: any) => p.code === 'gratuit');
+    expect(plan.max_monthly_transactions).toBeNull();
+  });
 });

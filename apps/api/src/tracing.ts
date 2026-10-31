@@ -7,7 +7,7 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 // Threadpool libuv : argon2 (m=64Mo, p=4 par hash), génération PDF et I/O fichier
@@ -24,7 +24,7 @@ const otlpEndpoint =
 
 const sdk = new NodeSDK({
   serviceName: 'paybrain-api',
-  resource: new Resource({
+  resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'paybrain-api',
     [ATTR_SERVICE_VERSION]: process.env.npm_package_version ?? '1.0.0',
     'deployment.environment': process.env.NODE_ENV ?? 'development',

@@ -70,7 +70,7 @@ export default function Stores() {
           }}
           style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0 12px', alignItems: 'end' }}
         >
-          <Field label={tr('stores.name')}><Input required maxLength={120} value={newStore.name} onChange={(e) => setNewStore({ ...newStore, name: e.target.value })} placeholder="Boutique Poto-Poto" /></Field>
+          <Field label={tr('stores.name')}><Input required maxLength={120} value={newStore.name} onChange={(e) => setNewStore({ ...newStore, name: e.target.value })} placeholder={tr('stores.placeholder')} /></Field>
           <Field label={tr('stores.address')}><Input maxLength={250} value={newStore.address} onChange={(e) => setNewStore({ ...newStore, address: e.target.value })} /></Field>
           <div style={{ marginBottom: 14 }}><Button type="submit" disabled={busy}>{tr('stores.add')}</Button></div>
         </form>

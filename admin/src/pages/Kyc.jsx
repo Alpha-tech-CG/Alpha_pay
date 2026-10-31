@@ -1,13 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
+import { t } from '../i18n';
 import { useStaff } from '../session';
 import { api } from '../api';
 import { can } from '../rbac';
 import { Card, Button, Badge, Table, td } from '../ui';
 
-const DOC_LABEL = { RCCM_EXTRACT: 'Extrait RCCM', NIU_CERTIFICATE: 'Attestation NIU', DIRECTOR_ID: "Pièce d'identité du dirigeant" };
-const FIELD_LABEL = {
-  legal_name: 'Raison sociale', legal_form: 'Forme juridique', rccm: 'RCCM', niu: 'NIU', address: 'Adresse', sector: 'Secteur',
-};
+const FIELDS = ['legal_name', 'legal_form', 'rccm', 'niu', 'address', 'sector'];
 
 /** Revue des dossiers KYB (§M2, §M12) : pièces, résultat KYC, décision motivée. */
 export default function Kyc() {
@@ -29,7 +27,7 @@ export default function Kyc() {
 
   const run = async (fn) => {
     setBusy(true); setError(null);
-    try { return await fn(); } catch (err) { setError(err?.response?.data?.error?.message ?? 'Erreur'); } finally { setBusy(false); }
+    try { return await fn(); } catch (err) { setError(err?.response?.data?.error?.message ?? t('common.error')); } finally { setBusy(false); }
   };
   const open = (id) => run(async () => setDetail((await api.get(`/internal/kyb/${id}`)).data));
   const viewDoc = (docId) => run(async () => {
@@ -43,12 +41,12 @@ export default function Kyc() {
     let kycOverride = false;
     if (decision === 'approve') {
       if (detail.kyc?.status !== 'approuvé') {
-        reason = window.prompt("Identité du dirigeant non vérifiée par le fournisseur. Motif de la dérogation (vérification manuelle) :");
+        reason = window.prompt(t('kyc.overridePrompt'));
         if (!reason) return;
         kycOverride = true;
-      } else if (!window.confirm('Approuver ce dossier ? Le mode live sera ouvert pour ce marchand.')) return;
+      } else if (!window.confirm(t('kyc.approveConfirm'))) return;
     } else {
-      reason = window.prompt(decision === 'reject' ? 'Motif du refus (montré au marchand) :' : 'Compléments demandés (montré au marchand) :');
+      reason = window.prompt(decision === 'reject' ? t('kyc.rejectPrompt') : t('kyc.infoPrompt'));
       if (!reason) return;
     }
     return run(async () => {
@@ -59,18 +57,18 @@ export default function Kyc() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Dossiers KYB — revue</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t('kyc.title')}</h1>
       <div style={{ marginBottom: 12 }}>
         <select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ padding: '6px 10px', borderRadius: 6 }}>
-          <option value="">À traiter (soumis et en revue)</option>
-          <option value="INFO_REQUIRED">Compléments demandés</option>
-          <option value="APPROVED">Approuvés</option>
-          <option value="REJECTED">Refusés</option>
-          <option value="DRAFT">Brouillons</option>
+          <option value="">{t('kyc.filter.todo')}</option>
+          <option value="INFO_REQUIRED">{t('kyc.filter.info')}</option>
+          <option value="APPROVED">{t('kyc.filter.approved')}</option>
+          <option value="REJECTED">{t('kyc.filter.rejected')}</option>
+          <option value="DRAFT">{t('kyc.filter.draft')}</option>
         </select>
       </div>
       <Card>
-        <Table columns={['Marchand', 'Raison sociale', 'Statut', 'KYC', 'Soumis le', '']} rows={rows} empty="Aucun dossier"
+        <Table columns={[t('kyc.col.merchant'), t('kyc.col.legalName'), t('kyc.col.status'), t('kyc.col.kyc'), t('kyc.col.submitted'), '']} rows={rows} empty={t('kyc.none')}
           renderRow={(r) => (
             <tr key={r.id}>
               <td style={td}>{r.merchant_name}</td>
@@ -78,38 +76,38 @@ export default function Kyc() {
               <td style={td}><Badge value={r.status} /></td>
               <td style={td}>{r.kyc ?? '—'}</td>
               <td style={{ ...td, color: '#7b86a3', fontSize: 12 }}>{r.submitted_at ? new Date(r.submitted_at).toLocaleString('fr-FR') : '—'}</td>
-              <td style={td}><Button variant="ghost" onClick={() => open(r.id)}>Ouvrir</Button></td>
+              <td style={td}><Button variant="ghost" onClick={() => open(r.id)}>{t('common.open')}</Button></td>
             </tr>
           )} />
       </Card>
 
       {detail && (
-        <Card title={`${detail.merchant_name} — dossier ${detail.status}`}>
+        <Card title={t('kyc.detailTitle', { merchant: detail.merchant_name, status: detail.status })}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, fontSize: 13, marginBottom: 14 }}>
-            {Object.entries(FIELD_LABEL).map(([k, label]) => (
-              <div key={k}><span style={{ color: '#7b86a3' }}>{label} :</span> {detail.company[k] ?? '—'}</div>
+            {FIELDS.map((k) => (
+              <div key={k}><span style={{ color: '#7b86a3' }}>{t(`kyc.field.${k}`)} :</span> {detail.company[k] ?? '—'}</div>
             ))}
-            <div><span style={{ color: '#7b86a3' }}>Dirigeant :</span> {[detail.director.first_name, detail.director.last_name].filter(Boolean).join(' ') || '—'}</div>
+            <div><span style={{ color: '#7b86a3' }}>{t('kyc.director')} :</span> {[detail.director.first_name, detail.director.last_name].filter(Boolean).join(' ') || '—'}</div>
           </div>
 
           <div style={{ fontSize: 13, marginBottom: 14 }}>
-            <b>Identité du dirigeant (KYC)</b> : {detail.kyc ? `${detail.kyc.status} (${detail.kyc.provider})${detail.kyc.reasons?.length ? ` — ${detail.kyc.reasons.join(', ')}` : ''}` : 'non commencée'}
+            <b>{t('kyc.identity')}</b> : {detail.kyc ? `${detail.kyc.status} (${detail.kyc.provider})${detail.kyc.reasons?.length ? ` — ${detail.kyc.reasons.join(', ')}` : ''}` : t('kyc.notStarted')}
           </div>
 
           <div style={{ fontSize: 13, marginBottom: 14 }}>
-            <b>Pièces</b> (lien temporaire, consultation tracée)
-            {detail.documents.length === 0 && <div style={{ color: '#7b86a3' }}>Aucune pièce</div>}
+            <b>{t('kyc.documents')}</b> {t('kyc.documentsHint')}
+            {detail.documents.length === 0 && <div style={{ color: '#7b86a3' }}>{t('kyc.noDocument')}</div>}
             {detail.documents.map((d) => (
               <div key={d.id} style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
-                <span>{DOC_LABEL[d.type] ?? d.type} — {d.filename} ({Math.round(d.size_bytes / 1024)} Ko)</span>
-                <Button variant="ghost" onClick={() => viewDoc(d.id)} disabled={busy}>Voir</Button>
+                <span>{t(`kyc.doc.${d.type}`)} — {d.filename} ({Math.round(d.size_bytes / 1024)} Ko)</span>
+                <Button variant="ghost" onClick={() => viewDoc(d.id)} disabled={busy}>{t('kyc.view')}</Button>
               </div>
             ))}
-            {detail.missing.length > 0 && <div style={{ color: '#d97706', marginTop: 6 }}>Manquant : {detail.missing.join(', ')}</div>}
+            {detail.missing.length > 0 && <div style={{ color: '#d97706', marginTop: 6 }}>{t('kyc.missing', { list: detail.missing.join(', ') })}</div>}
           </div>
 
           <div style={{ fontSize: 12, color: '#7b86a3', marginBottom: 14 }}>
-            <b>Historique</b>
+            <b>{t('kyc.history')}</b>
             {detail.history.map((h, i) => (
               <div key={i}>{new Date(h.at).toLocaleString('fr-FR')} · {h.from ?? '∅'} → {h.to} · {h.actor_type}{h.actor_id ? ` (${h.actor_id})` : ''}{h.reason ? ` — ${h.reason}` : ''}</div>
             ))}
@@ -118,17 +116,17 @@ export default function Kyc() {
           {error && <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 10 }}>{error}</div>}
           {mayDecide ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {detail.status === 'soumis' && <Button variant="ghost" onClick={review} disabled={busy}>Prendre en revue</Button>}
+              {detail.status === 'soumis' && <Button variant="ghost" onClick={review} disabled={busy}>{t('kyc.review')}</Button>}
               {['soumis', 'en_revue'].includes(detail.status) && (
                 <>
-                  <Button onClick={() => decide('approve')} disabled={busy}>Approuver</Button>
-                  <Button variant="ghost" onClick={() => decide('request_info')} disabled={busy}>Demander des compléments</Button>
-                  <Button variant="danger" onClick={() => decide('reject')} disabled={busy}>Refuser</Button>
+                  <Button onClick={() => decide('approve')} disabled={busy}>{t('kyc.approve')}</Button>
+                  <Button variant="ghost" onClick={() => decide('request_info')} disabled={busy}>{t('kyc.requestInfo')}</Button>
+                  <Button variant="danger" onClick={() => decide('reject')} disabled={busy}>{t('kyc.reject')}</Button>
                 </>
               )}
-              <Button variant="ghost" onClick={() => setDetail(null)}>Fermer</Button>
+              <Button variant="ghost" onClick={() => setDetail(null)}>{t('common.close')}</Button>
             </div>
-          ) : <div style={{ color: '#7b86a3', fontSize: 12 }}>Lecture seule (rôle sans permission de décision).</div>}
+          ) : <div style={{ color: '#7b86a3', fontSize: 12 }}>{t('kyc.readonly')}</div>}
         </Card>
       )}
     </div>

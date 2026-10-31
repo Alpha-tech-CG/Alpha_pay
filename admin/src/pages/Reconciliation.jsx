@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { t } from '../i18n';
 import { api } from '../api';
 import { Card, Badge, Table, td } from '../ui';
 
@@ -15,9 +16,9 @@ export default function Reconciliation() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Réconciliation — écarts</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t('recon.title')}</h1>
       <Card>
-        <Table columns={['Opérateur', 'Date', 'Lignes', 'Rapprochées', 'Écarts', 'Alerte', '']} rows={runs} empty="Aucun run"
+        <Table columns={[t('recon.col.operator'), t('recon.col.date'), t('recon.col.lines'), t('recon.col.matched'), t('recon.col.discrepancies'), t('recon.col.alert'), '']} rows={runs} empty={t('recon.none')}
           renderRow={(r) => (
             <tr key={r.id}>
               <td style={td}>{r.operator}</td>
@@ -26,14 +27,14 @@ export default function Reconciliation() {
               <td style={td}>{r.matchedCount}</td>
               <td style={{ ...td, fontWeight: 700, color: r.discrepancyCount ? '#d97706' : '#16a34a' }}>{r.discrepancyCount}</td>
               <td style={td}>{r.alert ? <span style={{ color: '#dc2626', fontWeight: 700 }}>P1</span> : '—'}</td>
-              <td style={td}><a href="#" onClick={(e) => { e.preventDefault(); open(r.id); }} style={{ color: '#5b7cfa', fontSize: 12 }}>Détail</a></td>
+              <td style={td}><a href="#" onClick={(e) => { e.preventDefault(); open(r.id); }} style={{ color: '#5b7cfa', fontSize: 12 }}>{t('recon.detail')}</a></td>
             </tr>
           )} />
       </Card>
 
       {detail && (
-        <Card title={`Run ${detail.operator} — ${detail.discrepancies?.length || 0} écart(s)`}>
-          <Table columns={['Type', 'Référence', 'Ledger', 'Relevé', 'Détail']} rows={detail.discrepancies || []} empty="Aucun écart"
+        <Card title={t('recon.runTitle', { operator: detail.operator, n: detail.discrepancies?.length || 0 })}>
+          <Table columns={[t('recon.col.type'), t('recon.col.reference'), t('recon.col.ledger'), t('recon.col.statement'), t('recon.col.details')]} rows={detail.discrepancies || []} empty={t('recon.noDiscrepancy')}
             renderRow={(d) => (
               <tr key={d.id}>
                 <td style={td}><Badge value={d.type} /></td>

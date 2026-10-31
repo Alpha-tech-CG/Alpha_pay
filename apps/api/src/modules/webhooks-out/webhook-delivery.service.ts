@@ -1,9 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { alphaPaySignature } from '../../common/security/hmac';
 import { decryptField } from '../../common/security/pii-crypto';
-import { NotificationService } from '../notifications/notification.service';
+import type { MessagingService } from '../messaging/messaging.service';
 
 // Nouvelles tentatives sur 24 h (§M10) : délai APRÈS chaque échec.
 // 1 min, 5 min, 30 min, 2 h, 6 h, 15 h → dernière tentative ≈ 23 h 36 après la première.
@@ -16,7 +17,7 @@ export class WebhookDeliveryService {
 
   constructor(
     @Inject('PRISMA') private readonly prisma: PrismaClient,
-    private readonly notifications: NotificationService,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   /**
@@ -162,13 +163,23 @@ export class WebhookDeliveryService {
       include: { merchant: { select: { id: true, emailEncrypted: true } } },
     });
     if (!endpoint?.merchant?.emailEncrypted) return;
-    await this.notifications.send({
-      channel: 'EMAIL',
-      to: decryptField(endpoint.merchant.emailEncrypted),
-      template: 'webhook.failed',
-      category: 'webhook_failure',
-      merchantId: endpoint.merchant.id,
-      data: { url: endpoint.url, attempts: RETRY_SCHEDULE_SEC.length + 1, reason },
-    });
+    // Résolu à l'appel, sans import au chargement : messaging.service importe déjà
+    // ce fichier, un cycle d'imports y rendrait WebhookDeliveryService indéfini.
+    const { MessagingService: token } = await import('../messaging/messaging.service');
+    const messaging: MessagingService = this.moduleRef.get(token, { strict: false });
+    await messaging
+      .send({
+        merchantId: null,
+        livemode: true,
+        channels: ['EMAIL'],
+        to: { email: decryptField(endpoint.merchant.emailEncrypted) },
+        templateKey: 'message.libre',
+        variables: {
+          subject: 'AlphaPay - webhook en échec',
+          text: `Votre endpoint webhook ${endpoint.url} est en échec après ${RETRY_SCHEDULE_SEC.length + 1} tentatives (${reason}). Les événements restent consultables et peuvent être renvoyés depuis l'espace Développeurs.`,
+        },
+        category: 'TRANSACTIONAL',
+      })
+      .catch((err) => this.logger.warn(`Alerte webhook non envoyée : ${(err as Error).message}`));
   }
 }

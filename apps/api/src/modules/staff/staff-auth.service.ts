@@ -119,6 +119,16 @@ export class StaffAuthService {
     });
   }
 
+  async setActive(staffId: string, active: boolean) {
+    const user = await this.prisma.staffUser.findUnique({ where: { id: staffId } });
+    if (!user) throw new NotFoundException('Agent introuvable');
+    await this.prisma.$transaction([
+      this.prisma.staffUser.update({ where: { id: staffId }, data: { isActive: active } }),
+      ...(active ? [] : [this.prisma.staffSession.deleteMany({ where: { staffId } })]),
+    ]);
+    return { is_active: active };
+  }
+
   /** Réinitialise l'OTP d'un agent (perte du téléphone) : il sera enrôlé à sa prochaine connexion. */
   async resetTotp(staffId: string) {
     const user = await this.prisma.staffUser.findUnique({ where: { id: staffId } });
@@ -176,7 +186,7 @@ export class StaffAuthService {
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     await this.prisma.staffSession.create({ data: { staffId, tokenHash: hashToken('session', token), ip, expiresAt } });
-    const staff = await this.prisma.staffUser.update({ where: { id: staffId }, data: { lastLoginAt: new Date() }, select: { email: true, displayName: true, role: true } });
+    const staff = await this.prisma.staffUser.update({ where: { id: staffId }, data: { lastLoginAt: new Date() }, select: { id: true, email: true, displayName: true, role: true } });
     return { staffId, response: { token, expires_at: expiresAt, staff } };
   }
 }

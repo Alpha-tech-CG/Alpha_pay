@@ -186,6 +186,7 @@ http_response_code(200);
 - `POST /v1/messages` envoie un SMS, un WhatsApp ou un email à partir d'un modèle ; avec plusieurs canaux, AlphaPay bascule sur le suivant en cas d'échec (WhatsApp puis SMS).
 - `POST /v1/otp/send` envoie un code à usage unique (valable 5 minutes) ; `POST /v1/otp/verify` le vérifie. Après 5 essais faux, le code est bloqué 15 minutes.
 - `GET /v1/credits` donne votre solde de crédits de messages. Sans crédit, l'envoi est refusé (`402 credits_insuffisants`). Le mode test est gratuit.
+- L'API Messages et les webhooks font partie des modules Messages et Développeurs : hors palier, ces routes répondent `403 module_non_inclus`. Les clés API et l'API de paiement restent disponibles dans tous les paliers.
 
 # Erreurs
 
@@ -200,7 +201,7 @@ Toutes les erreurs ont la même forme :
 | 400 | Requête invalide (`param` indique le champ) |
 | 401 | Clé absente, invalide ou révoquée |
 | 402 | Crédits de messages insuffisants |
-| 403 | Droits insuffisants ou KYB non validé (`kyb_non_valide`) |
+| 403 | Droits insuffisants, KYB non validé (`kyb_non_valide`), module hors palier (`module_non_inclus`, `lecture_seule`) ou limite mensuelle de paiements live du palier atteinte (`limite_palier`) |
 | 404 | Objet introuvable (ou appartenant à un autre marchand) |
 | 409 | Conflit (requête identique encore en cours) |
 | 422 | Règle métier (ex. `operateur_non_connecte` : compte MTN/Airtel du marchand non connecté) |

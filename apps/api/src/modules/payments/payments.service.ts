@@ -7,6 +7,7 @@ import { decryptField, deterministicHash, encryptField, maskPhone } from '../../
 import { toMinor } from '../../common/money';
 import { MobileMoneyOperator, MobileMoneyRegistry } from '../providers/mobile-money.registry';
 import { JobQueue, QUEUES } from '../../common/queue/job-queue';
+import { monthlyQuota } from '../billing/monthly-quota';
 
 /** Statut unifié fournisseur → statut stocké (correspondance 1 pour 1, §M3). */
 const STORED_STATUS: Record<PaymentStatusResult['status'], TransactionStatus> = {
@@ -110,6 +111,12 @@ export class PaymentsService {
     const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId }, select: { onboardingStatus: true } });
     if (merchant?.onboardingStatus !== 'APPROVED') {
       throw new ApiError(403, 'kyb_non_valide', 'Le mode live est disponible après validation de votre dossier (KYB).');
+    }
+    // Quota du palier (§M11) : un plafond tarifaire, distinct d'un impayé
+    // d'abonnement, qui lui ne bloque jamais les encaissements.
+    const quota = await monthlyQuota(this.prisma, merchantId);
+    if (quota.limit != null && quota.used >= quota.limit) {
+      throw new ApiError(403, 'limite_palier', `Limite du palier atteinte : ${quota.limit} paiements par mois pour ce marchand. Le marchand doit changer de palier pour encaisser de nouveau ce mois-ci.`);
     }
   }
 

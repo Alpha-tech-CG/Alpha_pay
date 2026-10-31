@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { StaffRole } from '@paybrain/database';
-import { IsEmail, IsEnum, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { ApiError } from '../../common/errors/api-error';
 import { AuditAction } from '../../common/audit/audit.interceptor';
 import { AuditService } from '../../common/audit/audit.service';
 import { StaffAuthService } from './staff-auth.service';
@@ -25,6 +26,10 @@ class CreateStaffDto {
   @MinLength(12, { message: 'mot de passe : 12 caractères au moins' })
   @MaxLength(200)
   password!: string;
+}
+
+class ActiveDto {
+  @IsBoolean() active!: boolean;
 }
 
 /** Authentification du personnel AlphaPay (§M12) : mot de passe puis TOTP, toujours. */
@@ -97,5 +102,18 @@ export class StaffAuthController {
   @AuditAction('staff.totp_reset', 'staff_user')
   resetTotp(@Param('id', ParseUUIDPipe) id: string) {
     return this.auth.resetTotp(id);
+  }
+
+  /** Départ ou retour d'un agent : désactivé, il perd aussitôt ses sessions. */
+  @Post('users/:id/active')
+  @HttpCode(200)
+  @UseGuards(StaffGuard)
+  @RequireStaffRole(...STAFF_WRITE.admin)
+  @AuditAction('staff.user_active_changed', 'staff_user')
+  setActive(@Param('id', ParseUUIDPipe) id: string, @Body() body: ActiveDto, @Req() req: any) {
+    if (id === req.staffUser?.staffId && !body.active) {
+      throw new ApiError(HttpStatus.CONFLICT, 'auto_desactivation', 'Vous ne pouvez pas désactiver votre propre compte');
+    }
+    return this.auth.setActive(id, body.active);
   }
 }

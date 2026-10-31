@@ -3,6 +3,8 @@ import { prisma } from '@paybrain/database';
 import { MOCK_MOBILE_MONEY_NUMBERS } from '@paybrain/providers';
 import { ApiKeysService } from '../../src/modules/api-keys/api-keys.service';
 import { BillingService } from '../../src/modules/billing/billing.service';
+import { monthStart } from '../../src/modules/billing/monthly-quota';
+import { PaymentsService } from '../../src/modules/payments/payments.service';
 import { WebhooksService } from '../../src/modules/webhooks/webhooks.service';
 import { accounts } from './accounts';
 import { createTestApp, TestApp } from './app';
@@ -121,5 +123,50 @@ describe('M11 Facturation AlphaPay (HTTP, Postgres réel)', () => {
 
     await a.http().post(`${base}/billing/credits/purchase`).set('Authorization', cashier.auth).send({ pack: 'pack-500' }).expect(403);
     await a.http().get(`${base}/billing/plans`).set('Authorization', cashier.auth).expect(200);
+  });
+
+  it('Messages et Développeurs verrouillés côté serveur hors palier ; les clés API restent ouvertes (paiements)', async () => {
+    const owner = await a.signUp();
+    const base = `/v1/merchants/${owner.merchantId}`;
+    const key = await a.http().post(`${base}/api-keys`).set('Authorization', owner.auth).send({ name: 'Caisse web', mode: 'test' }).expect(201);
+    const auth = `Bearer ${key.body.key}`;
+
+    const msg = await a.http().post('/v1/messages').set('Authorization', auth).set('Idempotency-Key', randomUUID()).send({ channel: 'sms', to: '061234567', text: 'Bonjour' }).expect(403);
+    expect(msg.body.error.code).toBe('module_non_inclus');
+    await a.http().post('/v1/otp/send').set('Authorization', auth).set('Idempotency-Key', randomUUID()).send({ channel: 'sms', to: '061234567' }).expect(403);
+    await a.http().get('/v1/webhook-endpoints').set('Authorization', auth).expect(403);
+    await a.http().get(`${base}/api-logs`).set('Authorization', owner.auth).expect(403);
+    await a.http().get(`${base}/webhook-endpoints`).set('Authorization', owner.auth).expect(403);
+    // Encaisser est inclus partout : la clé crée un paiement test.
+    await a.http().post('/v1/payments').set('Authorization', auth).set('Idempotency-Key', randomUUID())
+      .send({ amount: 1000, currency: 'XAF', phone: MOCK_MOBILE_MONEY_NUMBERS.success, reference: 'cmd-1' }).expect(201);
+
+    await prisma.billingPlan.update({ where: { code: 'pro' }, data: { includedModules: ['m9_messaging', 'm10_developers'] } });
+    await prisma.subscription.create({ data: { merchantId: owner.merchantId, planId: (await prisma.billingPlan.findUniqueOrThrow({ where: { code: 'pro' } })).id, status: 'ACTIVE', periodStart: new Date(), periodEnd: new Date(Date.now() + 30 * 86_400_000) } });
+    await a.http().get(`${base}/api-logs`).set('Authorization', owner.auth).expect(200);
+    await a.http().get('/v1/webhook-endpoints').set('Authorization', auth).expect(200);
+  });
+
+  it('quota mensuel du palier gratuit : seuls les paiements live réussis du mois comptent ; le test n’est jamais plafonné', async () => {
+    const owner = await a.signUp();
+    await prisma.billingPlan.update({ where: { code: 'gratuit' }, data: { maxMonthlyTransactions: 2 } });
+    await prisma.merchant.update({ where: { id: owner.merchantId }, data: { onboardingStatus: 'APPROVED' } });
+    const live = (externalId: string, status: 'SUCCEEDED' | 'FAILED', createdAt = new Date()) =>
+      prisma.transaction.create({ data: { merchantId: owner.merchantId, livemode: true, externalId, amount: 500n, status, createdAt } });
+    await live('mois-dernier', 'SUCCEEDED', new Date(monthStart().getTime() - 1000));
+    await live('echec', 'FAILED');
+    await live('ok-1', 'SUCCEEDED');
+    const payments = t.app.get(PaymentsService);
+    await expect(payments.assertLiveAllowed(owner.merchantId)).resolves.toBeUndefined();
+
+    await live('ok-2', 'SUCCEEDED');
+    await expect(payments.assertLiveAllowed(owner.merchantId)).rejects.toMatchObject({ response: { code: 'limite_palier' } });
+    const state = await a.http().get(`/v1/merchants/${owner.merchantId}/billing/subscription`).set('Authorization', owner.auth).expect(200);
+    expect(state.body.usage).toEqual({ monthly_transactions: 2, monthly_transactions_limit: 2 });
+    // Le mode test reste ouvert.
+    await payments.initiatePayment({ amount: 1000, currency: 'XAF', phone: MOCK_MOBILE_MONEY_NUMBERS.success, reference: 'test-1' }, owner.merchantId, false);
+    // Le compte marchand d'AlphaPay (abonnements) n'est jamais plafonné.
+    await prisma.merchant.update({ where: { id: process.env.ALPHAPAY_BILLING_MERCHANT_ID! }, data: { onboardingStatus: 'APPROVED' } });
+    await expect(payments.assertLiveAllowed(process.env.ALPHAPAY_BILLING_MERCHANT_ID!)).resolves.toBeUndefined();
   });
 });

@@ -67,15 +67,15 @@ describe('WebhookDeliveryService.attempt (ALP-132)', () => {
       merchant: { id: 'm1', emailEncrypted: encryptField('ops@merchant.test') },
     });
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503, text: async () => 'down' }) as any;
-    const notifications = { send: jest.fn().mockResolvedValue({ ok: true }) };
-    const svc = new WebhookDeliveryService(prisma as any, notifications as any);
+    const messaging = { send: jest.fn().mockResolvedValue({ id: 'msg-1' }) };
+    const svc = new WebhookDeliveryService(prisma as any, { get: () => messaging } as any);
 
     await svc.attempt({ ...baseDelivery, attempts: 6 }); // 6 -> attempts 7, hors barème
 
     const data = prisma.webhookDelivery.update.mock.calls[0][0].data;
     expect(data.status).toBe('FAILED');
     expect(data.attempts).toBe(7);
-    expect(notifications.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'ops@merchant.test' }));
+    expect(messaging.send).toHaveBeenCalledWith(expect.objectContaining({ to: { email: 'ops@merchant.test' }, channels: ['EMAIL'] }));
   });
 
   it('gère un timeout réseau (fetch rejette) en reprogrammant', async () => {

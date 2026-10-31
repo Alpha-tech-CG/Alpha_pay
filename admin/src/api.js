@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { t } from './i18n';
 
 // Le back-office appelle l'API à travers le proxy /admin-api (même origine) avec
 // la session du personnel en Authorization. Aucun secret partagé dans le proxy.
@@ -27,6 +28,6 @@ api.interceptors.response.use(
 );
 
 /** Message d'erreur lisible (format §7 de l'API). */
-export function errorText(err, fallback = 'Erreur') {
+export function errorText(err, fallback = t('common.error')) {
   return err?.response?.data?.error?.message ?? fallback;
 }

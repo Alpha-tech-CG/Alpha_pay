@@ -4,6 +4,7 @@ import { MessageChannel } from '@paybrain/database';
 import { ApiError } from '../../common/errors/api-error';
 import { RequiredScopes } from '../../common/decorators/scopes.decorator';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
+import { ModuleAccessGuard, RequireModule } from '../billing/module-access.guard';
 import { ScopesGuard } from '../../common/guards/scopes.guard';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { CreditsService } from './credits.service';
@@ -18,11 +19,13 @@ const isPhoneChannel = (c: PublicChannel) => c !== 'email';
  * API Messages revendue aux marchands (§M9, §7) : SMS, WhatsApp, email et OTP.
  * Chaque message live consomme des crédits ; sans crédits → 402
  * `credits_insuffisants` et rien ne part. Le mode (test/live) vient de la clé.
+ * Module payant M9 : refusé hors palier (`403 module_non_inclus`, §M11).
  */
 @ApiTags('Messages et OTP')
 @ApiSecurity('ApiKey')
 @Controller('v1')
-@UseGuards(ApiKeyGuard, ScopesGuard)
+@UseGuards(ApiKeyGuard, ScopesGuard, ModuleAccessGuard)
+@RequireModule('m9_messaging')
 export class MessagingApiController {
   constructor(
     private readonly messaging: MessagingService,

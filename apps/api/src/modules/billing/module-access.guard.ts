@@ -15,7 +15,7 @@ const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * refusé (`403 module_non_inclus`, invitation à changer de palier) ; un marchand
  * en lecture seule (impayé après la grâce) garde la lecture. Ne s'applique
  * jamais aux encaissements : ces routes ne portent pas @RequireModule.
- * À placer après RequireMemberGuard (req.membership).
+ * À placer après RequireMemberGuard (req.membership) ou ApiKeyGuard (req.merchant).
  */
 @Injectable()
 export class ModuleAccessGuard implements CanActivate {
@@ -28,7 +28,7 @@ export class ModuleAccessGuard implements CanActivate {
     const module = this.reflector.getAllAndOverride<ModuleKey | undefined>(MODULE_KEY, [ctx.getHandler(), ctx.getClass()]);
     if (!module) return true;
     const req = ctx.switchToHttp().getRequest();
-    const merchantId = req.membership?.merchantId;
+    const merchantId = req.membership?.merchantId ?? req.merchant?.id;
     if (!merchantId) return true;
     const access = await this.billing.checkModuleAccess(merchantId, module);
     if (!access.allowed) {

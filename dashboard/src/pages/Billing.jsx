@@ -110,6 +110,12 @@ export default function Billing() {
                 </span>
               )}
             </div>
+            {sub.usage?.monthly_transactions_limit != null && (
+              <div style={{ marginTop: 10, fontSize: 14, color: sub.usage.monthly_transactions >= sub.usage.monthly_transactions_limit ? '#dc2626' : t.textMuted }}>
+                {tr('billing.usage', { used: sub.usage.monthly_transactions, limit: sub.usage.monthly_transactions_limit })}
+                {sub.usage.monthly_transactions >= sub.usage.monthly_transactions_limit && <> {tr('billing.usageReached')}</>}
+              </div>
+            )}
             {sub.pending_invoice && (
               <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14 }}>

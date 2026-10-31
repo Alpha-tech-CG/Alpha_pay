@@ -577,7 +577,7 @@ function NewGrid({ school, yearId, classes, open, onClose, onSaved }) {
       <form onSubmit={submit}>
         <ErrorBox error={error} />
         <Card style={{ marginBottom: 12 }}>
-          <Field label={tr('school.gridLabel')}><Input required value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Frais CM2 2026-2027" /></Field>
+          <Field label={tr('school.gridLabel')}><Input required value={label} onChange={(e) => setLabel(e.target.value)} placeholder={tr('school.gridPlaceholder')} /></Field>
           <Field label={tr('school.class')}>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)} required>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}

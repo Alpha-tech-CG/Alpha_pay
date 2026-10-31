@@ -6,15 +6,20 @@ import { StaffAuthService } from './staff-auth.service';
 export const STAFF_ROLES_KEY = 'staff_roles';
 
 /**
- * Rôles internes (§M12) : Support = lecture seule ; Conformité = KYB et
+ * Rôles internes (§M12) : Support = lecture et dépannage ; Conformité = KYB et
  * suspension ; Super-administrateur = tout, y compris paliers et prix.
  * Toute route qui MODIFIE une donnée doit porter ce décorateur : le garde
  * refuse par défaut une écriture non annotée (filet de sécurité).
  */
 export const RequireStaffRole = (...roles: StaffRole[]) => SetMetadata(STAFF_ROLES_KEY, roles);
 
-/** Rôles autorisés à écrire, par domaine. */
+/**
+ * Rôles autorisés à écrire, par domaine. `support` : gestes de dépannage qui ne
+ * changent pas la configuration du client (relance opérateur, renvoi de webhook,
+ * note d'assistance) ; tout le reste reste fermé au Support.
+ */
 export const STAFF_WRITE = {
+  support: ['SUPPORT', 'COMPLIANCE', 'SUPER_ADMIN'] as StaffRole[],
   compliance: ['COMPLIANCE', 'SUPER_ADMIN'] as StaffRole[],
   admin: ['SUPER_ADMIN'] as StaffRole[],
 };

@@ -5,7 +5,7 @@ import {
   ReconciliationDiscrepancyType,
 } from "@paybrain/database";
 import { StatementLine } from "./statement-parser";
-import { NotificationService } from "../notifications/notification.service";
+import { MessagingService } from "../messaging/messaging.service";
 import { ReconciliationReportService } from "./reconciliation-report.service";
 
 // Seuil d'alerte P1 : 100 000 FCFA = 10 000 000 centimes (ALP-140).
@@ -25,7 +25,7 @@ export class ReconciliationService {
 
   constructor(
     @Inject("PRISMA") private readonly prisma: PrismaClient,
-    private readonly notifications: NotificationService,
+    private readonly messaging: MessagingService,
     private readonly reports?: ReconciliationReportService,
   ) {}
 
@@ -214,39 +214,36 @@ export class ReconciliationService {
         `ALERTE P1 réconciliation ${operator} ${report.statementDate} : écart max ${maxDiscrepancy} centimes (run ${run.id})`,
       );
       // Alerte ops par email (ALP-143).
-      await this.notifications.send({
-        channel: "EMAIL",
-        to: process.env.OPS_EMAIL ?? "ops@paybrain.cg",
-        template: "reconciliation.alert",
-        category: "reconciliation_alert",
-        data: {
-          operator,
-          date: report.statementDate,
-          maxDiscrepancy: maxDiscrepancy.toString(),
-          discrepancyCount: discrepancies.length,
-          runId: run.id,
-        },
-      });
+      await this.alertOps(
+        `ALERTE réconciliation ${operator} ${report.statementDate}`,
+        `Écart maximal ${maxDiscrepancy} centimes, ${discrepancies.length} écart(s). Run ${run.id}.`,
+      );
     } else {
       this.logger.log(
         `Réconciliation ${operator} ${report.statementDate} : ${discrepancies.length} écart(s) (run ${run.id})`,
       );
     }
 
-    await this.notifications.send({
-      channel: "EMAIL",
-      to: process.env.OPS_EMAIL ?? "ops@paybrain.cg",
-      template: "reconciliation.summary",
-      category: "reconciliation_summary",
-      data: {
-        operator,
-        date: report.statementDate,
-        matchedCount,
-        discrepancyCount: discrepancies.length,
-        runId: run.id,
-      },
-    });
+    await this.alertOps(
+      `Réconciliation ${operator} ${report.statementDate}`,
+      `${matchedCount} ligne(s) rapprochée(s), ${discrepancies.length} écart(s). Run ${run.id}.`,
+    );
 
     return { runId: run.id, ...report, archived };
+  }
+
+  /** Email interne à l'équipe d'exploitation, via M9 (jamais bloquant). */
+  private async alertOps(subject: string, text: string) {
+    await this.messaging
+      .send({
+        merchantId: null,
+        livemode: true,
+        channels: ["EMAIL"],
+        to: { email: process.env.OPS_EMAIL ?? "ops@alphapay.cg" },
+        templateKey: "message.libre",
+        variables: { subject, text },
+        category: "TRANSACTIONAL",
+      })
+      .catch((err) => this.logger.warn(`Alerte exploitation non envoyée : ${(err as Error).message}`));
   }
 }

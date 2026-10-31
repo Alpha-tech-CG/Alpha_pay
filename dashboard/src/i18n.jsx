@@ -236,6 +236,8 @@ const DICT = {
     'billing.readonly': "Abonnement impayé : les modules payants sont en lecture seule. Vos clients peuvent toujours vous payer.",
     'billing.current': "Palier actuel",
     'billing.periodEnd': "jusqu'au",
+    'billing.usage': 'Paiements live ce mois-ci : {used} sur {limit}.',
+    'billing.usageReached': 'Limite atteinte : les nouveaux paiements live sont refusés jusqu’au mois prochain ou jusqu’au changement de palier.',
     'billing.pending': "Facture en attente :",
     'billing.pay': "Payer",
     'billing.modules': "Modules",
@@ -504,6 +506,8 @@ const DICT = {
     'billing.readonly': "Unpaid subscription: paid modules are read-only. Your customers can still pay you.",
     'billing.current': "Current plan",
     'billing.periodEnd': "until",
+    'billing.usage': 'Live payments this month: {used} of {limit}.',
+    'billing.usageReached': 'Limit reached: new live payments are refused until next month or until you change plan.',
     'billing.pending': "Pending invoice:",
     'billing.pay': "Pay",
     'billing.modules': "Modules",
@@ -553,7 +557,11 @@ export function I18nProvider({ children }) {
       localStorage.setItem('pb_locale', l)
       setLocale(l)
     }
-    const t = (key) => DICT[locale]?.[key] ?? DICT.fr[key] ?? key
+    // Variables `{nom}` remplacées si un objet est fourni.
+    const t = (key, vars) => {
+      const text = DICT[locale]?.[key] ?? DICT.fr[key] ?? key
+      return vars ? text.replace(/\{(\w+)\}/g, (m, k) => (vars[k] ?? m)) : text
+    }
     return { locale, setLocale: setAndPersist, t, toggle: () => setAndPersist(locale === 'fr' ? 'en' : 'fr') }
   }, [locale])
 

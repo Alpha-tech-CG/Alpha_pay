@@ -2,6 +2,39 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 31 octobre 2026 (17) — back-office : assistance, développeurs, santé
+
+### Fait
+- Module API `support` (`/internal/support/*`, D-062) : recherche globale, parcours d'un paiement, fiche marchand (paiements, développeurs, messages, équipe, journal), santé de la plateforme, journal d'audit global.
+- Gestes : vérification opérateur, relance d'une demande opérateur, renvoi et test de webhook, note (Support) ; révocation de clé, coupure d'endpoint, déconnexion d'un membre (Conformité) ; relance d'une file BullMQ (super-administrateur). Tous audités.
+- File de tâches : `counts()` et `retryFailed()` (BullMQ et mémoire).
+- Back-office : écrans Assistance, fiche marchand à onglets (remplace la fiche en bas de liste), Santé plateforme, Journal d'audit ; i18n.
+
+### Vérifié
+- Intégration : 16 suites, 103 tests (dont `support.int-spec.ts` : recherche, relance opérateur, renvoi et test de webhook, note, gestes réservés à la Conformité, santé, relance de file) ; unitaires : 55 suites, 321 tests ; compilation verte.
+- Navigateur, pile locale (BullMQ réel) : recherche d'un paiement et son parcours, fiche marchand (six onglets), note d'assistance enregistrée, santé de la plateforme avec les files réelles.
+
+## Session du 31 octobre 2026 (16) — fin du code V1
+
+### Fait
+- **CI réparée** : faux positifs Gitleaks déclarés (`.gitleaksignore`), identifiants MTN sandbox masqués dans `docs/archive` (à révoquer chez MTN : dépôt public). CI verte de bout en bout (Gitleaks, construction, tests, Playwright).
+- **M11** : Messages et Développeurs verrouillés côté serveur ; quota mensuel du palier Gratuit sur les paiements live, affiché dans Facturation, modifiable au back-office. D-061.
+- **M6** : accueil du tableau de bord refait (indicateurs `/stats`, derniers paiements, raccourcis, rappel KYB).
+- **M9** : derniers envois hérités (rapprochement, échec de webhook) passés sur `MessagingService` ; ancien envoi Africa's Talking / Postmark supprimé.
+- **M12** : écran Personnel (création, réinitialisation TOTP, désactivation).
+- **i18n** : tout le back-office et les derniers textes du tableau de bord (Équipe, Invitation, Profil, exemples) ; erreurs d'API de l'écran Équipe enfin lisibles (`error.message`).
+- **Audit** : nodemailer 10, OpenTelemetry 0.223, overrides des dépendances embarquées ; `pnpm audit` propre, job CI bloquant ; ancienne page Next.js `apps/checkout` retirée.
+- Défauts trouvés et corrigés : un cycle d'imports (webhooks ↔ messages) rendait `message.failed` muet ; l'écran Équipe rappelait l'API en boucle (client recréé à chaque rendu) jusqu'à la limite anti-abus.
+
+### Vérifié
+- Unitaires 55 suites / 321 tests, intégration 15 suites / 99 tests (nouveaux : verrouillage M9/M10, quota Gratuit, agents désactivés, limites de palier), construction et types verts, `pnpm audit` propre.
+- Dans le navigateur (pile locale) : accueil, Facturation, Équipe ; back-office Personnel (désactivation, réactivation) et Paliers et prix (limite mensuelle).
+
+### Reste
+- Premier déploiement sur les VPS OVH et recette en préproduction (dépend des VPS).
+- Révoquer les identifiants MTN sandbox publiés ; passer `joi@17` à `^17.13.9` après le 1er novembre.
+- Mesures sur téléphone réel : QR en moins de 30 s, Vérif en moins de 5 s, web push.
+
 ## Session du 31 octobre 2026 (15) — S9 recette et livraison (en cours)
 
 ### Fait

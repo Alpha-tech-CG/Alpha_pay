@@ -121,7 +121,7 @@ export default function AppLayout({ children }) {
         padding: '24px 16px', position: 'sticky', top: 0, height: '100vh',
         display: 'flex', flexDirection: 'column', overflowY: 'auto', boxSizing: 'border-box',
       }} className="pb-sidebar">
-        <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>GROUPE ALPHA</div>
+        <div style={{ fontSize: 11, color: t.textMuted, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>{tr('layout.group')}</div>
         <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 28 }}>
           Alpha<span style={{ color: t.primary }}>Pay</span>
         </div>
@@ -158,10 +158,10 @@ export default function AppLayout({ children }) {
           }}>☰</button>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{tr('dash.title')}</div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={toggleLocale} style={iconBtn(t)} title="Language">
+            <button onClick={toggleLocale} style={iconBtn(t)} title={tr('layout.language')}>
               {locale === 'fr' ? '🇫🇷 FR' : '🇬🇧 EN'}
             </button>
-            <button onClick={toggle} style={iconBtn(t)} title="Theme">
+            <button onClick={toggle} style={iconBtn(t)} title={tr('layout.theme')}>
               {mode === 'dark' ? '☀️' : '🌙'}
             </button>
             <UserMenu />

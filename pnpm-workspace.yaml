@@ -40,8 +40,8 @@ allowBuilds:
   protobufjs: false
 
 # Correctifs de sécurité des dépendances indirectes (pnpm audit, T-105) : même
-# version majeure, montée au correctif publié. Les montées majeures (nodemailer,
-# OpenTelemetry, Prisma) sont suivies à part (docs/PROGRESS.md).
+# version majeure, montée au correctif publié (exception : deepmerge-ts 8 pour
+# @prisma/config, API inchangée).
 overrides:
   proxy-addr: ^2.0.8
   body-parser@2: ^2.4.0
@@ -51,3 +51,21 @@ overrides:
   brace-expansion@2: ^2.1.6
   nanoid@5: ^5.1.16
   zod@4: ^4.6.6
+  # Site marketing (Next.js) et Prisma : correctifs des dépendances embarquées.
+  dompurify@3: ^3.4.17
+  sharp: ^0.35.5
+  next>postcss: ^8.5.18
+  nanoid@3: ^3.3.18
+  source-map-js: ^1.2.2
+  '@prisma/config>deepmerge-ts': ^8.0.2
+  '@grpc/grpc-js@1': ^1.14.6
+  # Applications gelées (non livrées), pour un audit propre sur tout le dépôt.
+  '@capacitor/android@8': ^8.5.3
+  joi@17: ^17.13.8
+
+# Alertes ignorées, une par une, avec leur motif (pnpm audit et job CI).
+auditConfig:
+  ignoreGhsas:
+    # joi (apps/alphapay-backend, gelé et non livré) : correctif 17.13.9 publié le
+    # 28 oct. 2026, encore en quarantaine ; passer joi@17 à ^17.13.9 après le 1er nov.
+    - GHSA-4528-x5fx-h6hg

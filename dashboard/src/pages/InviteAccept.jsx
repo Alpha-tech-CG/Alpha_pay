@@ -27,7 +27,7 @@ export default function InviteAccept() {
     if (!token) return
     teamApi.previewInvitation(token)
       .then(setPreview)
-      .catch((err) => setPreviewError(err.response?.data?.error?.message || 'Invitation introuvable ou expirée.'))
+      .catch((err) => setPreviewError(err.response?.data?.error?.message || tr('invite.notFound')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
@@ -40,7 +40,7 @@ export default function InviteAccept() {
       setAccepted(true)
       setTimeout(() => navigate('/team'), 1200)
     } catch (err) {
-      setAcceptError(err.response?.data?.error?.message || 'Échec de l’acceptation de l’invitation.')
+      setAcceptError(err.response?.data?.error?.message || tr('invite.acceptFailed'))
     } finally { setAccepting(false) }
   }
 
@@ -50,25 +50,25 @@ export default function InviteAccept() {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <Card style={{ maxWidth: 420, width: '100%' }}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>Invitation d’équipe</div>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>{tr('invite.title')}</div>
 
-        {!token && <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>⚠️ Lien d’invitation invalide (token manquant).</div>}
+        {!token && <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>⚠️ {tr('invite.noToken')}</div>}
         {previewError && <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>⚠️ {previewError}</div>}
 
         {preview && (
           <>
             <div style={{ fontSize: 14, marginBottom: 6 }}>
-              <strong>{preview.merchantName}</strong> vous invite avec le rôle{' '}
+              <strong>{preview.merchantName}</strong> {tr('invite.invites')}{' '}
               <strong>{tr(`role.${preview.role}`)}</strong>.
             </div>
             <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 16 }}>
               {preview.email || preview.phone}
             </div>
 
-            {preview.revoked && <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>Cette invitation a été révoquée.</div>}
-            {preview.accepted && <div style={{ color: t.textMuted, fontSize: 13, marginBottom: 12 }}>Cette invitation a déjà été acceptée.</div>}
+            {preview.revoked && <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>{tr('invite.revoked')}</div>}
+            {preview.accepted && <div style={{ color: t.textMuted, fontSize: 13, marginBottom: 12 }}>{tr('invite.alreadyAccepted')}</div>}
             {preview.expired && !preview.revoked && !preview.accepted && (
-              <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>Cette invitation a expiré.</div>
+              <div style={{ color: '#e11d48', fontSize: 13, marginBottom: 12 }}>{tr('invite.expired')}</div>
             )}
 
             {!preview.revoked && !preview.accepted && !preview.expired && (
@@ -89,11 +89,11 @@ export default function InviteAccept() {
 
                 {status === 'authenticated' && (<>
                   {accepted ? (
-                    <div style={{ color: t.primary, fontSize: 14, fontWeight: 700 }}>Invitation acceptée ✓ Redirection…</div>
+                    <div style={{ color: t.primary, fontSize: 14, fontWeight: 700 }}>{tr('invite.accepted')}</div>
                   ) : (
                     <>
                       <Button onClick={accept} disabled={accepting} style={{ width: '100%' }}>
-                        {accepting ? 'Acceptation…' : 'Accepter l’invitation'}
+                        {accepting ? tr('invite.accepting') : tr('invite.accept')}
                       </Button>
                       {acceptError && <div style={{ marginTop: 10, color: '#e11d48', fontSize: 13 }}>⚠️ {acceptError}</div>}
                     </>

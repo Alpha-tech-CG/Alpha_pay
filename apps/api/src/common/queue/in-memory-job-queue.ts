@@ -1,4 +1,4 @@
-import { DEFAULT_ATTEMPTS, EnqueueOptions, JobHandler, JobQueue, QueueName } from './job-queue';
+import { DEFAULT_ATTEMPTS, EnqueueOptions, JobHandler, JobQueue, QueueCounts, QueueName, QUEUES } from './job-queue';
 
 export interface InMemoryJob {
   queue: QueueName;
@@ -61,6 +61,23 @@ export class InMemoryJobQueue extends JobQueue {
   /** Exécute une seule passe (sans les tâches ajoutées pendant celle-ci). */
   async drainOnce(queue: QueueName): Promise<number> {
     return this.drain(queue, 1);
+  }
+
+  async counts(): Promise<QueueCounts[]> {
+    return Object.values(QUEUES).map((queue) => ({
+      queue,
+      waiting: this.jobs.filter((j) => j.queue === queue).length,
+      active: 0,
+      delayed: 0,
+      failed: this.failed.filter((j) => j.queue === queue).length,
+    }));
+  }
+
+  async retryFailed(queue: QueueName): Promise<number> {
+    const retried = this.failed.filter((j) => j.queue === queue);
+    this.failed.splice(0, this.failed.length, ...this.failed.filter((j) => j.queue !== queue));
+    for (const { error: _error, ...job } of retried) this.jobs.push({ ...job, attemptsMade: 0 });
+    return retried.length;
   }
 
   async close(): Promise<void> {}

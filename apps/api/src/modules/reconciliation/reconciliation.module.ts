@@ -7,9 +7,10 @@ import { ReconciliationReportService } from "./reconciliation-report.service";
 import { MerchantReconciliationController } from "./merchant/merchant-reconciliation.controller";
 import { MerchantReconciliationService } from "./merchant/merchant-reconciliation.service";
 import { TeamAuthModule } from "../team/auth/team-auth.module";
+import { MessagingModule } from "../messaging/messaging.module";
 
 @Module({
-  imports: [TeamAuthModule, StaffModule],
+  imports: [TeamAuthModule, StaffModule, MessagingModule],
   controllers: [ReconciliationController, MerchantReconciliationController],
   providers: [
     ReconciliationService,

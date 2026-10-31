@@ -76,7 +76,7 @@ export default function PaymentLinks() {
       {writer && (
         <Card style={{ marginBottom: 16 }}>
           <form onSubmit={create} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0 12px', alignItems: 'end' }}>
-            <Field label={tr('links.description')}><Input required maxLength={200} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Commande n° 1042" /></Field>
+            <Field label={tr('links.description')}><Input required maxLength={200} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={tr('links.placeholder')} /></Field>
             <Field label={tr('links.amount')}><Input type="number" min="1" step="1" inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder={tr('links.free')} /></Field>
             <Field label={tr('links.expires')}><Input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} /></Field>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 22 }}>

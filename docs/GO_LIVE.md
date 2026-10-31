@@ -87,5 +87,7 @@ Responsable : Miche, sauf mention contraire. Cocher au fur et à mesure.
 - [ ] **Suivi des erreurs** : projet Sentry, `SENTRY_DSN`.
 - [ ] **Sonde externe** sur `https://<API_DOMAIN>/ready`.
 - [ ] **Test d'intrusion de base** après la livraison (§8.1).
-- [ ] À arbitrer : crédits consommés par les relances et reçus (D-054), limite de
-  transactions du palier Gratuit (D-053), rotation des clés de chiffrement (après la V1).
+- [ ] **Limite du palier Gratuit** : fixée à 100 paiements live réussis par mois
+  (migration 31) ; à ajuster dans le back-office si besoin (D-061).
+- [ ] À arbitrer : crédits consommés par les relances et reçus (D-054), rotation des
+  clés de chiffrement (après la V1).

@@ -27,6 +27,10 @@ class UpdatePlanDto {
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsIn(Object.keys(MODULE_KEYS), { each: true }) included_modules?: string[];
   @IsOptional() @IsInt() @Min(0) @Max(10_000_000) included_credits?: number;
   @IsOptional() @IsBoolean() is_active?: boolean;
+  /** Limites du palier ; null = illimité. */
+  @IsOptional() @IsInt() @Min(0) @Max(100_000) max_stores?: number | null;
+  @IsOptional() @IsInt() @Min(0) @Max(100_000) max_tills?: number | null;
+  @IsOptional() @IsInt() @Min(0) @Max(100_000_000) max_monthly_transactions?: number | null;
 }
 
 class UpdatePackDto {
@@ -161,6 +165,7 @@ export class MerchantAdminController {
     return rows.map((p) => ({
       code: p.code, label: p.label, price_monthly: toMajorAmount(p.priceMonthly, p.currency), price_yearly: toMajorAmount(p.priceYearly, p.currency),
       currency: p.currency, included_modules: p.includedModules, included_credits: p.includedCredits, is_active: p.isActive,
+      max_stores: p.maxStores, max_tills: p.maxTills, max_monthly_transactions: p.maxMonthlyTransactions,
     }));
   }
 
@@ -178,6 +183,9 @@ export class MerchantAdminController {
         includedModules: body.included_modules,
         includedCredits: body.included_credits,
         isActive: body.is_active,
+        maxStores: body.max_stores,
+        maxTills: body.max_tills,
+        maxMonthlyTransactions: body.max_monthly_transactions,
       },
     });
     await this.record(req, 'billing.plan_updated', null, 'billing_plan', updated.id, { code, changes: body as Record<string, unknown> });

@@ -10,6 +10,7 @@ import { CronLockService } from '../../common/scheduling/cron-lock.service';
 import { decryptField } from '../../common/security/pii-crypto';
 import { MessagingService } from '../messaging/messaging.service';
 import { PaymentLinksService } from '../payment-links/payment-links.service';
+import { monthlyQuota } from './monthly-quota';
 
 // ─── Contrôle d'accès par palier (T-83) ──────────────────────────────────────
 
@@ -100,11 +101,13 @@ export class BillingService implements OnModuleInit {
     const sub = await this.prisma.subscription.findUnique({ where: { merchantId }, include: { plan: true } });
     const plan = sub?.plan ?? (await this.prisma.billingPlan.findUnique({ where: { code: DEFAULT_PLAN } }));
     const pending = await this.prisma.alphapayInvoice.findFirst({ where: { merchantId, kind: 'SUBSCRIPTION', status: 'PENDING' }, orderBy: { createdAt: 'desc' } });
+    const quota = await monthlyQuota(this.prisma, merchantId);
     return {
       plan: plan ? { code: plan.code, label: plan.label, included_modules: plan.includedModules } : null,
       status: sub ? sub.status.toLowerCase() : 'gratuit',
       read_only: sub?.status === 'EXPIRED',
       period_end: sub?.periodEnd ?? null,
+      usage: { monthly_transactions: quota.used, monthly_transactions_limit: quota.limit },
       pending_invoice: pending ? await this.presentInvoice(pending) : null,
     };
   }
