@@ -70,6 +70,7 @@ describe('T-50 Boutiques, caisses et caissiers (HTTP, Postgres réel)', () => {
     await a.http().post(`${base}/tills/${till1.id}/members`).set('Authorization', owner.auth).send({ memberId: cashier.memberId }).expect(201);
     const mine = await a.http().get(`${base}/tills/mine`).set('Authorization', cashier.auth).expect(200);
     expect(mine.body.data.map((x: any) => x.id)).toEqual([till1.id]);
+    expect(mine.body.data[0].url).toMatch(/\/c\/[a-z0-9]+$/);
 
     const seen = await a.http().get(`${base}/payments`).set('Authorization', cashier.auth).expect(200);
     expect(seen.body.data.map((p: any) => p.reference)).toEqual(['cmd-1']);

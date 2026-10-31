@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AP, soft, radius, shadow } from '@/design';
 import { Card, SectionTitle, StatusPill } from '@/dash';
 import { useMerchant } from '@/merchant-store';
+import { ucFont } from '@/uc';
 
 export default function Settlement() {
   const { settlement } = useMerchant();
@@ -34,7 +35,7 @@ export default function Settlement() {
           <Card style={{ flex: 1 }}>
             <Text style={s.statLabel}>Total Paid Out</Text>
             <Text style={s.statMid}>{settlement.totalPaid}</Text>
-            <Text style={[s.hint, { color: AP.chart3, fontWeight: '800' }]}>ACTIVE SINCE 2024</Text>
+            <Text style={[s.hint, { color: AP.chart3, fontFamily: ucFont.condensed, fontWeight: '700' }]}>ACTIVE SINCE 2024</Text>
           </Card>
         </View>
 
@@ -64,22 +65,22 @@ export default function Settlement() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  title: { fontSize: 22, fontWeight: '900', color: AP.secondary },
+  title: { fontSize: 22, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   settingsBtn: { height: 40, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
-  settingsText: { fontSize: 12, fontWeight: '800', color: AP.secondary },
-  scroll: { paddingHorizontal: 20, paddingBottom: 120 },
+  settingsText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
+  scroll: { paddingHorizontal: 20, paddingBottom: 28 },
 
-  statLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: AP.mutedForeground, textTransform: 'uppercase', marginBottom: 8 },
-  statBig: { fontSize: 26, fontWeight: '900', color: AP.secondary, fontVariant: ['tabular-nums'] },
-  statMid: { fontSize: 20, fontWeight: '900', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 11, fontFamily: ucFont.condensed, fontWeight: '700', letterSpacing: 0.6, color: AP.mutedForeground, textTransform: 'uppercase', marginBottom: 8 },
+  statBig: { fontSize: 26, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  statMid: { fontSize: 20, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
   hint: { fontSize: 10, color: AP.mutedForeground, marginTop: 12, letterSpacing: 0.5, lineHeight: 15 },
   payoutBtn: { marginTop: 20, height: 44, backgroundColor: AP.primary, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', ...shadow(6, AP.primary, 0.2) },
-  payoutText: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  payoutText: { fontSize: 13, fontFamily: ucFont.condensed, fontWeight: '700', color: '#fff' },
   twoCol: { flexDirection: 'row', gap: 12, marginTop: 12 },
 
   histTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  histRef: { fontSize: 12, fontWeight: '800', color: AP.mutedForeground, fontVariant: ['tabular-nums'] },
-  histAmount: { fontSize: 18, fontWeight: '900', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  histRef: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.mutedForeground, fontVariant: ['tabular-nums'] },
+  histAmount: { fontSize: 18, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
   histMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   histDest: { fontSize: 12, color: AP.mutedForeground },
   histDate: { fontSize: 12, color: AP.mutedForeground },

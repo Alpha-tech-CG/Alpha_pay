@@ -125,6 +125,23 @@ describe('M1 Comptes et équipe (HTTP, Postgres réel)', () => {
       await http().get('/v1/auth/me').set('Authorization', `Bearer ${r1.body.access_token}`).expect(401);
     });
 
+    it('app mobile : jeton de rafraîchissement dans le corps, sans cookie ; rejeu toujours détecté', async () => {
+      const owner = await signUp();
+      const step1 = await login(owner.email, PASSWORD, 'email');
+      const code = await t.lastCode(owner.email);
+      const res = await http().post('/v1/auth/verify').send({ challenge: step1.challenge, code, client: 'mobile' }).expect(200);
+      expect(res.body.refresh_token).toEqual(expect.any(String));
+      expect(res.headers['set-cookie']).toBeUndefined();
+
+      const r1 = await http().post('/v1/auth/refresh').send({ refresh_token: res.body.refresh_token }).expect(200);
+      expect(r1.body.refresh_token).not.toBe(res.body.refresh_token);
+      await http().get('/v1/auth/me').set('Authorization', `Bearer ${r1.body.access_token}`).expect(200);
+
+      await http().post('/v1/auth/refresh').send({ refresh_token: res.body.refresh_token }).expect(401);
+      await http().post('/v1/auth/refresh').send({ refresh_token: r1.body.refresh_token }).expect(401);
+      await http().post('/v1/auth/verify').send({ challenge: step1.challenge, code, client: 'tablette' }).expect(400);
+    });
+
     it('déconnexion : le jeton d’accès est refusé immédiatement', async () => {
       const owner = await signUp();
       await http().post('/v1/auth/logout').set('Authorization', `Bearer ${owner.token}`).expect(200);

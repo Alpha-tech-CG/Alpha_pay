@@ -1,62 +1,74 @@
-import { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Icon } from '@/components/Icon';
-import { AP, soft, radius, shadow } from '@/design';
-import { Card, SectionTitle } from '@/dash';
-import { useMerchant } from '@/merchant-store';
+import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
+import { AP } from '@/design';
+import { Card, Segmented, SectionTitle } from '@/dash';
+import { Button, ErrorBox, Header, InfoRow, Loading } from '@/kit';
+import { API_URL, DASHBOARD_URL, getMembers } from '@/api';
+import { ROLE_LABEL, useMerchant, useSession } from '@/session';
+import { useLoad } from '@/useLoad';
 
-export default function MerchantSettings() {
-  const router = useRouter();
-  const { business } = useMerchant();
-  const [name, setName] = useState(business.business);
-  const [email, setEmail] = useState(business.email);
+const KYB_LABEL: Record<string, string> = {
+  PENDING: 'En attente de validation',
+  SUBMITTED: 'Envoyé',
+  IN_REVIEW: 'En cours d’examen',
+  INFO_REQUIRED: 'Informations demandées',
+  APPROVED: 'Validé',
+  REJECTED: 'Refusé',
+};
 
-  // Resynchronise quand le profil live arrive.
-  useEffect(() => { setName(business.business); setEmail(business.email); }, [business]);
+export default function Settings() {
+  const { user, logout } = useSession();
+  const { membership, merchantId, role, mode, canLive, setMode } = useMerchant();
+  const team = useLoad(() => getMembers(merchantId), [merchantId]);
+
+  const confirmLogout = () =>
+    Alert.alert('Se déconnecter ?', 'Vous devrez saisir votre mot de passe et un code pour revenir.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Se déconnecter', style: 'destructive', onPress: logout },
+    ]);
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={s.title}>Settings</Text>
+      <ScrollView contentContainerStyle={s.scroll}>
+        <Header title="Réglages" />
 
-        <SectionTitle>Business Profile</SectionTitle>
         <Card>
-          <View style={s.logoRow}>
-            <View style={s.logo}><Text style={{ fontSize: 32 }}>🏢</Text></View>
-            <Pressable style={s.logoBtn}><Text style={s.logoBtnText}>Change Logo</Text></Pressable>
+          <SectionTitle>Commerce</SectionTitle>
+          <InfoRow label="Nom" value={membership?.name} />
+          <InfoRow label="Votre rôle" value={role ? ROLE_LABEL[role] : null} />
+          <InfoRow label="Dossier" value={membership ? KYB_LABEL[membership.kybStatus] ?? membership.kybStatus : null} />
+          <View style={{ marginTop: 16, gap: 8 }}>
+            <Text style={s.label}>Mode</Text>
+            {canLive ? (
+              <Segmented options={['Live', 'Test']} value={mode === 'live' ? 'Live' : 'Test'} onChange={(v) => setMode(v === 'Live' ? 'live' : 'test')} />
+            ) : (
+              <Text style={s.help}>Test uniquement : le live s’ouvre quand votre dossier est validé.</Text>
+            )}
           </View>
-          <Text style={s.label}>Business Name</Text>
-          <TextInput style={s.input} value={name} onChangeText={setName} />
-          <Text style={s.label}>Support Email</Text>
-          <TextInput style={s.input} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
         </Card>
 
-        <View style={{ marginTop: 24 }}>
-          <SectionTitle>Team</SectionTitle>
-          <Card style={{ padding: 0 }}>
-            <Pressable style={s.toolRow} onPress={() => router.push('/(merchant)/team')}>
-              <View style={s.toolLeft}><Icon name="account-multiple" size={20} color={AP.primary} /><Text style={s.toolText}>Team Members</Text></View>
-              <Icon name="chevron-right" size={18} color={AP.mutedForeground} />
-            </Pressable>
-          </Card>
-        </View>
+        <Card style={{ marginTop: 16 }}>
+          <SectionTitle>Mon compte</SectionTitle>
+          <InfoRow label="Nom" value={user?.fullName} />
+          <InfoRow label="Email" value={user?.email} />
+          <InfoRow label="Téléphone" value={user?.phone} />
+        </Card>
 
-        <View style={{ marginTop: 24 }}>
-          <SectionTitle>Developer Tools</SectionTitle>
-          <Card style={{ padding: 0 }}>
-            <Pressable style={s.toolRow} onPress={() => router.push('/(merchant)/api-keys')}>
-              <View style={s.toolLeft}><Icon name="vpn-key" size={20} color={AP.primary} /><Text style={s.toolText}>API Keys</Text></View>
-              <Icon name="chevron-right" size={18} color={AP.mutedForeground} />
-            </Pressable>
-            <View style={s.toolBorder} />
-            <Pressable style={s.toolRow} onPress={() => router.push('/(merchant)/webhooks')}>
-              <View style={s.toolLeft}><Icon name="dns" size={20} color={AP.primary} /><Text style={s.toolText}>Webhooks</Text></View>
-              <Icon name="chevron-right" size={18} color={AP.mutedForeground} />
-            </Pressable>
-          </Card>
-        </View>
+        <Card style={{ marginTop: 16 }}>
+          <SectionTitle>Équipe</SectionTitle>
+          <ErrorBox message={team.error} />
+          {team.loading && !team.data ? <Loading /> : null}
+          {team.data?.filter((m) => m.status === 'ACTIVE').map((m) => (
+            <InfoRow key={m.id} label={m.fullName ?? m.phone ?? m.email ?? 'Membre'} value={ROLE_LABEL[m.role] ?? m.role} />
+          ))}
+          <Text style={[s.help, { marginTop: 12 }]}>Invitations, boutiques, caisses, factures, opérateurs et clés API se gèrent depuis le tableau de bord web.</Text>
+          <Button label="Ouvrir le tableau de bord web" variant="ghost" onPress={() => Linking.openURL(DASHBOARD_URL)} style={{ marginTop: 12 }} />
+        </Card>
+
+        <Button label="Se déconnecter" variant="danger" onPress={confirmLogout} style={{ marginTop: 24 }} />
+        <Text style={s.version}>AlphaPay {Constants.expoConfig?.version} · {API_URL.replace(/^https?:\/\//, '')}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -64,17 +76,8 @@ export default function MerchantSettings() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
-  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
-  title: { fontSize: 22, fontWeight: '900', color: AP.secondary, marginBottom: 24 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 20 },
-  logo: { width: 72, height: 72, borderRadius: radius.xl, backgroundColor: soft.muted50, alignItems: 'center', justifyContent: 'center' },
-  logoBtn: { height: 40, paddingHorizontal: 16, borderWidth: 1, borderColor: AP.border, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  logoBtnText: { fontSize: 12, fontWeight: '800', color: AP.secondary },
-  label: { fontSize: 10, fontWeight: '800', letterSpacing: 1, color: AP.mutedForeground, textTransform: 'uppercase', marginBottom: 8, marginTop: 12 },
-  input: { height: 46, backgroundColor: soft.muted50, borderWidth: 1, borderColor: AP.border, borderRadius: radius.md, paddingHorizontal: 16, fontSize: 14, fontWeight: '600', color: AP.secondary },
-
-  toolRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
-  toolBorder: { borderTopWidth: 1, borderTopColor: AP.border },
-  toolLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  toolText: { fontSize: 14, fontWeight: '700', color: AP.secondary },
+  scroll: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 },
+  label: { fontSize: 13, fontWeight: '700', color: AP.secondary },
+  help: { fontSize: 13, color: AP.mutedForeground, lineHeight: 18 },
+  version: { textAlign: 'center', fontSize: 12, color: AP.mutedForeground, marginTop: 16 },
 });

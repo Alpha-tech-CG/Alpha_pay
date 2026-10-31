@@ -2,6 +2,28 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 31 octobre 2026 (19) — app mobile sur l'API V1
+
+### Fait
+- App mobile marchand réécrite sur l'API V1 (D-064) : connexion, Accueil, Paiements et remboursement, Encaisser (QR caisse et montant précis), Liens, Réglages. Anciens écrans dans `mobile/legacy/`.
+- API : session mobile (jeton de rafraîchissement dans le corps), `url` des caisses dans `tills/mine` ; tests d'intégration.
+- Profils EAS `preview`, `preview-prod`, `production`.
+
+### Reste
+- Build EAS de l'APK et essai sur téléphone.
+- Réponse aux litiges et gestion des boutiques depuis l'app (web seulement).
+
+## Session du 31 octobre 2026 (18) — carte bancaire, remboursements, litiges, alertes
+
+### Fait
+- **Carte** (D-063) : moyen de paiement à part entière (migration 33), API `method: "card"`, bouton sur la page de paiement, webhooks signés relus chez l'acquéreur, relances, acquéreur factice partagé par Redis, page `/mock/card` sûre (échappement, montant XAF correct).
+- **Remboursements** : API publique et tableau de bord, total ou partiel, réservation atomique, Mobile Money déclaré ; **litiges** : ouverture, preuves, décision ; webhooks `refund.*` et `dispute.*` ; SDK mis à jour.
+- Tableau de bord : remboursement et réponse aux litiges dans le détail d'un paiement ; back-office : carte, remboursements et litiges dans le parcours d'un paiement.
+- **Alertes d'exploitation** par email (`OPS_EMAIL`), toutes les 5 min, sans doublon dans l'heure.
+
+### Reste
+- Adaptateur de l'acquéreur carte réel (dépend du contrat) et champs de sa connexion.
+
 ## Session du 31 octobre 2026 (17) — back-office : assistance, développeurs, santé
 
 ### Fait

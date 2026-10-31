@@ -6,11 +6,29 @@
   "build": {
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:3000",
+        "EXPO_PUBLIC_DASHBOARD_URL": "http://localhost:5173"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-prod": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.alphapay.cg",
+        "EXPO_PUBLIC_DASHBOARD_URL": "https://app.alphapay.cg"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.alphapay.cg",
+        "EXPO_PUBLIC_DASHBOARD_URL": "https://app.alphapay.cg"
+      },
       "android": {
         "buildType": "app-bundle"
       }

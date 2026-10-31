@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow } from '@/design';
 import { useMerchant } from '@/merchant-store';
+import { ucFont } from '@/uc';
 
 export default function Team() {
   const router = useRouter();
@@ -54,11 +55,11 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   backBtn: { width: 44, height: 44, borderRadius: radius.md, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, alignItems: 'center', justifyContent: 'center', ...shadow(2) },
-  title: { flex: 1, fontSize: 20, fontWeight: '900', color: AP.secondary },
+  title: { flex: 1, fontSize: 20, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   scroll: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
 
   note: { flexDirection: 'row', gap: 16, backgroundColor: soft.primary05, borderWidth: 1, borderColor: soft.primary20, borderRadius: radius.lg, padding: 16 },
-  noteTitle: { fontSize: 13, fontWeight: '800', color: AP.secondary },
+  noteTitle: { fontSize: 13, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   noteText: { fontSize: 12, color: AP.mutedForeground, lineHeight: 18, marginTop: 4 },
 
   card: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.lg, ...shadow(2) },
@@ -67,8 +68,8 @@ const s = StyleSheet.create({
   memberLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   memberAvatar: { width: 40, height: 40, borderRadius: 20 },
   memberInitials: { backgroundColor: AP.primary, alignItems: 'center', justifyContent: 'center' },
-  memberInitialsText: { fontSize: 13, fontWeight: '900', color: AP.secondary },
-  memberName: { fontSize: 14, fontWeight: '800', color: AP.secondary },
+  memberInitialsText: { fontSize: 13, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
+  memberName: { fontSize: 14, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   memberRole: { fontSize: 12, color: AP.mutedForeground, marginTop: 2 },
   memberBadge: { fontSize: 12, fontWeight: '700', color: AP.mutedForeground },
   memberBadgeWarn: { color: AP.chart5 },

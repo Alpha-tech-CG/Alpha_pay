@@ -5,6 +5,7 @@ import { Icon } from '@/components/Icon';
 import { AP, soft, radius, shadow } from '@/design';
 import { StatusPill } from '@/dash';
 import { useMerchant } from '@/merchant-store';
+import { ucFont } from '@/uc';
 
 export default function MerchantTransactions() {
   const { merchantTx } = useMerchant();
@@ -55,15 +56,15 @@ export default function MerchantTransactions() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  title: { fontSize: 22, fontWeight: '900', color: AP.secondary },
+  title: { fontSize: 22, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.md, ...shadow(2) },
-  exportText: { fontSize: 12, fontWeight: '800', color: AP.secondary },
+  exportText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   searchBox: { marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.md, paddingHorizontal: 16 },
   searchInput: { flex: 1, fontSize: 14, fontWeight: '600', color: AP.secondary },
-  list: { paddingHorizontal: 20, paddingBottom: 120 },
+  list: { paddingHorizontal: 20, paddingBottom: 28 },
   card: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, padding: 16, gap: 10, ...shadow(2) },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  amount: { fontSize: 18, fontWeight: '900', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  amount: { fontSize: 18, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   metaKey: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, color: 'rgba(11,30,61,0.4)', textTransform: 'uppercase' },
   metaVal: { fontSize: 13, fontWeight: '600', color: AP.secondary, flexShrink: 1, textAlign: 'right' },

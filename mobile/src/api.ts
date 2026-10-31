@@ -1,295 +1,288 @@
-import axios from 'axios';
+// Client de l'API AlphaPay V1 (routes du tableau de bord, `/v1/auth`, `/v1/merchants/:id/…`).
+// Jeton d'accès (15 min) en mémoire seulement ; jeton de rafraîchissement dans le
+// stockage sécurisé de l'appareil (Keystore Android), jamais dans un cookie.
+import axios, { AxiosError } from 'axios';
 import Constants from 'expo-constants';
-import * as FileSystem from 'expo-file-system';
+import * as SecureStore from 'expo-secure-store';
 
-const baseURL =
-  (Constants.expoConfig?.extra as { apiBaseUrl?: string } | undefined)?.apiBaseUrl ??
-  'http://localhost:3000';
+const extra = (Constants.expoConfig?.extra ?? {}) as { apiBaseUrl?: string; dashboardUrl?: string };
+export const API_URL = extra.apiBaseUrl ?? 'http://localhost:3000';
+export const DASHBOARD_URL = extra.dashboardUrl ?? 'http://localhost:5173';
 
-export const api = axios.create({ baseURL, timeout: 15000 });
+const REFRESH_KEY = 'alphapay_refresh_token';
 
-/** Pose la clé API marchand (X-API-Key) et retire le Bearer JWT si présent. */
-export function setApiKey(key: string | null) {
-  if (key) api.defaults.headers.common['X-API-Key'] = key;
-  else delete api.defaults.headers.common['X-API-Key'];
-  // Les marchands n'utilisent pas Bearer
-  delete api.defaults.headers.common['Authorization'];
+const publicApi = axios.create({ baseURL: API_URL, timeout: 20000 });
+export const api = axios.create({ baseURL: API_URL, timeout: 20000 });
+
+let accessToken: string | null = null;
+let refreshing: Promise<string> | null = null;
+let onSessionLost: () => void = () => {};
+
+export function setSessionLostHandler(fn: () => void) {
+  onSessionLost = fn;
 }
 
-/** Pose le JWT client (Authorization: Bearer) et retire X-API-Key si présent. */
-export function setBearerToken(token: string | null) {
-  if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  else delete api.defaults.headers.common['Authorization'];
-  // Les clients wallet n'utilisent pas X-API-Key
-  delete api.defaults.headers.common['X-API-Key'];
+type Tokens = { access_token: string; refresh_token: string };
+
+async function storeTokens(t: Tokens) {
+  accessToken = t.access_token;
+  await SecureStore.setItemAsync(REFRESH_KEY, t.refresh_token);
 }
 
-/** Vérifie une clé en appelant un endpoint protégé léger. */
-export async function verifyKey(key: string): Promise<boolean> {
-  try {
-    await api.get('/stats', { headers: { 'X-API-Key': key } });
-    return true;
-  } catch {
-    return false;
+export async function clearTokens() {
+  accessToken = null;
+  await SecureStore.deleteItemAsync(REFRESH_KEY);
+}
+
+/** Renouvelle le jeton d'accès ; un seul appel à la fois (le jeton tourne à chaque usage). */
+export function refreshAccessToken(): Promise<string> {
+  refreshing ??= (async () => {
+    const stored = await SecureStore.getItemAsync(REFRESH_KEY);
+    if (!stored) throw new Error('aucune session');
+    try {
+      const res = await publicApi.post<Tokens>('/v1/auth/refresh', { refresh_token: stored });
+      await storeTokens(res.data);
+      return res.data.access_token;
+    } catch (err) {
+      // Session refusée par l'API : on l'oublie. Panne réseau : on la garde.
+      if ((err as AxiosError).response?.status === 401) await clearTokens();
+      throw err;
+    }
+  })().finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+api.interceptors.request.use((config) => {
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
+
+api.interceptors.response.use(undefined, async (error: AxiosError) => {
+  const original = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+  if (error.response?.status === 401 && original && !original._retried) {
+    original._retried = true;
+    try {
+      await refreshAccessToken();
+      original.headers.Authorization = `Bearer ${accessToken}`;
+      return api(original);
+    } catch {
+      accessToken = null;
+      onSessionLost();
+    }
   }
+  return Promise.reject(error);
+});
+
+/** Message lisible depuis le format d'erreur unique de l'API (§7). */
+export function errorMessage(err: unknown, fallback = 'Une erreur est survenue. Réessayez.'): string {
+  const e = err as AxiosError<{ error?: { message?: string } }>;
+  if (e?.response?.data?.error?.message) return e.response.data.error.message;
+  if (e?.code === 'ECONNABORTED' || e?.message === 'Network Error') return 'Serveur injoignable. Vérifiez votre connexion.';
+  return fallback;
+}
+
+export function errorCode(err: unknown): string | undefined {
+  return (err as AxiosError<{ error?: { code?: string } }>)?.response?.data?.error?.code;
+}
+
+/* ─── Authentification ─── */
+
+export type Role = 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'CASHIER';
+
+export interface Membership {
+  id: string;
+  name: string;
+  role: Role;
+  kybStatus: string;
+}
+
+export interface Me {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  merchants: Membership[];
+}
+
+export interface Challenge {
+  challenge: string;
+  channel: string;
+  to?: string;
+  expires_in: number;
+}
+
+export type OtpChannel = 'sms' | 'whatsapp' | 'email';
+
+export const login = (identifier: string, password: string, channel?: OtpChannel) =>
+  publicApi.post<Challenge>('/v1/auth/login', { identifier, password, ...(channel ? { channel } : {}) }).then((r) => r.data);
+
+export const register = (body: { name: string; phone: string; email: string; password: string; channel?: OtpChannel }) =>
+  publicApi.post<Challenge>('/v1/auth/register', body).then((r) => r.data);
+
+export async function verifyCode(challenge: string, code: string): Promise<Me> {
+  const res = await publicApi.post<Tokens & { user: Me }>('/v1/auth/verify', { challenge, code, client: 'mobile' });
+  await storeTokens(res.data);
+  return res.data.user;
+}
+
+export const forgotPassword = (identifier: string, channel?: OtpChannel) =>
+  publicApi.post<Challenge>('/v1/auth/password/forgot', { identifier, ...(channel ? { channel } : {}) }).then((r) => r.data);
+
+export const resetPassword = (challenge: string, code: string, password: string) =>
+  publicApi.post('/v1/auth/password/reset', { challenge, code, password }).then((r) => r.data);
+
+export const getMe = () => api.get<Me>('/v1/auth/me').then((r) => r.data);
+
+export async function logout() {
+  try {
+    if (accessToken) await api.post('/v1/auth/logout');
+  } finally {
+    await clearTokens();
+  }
+}
+
+/** Au démarrage : une session enregistrée sur l'appareil est-elle encore valable ? */
+export async function restoreSession(): Promise<Me | null> {
+  const stored = await SecureStore.getItemAsync(REFRESH_KEY);
+  if (!stored) return null;
+  await refreshAccessToken();
+  return getMe();
+}
+
+/* ─── Données marchand ─── */
+
+export type Mode = 'live' | 'test';
+
+export interface List<T> {
+  data: T[];
+  has_more: boolean;
+  next_cursor: string | null;
+}
+
+export type PaymentStatus = 'en_attente' | 'réussi' | 'échoué' | 'expiré' | 'annulé';
+
+export interface Payment {
+  id: string;
+  livemode: boolean;
+  status: PaymentStatus;
+  amount: number;
+  currency: string;
+  amount_display: string;
+  operator: string;
+  payment_method: 'mobile_money' | 'card';
+  payer_phone: string | null;
+  card: { brand: string | null; last4: string | null } | null;
+  amount_refunded: number;
+  reference: string | null;
+  description: string | null;
+  failure_reason: string | null;
+  provider_reference: string | null;
+  till_id: string | null;
+  created_at: string;
+}
+
+export interface Refund {
+  id: string;
+  status: string;
+  amount: number;
+  amount_display: string;
+  method: string;
+  reason: string | null;
+  created_at: string;
+}
+
+export interface PaymentDetail extends Payment {
+  refunds: Refund[];
+  disputes: { id: string; status: string; reason: string | null; amount: number; evidence_due_at: string | null; created_at: string }[];
+  can_refund: boolean;
+  audit_trail: { from: string | null; to: string; reason: string | null; at: string }[];
+}
+
+export interface PeriodStats {
+  succeeded_count: number;
+  succeeded_volume: number;
+  succeeded_volume_display: string;
+  failed_count: number;
+  total_count: number;
 }
 
 export interface Stats {
-  totals: { status: string; count: number; volume: number }[];
-  byOperator: { operator: string; count: number; volume: number }[];
-  recent: {
-    id: string;
-    externalId: string;
-    amount: number;
-    currency: string;
-    status: string;
-    payerPhone: string;
-    createdAt: string;
-  }[];
+  day: PeriodStats;
+  week: PeriodStats;
+  month: PeriodStats;
+  by_operator: { operator: string; count: number; volume: number; volume_display: string }[];
 }
 
-export const getStats = () => api.get<Stats>('/stats').then((r) => r.data);
-
-export const createPaylink = (body: {
-  amount: number;
-  currency: string;
-  description: string;
-  expiresInMinutes?: number;
-}) => api.post('/paylinks', body).then((r) => r.data);
-
-export interface Settlement {
-  id: string;
-  batchNumber: string;
-  currency: string;
-  netCents: number;
-  settlementCurrency: string | null;
-  settledNetCents: number | null;
-  status: string;
-  createdAt: string;
+export interface Summary {
+  today: { count: number; amount: number; display: string };
+  all_time: { count: number; amount: number; display: string };
 }
 
-export const getSettlements = () => api.get<Settlement[]>('/v1/settlements').then((r) => r.data);
-
-export interface ApiKeyItem {
+export interface Till {
   id: string;
   name: string;
-  mode: string;       // 'live' | 'test'
-  prefix: string;     // ex: 'pk_live_51P8vBq' — le secret complet n'est jamais renvoyé
-  scopes: string[];
-  revoked: boolean;
-  lastUsedAt: string | null;
-  createdAt: string;
-}
-export const getApiKeys = () => api.get<ApiKeyItem[]>('/v1/api-keys').then((r) => r.data);
-
-export interface WebhookEndpoint {
-  id: string;
+  publicCode: string;
   url: string;
-  events: string[];
-  status: string;
-  secret: string;
-  createdAt: string;
+  store: { id: string; name: string };
 }
-export const getWebhookEndpoints = () =>
-  api.get<WebhookEndpoint[]>('/v1/webhook-endpoints').then((r) => r.data);
 
-export interface WebhookDelivery {
+export interface PaymentLink {
   id: string;
-  event: string;
-  status: string;
-  responseStatus: number | null;
-  attempts: number;
-  createdAt: string;
-}
-export const getWebhookDeliveries = (id: string) =>
-  api.get<WebhookDelivery[]>(`/v1/webhook-endpoints/${id}/deliveries`).then((r) => r.data);
-
-export interface PaylinkItem {
-  id: string;
+  livemode: boolean;
+  url: string;
+  code: string;
+  amount: number | null;
+  currency: string;
   description: string;
-  amount: number;      // devise majeure (ex: 15000)
-  currency: string;
-  code: string | null;
-  active: boolean;
-  used: boolean;
-  expired: boolean;
-  totalPaid: number;
-  createdAt: string;
+  multi_use: boolean;
+  state: string;
+  payments_succeeded: number;
+  expires_at: string | null;
+  created_at: string;
+  share: { whatsapp: string; sms: string };
 }
-export const getPaylinks = () => api.get<PaylinkItem[]>('/paylinks').then((r) => r.data);
 
-export interface MerchantProfile {
-  name: string;
-  email: string | null;
+export interface Member {
+  id: string;
+  role: Role;
+  status: string;
+  fullName: string | null;
   phone: string | null;
-  companyName: string | null;
-  merchantType: string;
-  country: string | null;
-  website: string | null;
-  createdAt: string;
-}
-export const getMerchantProfile = () =>
-  api.get<MerchantProfile>('/v1/merchant/profile').then((r) => r.data);
-
-export interface TeamMember {
-  id: string;
-  userId: string;
-  role: 'OWNER' | 'ADMIN' | 'MANAGER' | 'MEMBER' | 'VIEWER';
-  status: string;
   email: string | null;
-  fullName: string | null;
-  invitedAt: string | null;
-  joinedAt: string | null;
-  suspendedAt: string | null;
-}
-/** Lecture seule (décision 2A du handoff Team Members) — le mobile n'embarque pas Clerk. */
-export const getTeamMembers = () =>
-  api.get<TeamMember[]>('/v1/team/members').then((r) => r.data);
-
-/** Enregistre le token Expo Push côté serveur pour recevoir les alertes paiement. */
-export const registerPushToken = (token: string) =>
-  api.post('/v1/push-tokens', { token, platform: 'expo' }).then((r) => r.data);
-
-export interface SignupPayload {
-  name: string;
-  email: string;
-  phone?: string;
-  companyName?: string;
-  country?: string;
-  type: 'MERCHANT' | 'DEVELOPER';
 }
 
-/**
- * Inscription via le site web — l'app ouvre la page d'inscription Clerk
- * dans le navigateur natif. On ne gère pas les credentials en mobile.
- */
-const dashboardUrl = (Constants.expoConfig?.extra as { dashboardUrl?: string } | undefined)?.dashboardUrl;
-export const SIGNUP_URL = dashboardUrl
-  ? `${dashboardUrl}/sign-up`
-  : 'https://dashboard.paybrain.cg/sign-up';
+const base = (merchantId: string) => `/v1/merchants/${merchantId}`;
 
-/* ─── CLIENT (Wallet) API ─── */
+export const getStats = (m: string, mode: Mode) => api.get<Stats>(`${base(m)}/stats`, { params: { mode } }).then((r) => r.data);
 
-export interface WalletBalance {
-  balanceCents: number;
-  currency: string;
-  phone: string;
-  fullName: string | null;
-}
+export const getSummary = (m: string, mode: Mode) =>
+  api.get<Summary>(`${base(m)}/payments/summary`, { params: { mode } }).then((r) => r.data);
 
-export interface WalletTx {
-  id: string;
-  type: 'CASH_IN' | 'PAY' | 'CASH_OUT' | 'P2P_SEND' | 'P2P_RECEIVE' | 'REFUND';
-  amountCents: number;
-  balanceAfter: number;
-  status: string;
-  description: string | null;
-  createdAt: string;
-  merchantId?: string;
-  peerPhone?: string;
-}
+export const getPayments = (
+  m: string,
+  mode: Mode,
+  filters: { status?: string; till_id?: string; q?: string; limit?: number; starting_after?: string } = {},
+) => api.get<List<Payment>>(`${base(m)}/payments`, { params: { mode, ...filters } }).then((r) => r.data);
 
-/** Connexion client par téléphone + PIN → renvoie { token, phone, role } */
-export const loginClient = (phone: string, pin: string) =>
-  api.post<{ token: string; phone: string; role: string }>(
-    '/v1/wallet/auth/login',
-    { phone, pin },
-  ).then((r) => r.data);
+export const getPayment = (m: string, id: string) => api.get<PaymentDetail>(`${base(m)}/payments/${id}`).then((r) => r.data);
 
-/** Inscription client — crée le wallet (PENDING_VERIFICATION) et envoie l'OTP SMS */
-export const registerClient = (phone: string, fullName: string, pin: string) =>
-  api.post<{ ok: boolean; phone: string; requiresVerification: boolean }>(
-    '/v1/wallet/auth/register',
-    { phone, fullName, pin },
-  ).then((r) => r.data);
+export const refundPayment = (m: string, mode: Mode, id: string, body: { amount?: number; reason: string; manual?: boolean }) =>
+  api.post<Refund>(`${base(m)}/payments/${id}/refunds`, body, { params: { mode } }).then((r) => r.data);
 
-/** Vérifie le code SMS d'inscription — active le compte et retourne un JWT */
-export const verifyOtpClient = (phone: string, otp: string) =>
-  api.post<{ ok: boolean; token: string; phone: string; role: string }>(
-    '/v1/wallet/auth/verify-otp',
-    { phone, otp },
-  ).then((r) => r.data);
+export const getMyTills = (m: string) => api.get<{ data: Till[] }>(`${base(m)}/tills/mine`).then((r) => r.data.data);
 
-/** Renvoie un nouveau code SMS de vérification */
-export const resendOtpClient = (phone: string) =>
-  api.post<{ ok: boolean }>('/v1/wallet/auth/resend-otp', { phone }).then((r) => r.data);
+export const getLinks = (m: string, mode: Mode) =>
+  api.get<List<PaymentLink>>(`${base(m)}/payment-links`, { params: { mode, limit: 50 } }).then((r) => r.data);
 
-export type KycDocType = 'ID_FRONT' | 'ID_BACK' | 'SELFIE';
-export type KycMimeType = 'image/jpeg' | 'image/png';
+export const createLink = (m: string, mode: Mode, body: { amount?: number; description: string; multi_use?: boolean }) =>
+  api.post<PaymentLink>(`${base(m)}/payment-links`, body, { params: { mode } }).then((r) => r.data);
 
-export interface KycUploadUrl {
-  key: string;
-  uploadUrl: string;
-  expiresInSeconds: number;
-  requiredHeaders: Record<string, string>;
-}
+export const deactivateLink = (m: string, mode: Mode, id: string) =>
+  api.post<PaymentLink>(`${base(m)}/payment-links/${id}/deactivate`, {}, { params: { mode } }).then((r) => r.data);
 
-/**
- * Étape 1/3 d'un envoi de pièce d'identité (KYC N0 → N1) : demande une URL S3
- * présignée. Le token est passé explicitement : appelé pendant l'inscription,
- * avant que le JWT client global ne soit posé par signInClient.
- */
-export const createKycUploadUrl = (token: string, doc: { type: KycDocType; mimeType: KycMimeType }) =>
-  api
-    .post<KycUploadUrl>('/v1/wallet/kyc/documents/upload-url', doc, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((r) => r.data);
+export const sendLink = (m: string, mode: Mode, id: string, phone: string, channel: 'whatsapp' | 'sms') =>
+  api.post(`${base(m)}/payment-links/${id}/send`, { phone, channel }, { params: { mode } }).then((r) => r.data);
 
-/** Étape 2/3 : upload direct du fichier vers S3 (ne transite jamais par notre API). */
-export const uploadToPresignedUrl = async (
-  uploadUrl: string,
-  fileUri: string,
-  headers: Record<string, string>,
-): Promise<void> => {
-  const result = await FileSystem.uploadAsync(uploadUrl, fileUri, { httpMethod: 'PUT', headers });
-  if (result.status < 200 || result.status >= 300) {
-    throw new Error(`Échec de l'upload du document (${result.status})`);
-  }
-};
-
-/** Étape 3/3 : confirme l'upload — le backend vérifie l'objet S3 avant d'enregistrer. */
-export const confirmKycDocument = (
-  token: string,
-  doc: { type: KycDocType; mimeType: KycMimeType; storageKey: string },
-) =>
-  api
-    .post<{ ok: boolean }>('/v1/wallet/kyc/documents', doc, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((r) => r.data);
-
-/** Solde et info du wallet */
-export const getWalletBalance = () =>
-  api.get<WalletBalance>('/v1/wallet/balance').then((r) => r.data);
-
-/** Historique des transactions du wallet */
-export const getWalletHistory = (limit = 30) =>
-  api.get<WalletTx[]>('/v1/wallet/transactions', { params: { limit } }).then((r) => r.data);
-
-/** Initier un rechargement (Cash-In) via Mobile Money */
-export const walletCashIn = (amountCents: number, operator: string, phone: string) =>
-  api.post('/v1/wallet/cash-in', { amountCents, operator, phone }).then((r) => r.data);
-
-/** Clé d'idempotence : un retry réseau ou double-tap renvoie la transaction d'origine. */
-export const genIdemKey = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}-${Math.random().toString(36).slice(2, 12)}`;
-
-/** Payer un marchand via QR code signé */
-export const walletPay = (qrPayload: string, idempotencyKey?: string) =>
-  api.post('/v1/wallet/pay', { qrPayload, idempotencyKey }).then((r) => r.data);
-
-/** Génère un QR marchand signé côté serveur — compte caissier uniquement (ALP-172) */
-export const walletCreateQr = (amountCents: number, description?: string) =>
-  api.post<{ ok: boolean; qrPayload: string; expiresAt: string }>(
-    '/v1/wallet/qr',
-    { amountCents, ...(description ? { description } : {}) },
-  ).then((r) => r.data);
-
-/** Retrait (Cash-Out) vers Mobile Money */
-export const walletCashOut = (amountCents: number, operator: string, phone: string) =>
-  api.post('/v1/wallet/cash-out', { amountCents, operator, phone }).then((r) => r.data);
-
-/** Transfert P2P vers un autre numéro */
-export const walletP2P = (toPhone: string, amountCents: number, description?: string) =>
-  api.post('/v1/wallet/p2p', { toPhone, amountCents, description }).then((r) => r.data);
+export const getMembers = (m: string) => api.get<Member[] | { data: Member[] }>(`${base(m)}/members`).then((r) => (Array.isArray(r.data) ? r.data : r.data.data));

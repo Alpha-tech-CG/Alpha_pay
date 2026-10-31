@@ -1,35 +1,47 @@
-# PayBrain — App mobile marchand (ALP-150)
+# AlphaPay, app mobile marchand (V1)
 
-App **Expo / React Native** (TypeScript, expo-router) à l'identité émeraude, qui
-consomme l'API PayBrain existante.
+App **Expo / React Native** (TypeScript, expo-router) branchée sur l'API V1
+(`apps/api`), les mêmes routes que le tableau de bord web. Décision D-064.
 
 ## Écrans
-- **Connexion** : le marchand saisit sa **clé API** (`pk_…`), stockée chiffrée sur
-  l'appareil via `expo-secure-store` (jamais en clair).
-- **Tableau de bord** : hero « volume encaissé » + ventilation MTN/Airtel + transactions récentes (pull-to-refresh).
-- **Paiements** : génère un paiement → **QR + lien + code USSD** avec copie.
-- **Transactions** : liste filtrable (Tout / En attente / Réussi / Échoué).
-- **Réglages** : session + déconnexion (efface la clé).
+- **Connexion** : email ou téléphone + mot de passe, puis code à 6 chiffres (SMS,
+  WhatsApp ou email). Inscription et mot de passe oublié dans l'app.
+- **Accueil** : encaissé du jour, de la semaine et du mois, répartition par moyen de
+  paiement (module Gérer ; sinon totaux simples), derniers paiements.
+- **Paiements** : liste filtrable et recherche, détail, remboursement (carte par la
+  banque partenaire ; Mobile Money déclaré par le marchand).
+- **Encaisser** : QR de la caisse (le client saisit le montant) ou QR d'un montant
+  précis (lien à usage unique) ; arrivées en direct, vibration au paiement reçu.
+- **Liens** : création, partage WhatsApp / SMS, désactivation.
+- **Réglages** : commerce, dossier, mode test / live, équipe, déconnexion.
+
+Un caissier ne voit que ses caisses et leurs paiements (contrôle côté serveur).
+Boutiques, caisses, factures, opérateurs, clés API et invitations restent sur le web.
+
+## Sécurité
+- Jeton d'accès (15 min) en mémoire ; jeton de rafraîchissement dans le stockage
+  sécurisé (Keystore Android), envoyé dans le corps de `/v1/auth/refresh`
+  (`client: "mobile"` à la vérification du code). Rotation à chaque usage, rejeu
+  détecté (session révoquée).
+- Déverrouillage par empreinte ou code de l'appareil au lancement.
+- HTTP en clair autorisé seulement quand l'API visée est en `http://` (démo locale).
 
 ## Lancer en local
 ```bash
 cd mobile
 npm install
-npx expo start          # puis scanner le QR avec Expo Go (iOS/Android)
+npx expo start
 ```
 
-⚠️ **Configurer l'URL de l'API** : l'appareil doit joindre le backend. Mettre
-l'IP LAN de la machine qui fait tourner l'API dans `app.json` →
-`expo.extra.apiBaseUrl` (ex. `http://192.168.1.10:3000`). `localhost` ne marche
-PAS depuis un téléphone physique.
+## APK (EAS)
+| Profil | API | Usage |
+| --- | --- | --- |
+| `preview` | `http://localhost:3000` | démo : téléphone en USB, `adb reverse tcp:3000 tcp:3000` |
+| `preview-prod` | `https://api.alphapay.cg` | APK de test contre la production |
+| `production` | `https://api.alphapay.cg` | Play Store (AAB) |
 
-## Sécurité
-- La clé API marchand n'est **jamais** en dur : saisie par l'utilisateur, stockée
-  via SecureStore (Keychain iOS / Keystore Android), envoyée en `X-API-Key`.
-- En prod, prévoir des **clés scoupées** (lecture + création de liens) plutôt
-  qu'une clé pleine, et un flux d'auth dédié (Clerk mobile / OAuth) à terme.
+```bash
+eas build -p android --profile preview
+```
 
-## Statut
-Scaffold fonctionnel complet (navigation + 5 écrans + client API). À installer et
-lancer sur un device/emulateur pour exécution (non exécuté dans l'environnement de
-build ci-présent — pas de runtime Expo).
+Les écrans de l'ancienne app (portefeuille, ancien backend) sont dans `legacy/`.

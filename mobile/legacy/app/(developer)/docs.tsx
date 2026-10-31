@@ -3,6 +3,8 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
 import { AP, radius, font } from '@/design';
+import { ucFont } from '@/uc';
+import { DEV_ACCENT } from './_layout';
 
 const SECTIONS = ['Introduction', 'Authentication', 'Errors', 'Payments', 'Webhooks'];
 
@@ -41,7 +43,7 @@ export default function DevDocs() {
           const on = sec === active;
           return (
             <Pressable key={sec} style={[s.navChip, on && s.navChipOn]} onPress={() => setActive(sec)}>
-              <Text style={[s.navText, { color: on ? AP.primary : 'rgba(255,255,255,0.5)' }]}>{sec}</Text>
+              <Text style={[s.navText, { color: on ? DEV_ACCENT : 'rgba(255,255,255,0.5)' }]}>{sec}</Text>
             </Pressable>
           );
         })}
@@ -53,12 +55,12 @@ export default function DevDocs() {
 
         <Text style={s.h2}>Base URL</Text>
         <Text style={s.p}>All API requests should be made over HTTPS to our base URL:</Text>
-        <Code lines={['https://api.alphapay.africa/v1']} tint={AP.primary} />
+        <Code lines={['https://api.alphapay.africa/v1']} tint={DEV_ACCENT} />
 
         <Text style={s.h2}>Authentication</Text>
         <Text style={s.p}>The AlphaPay API uses API keys to authenticate requests. Provide your secret key in the Authorization header.</Text>
         <View style={s.warn}>
-          <Icon name="error-outline" size={20} color={AP.primary} />
+          <Icon name="error-outline" size={20} color={DEV_ACCENT} />
           <Text style={s.warnText}>Your API keys carry many privileges. Never share your secret keys in publicly accessible areas such as GitHub.</Text>
         </View>
 
@@ -72,27 +74,27 @@ export default function DevDocs() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0d1117' },
+  root: { flex: 1, backgroundColor: '#1F1F1F' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   crumbs: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   crumbMuted: { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
   crumb: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
   dashBtn: { height: 36, paddingHorizontal: 16, backgroundColor: '#fff', borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  dashText: { fontSize: 12, fontWeight: '800', color: AP.secondary },
+  dashText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
 
   navScroll: { flexGrow: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   nav: { gap: 8, paddingHorizontal: 20, paddingBottom: 12 },
   navChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.04)' },
-  navChipOn: { backgroundColor: 'rgba(0,180,216,0.12)', borderWidth: 1, borderColor: 'rgba(0,180,216,0.2)' },
-  navText: { fontSize: 12, fontWeight: '800' },
+  navChipOn: { backgroundColor: 'rgba(79,179,196,0.12)', borderWidth: 1, borderColor: 'rgba(79,179,196,0.2)' },
+  navText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700' },
 
-  scroll: { padding: 24, paddingBottom: 120 },
-  h1: { fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: -1 },
-  h2: { fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 32, marginBottom: 12 },
+  scroll: { padding: 24, paddingBottom: 28 },
+  h1: { fontSize: 32, fontFamily: ucFont.condensed, fontWeight: '700', color: '#fff', letterSpacing: 0 },
+  h2: { fontSize: 22, fontFamily: ucFont.condensed, fontWeight: '700', color: '#fff', marginTop: 32, marginBottom: 12 },
   p: { fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 24, marginTop: 12 },
   code: { backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: radius.md, padding: 16, marginTop: 16 },
   codeLine: { fontFamily: font.mono, fontSize: 12, lineHeight: 20 },
-  warn: { flexDirection: 'row', gap: 16, backgroundColor: 'rgba(0,180,216,0.06)', borderWidth: 1, borderColor: 'rgba(0,180,216,0.2)', borderRadius: radius.lg, padding: 16, marginTop: 16 },
+  warn: { flexDirection: 'row', gap: 16, backgroundColor: 'rgba(79,179,196,0.06)', borderWidth: 1, borderColor: 'rgba(79,179,196,0.2)', borderRadius: radius.lg, padding: 16, marginTop: 16 },
   warnText: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 20 },
-  label: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: 28, marginBottom: 4 },
+  label: { fontSize: 11, fontFamily: ucFont.condensed, fontWeight: '700', letterSpacing: 0.6, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: 28, marginBottom: 4 },
 });

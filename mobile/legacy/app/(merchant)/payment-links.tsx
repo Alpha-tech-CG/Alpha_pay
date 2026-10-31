@@ -7,6 +7,7 @@ import { AP, soft, radius, shadow } from '@/design';
 import { StatusPill } from '@/dash';
 import { type PayLink } from '@/merchant-data';
 import { useMerchant } from '@/merchant-store';
+import { ucFont } from '@/uc';
 
 export default function PaymentLinks() {
   const { payLinks } = useMerchant();
@@ -75,21 +76,21 @@ export default function PaymentLinks() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: AP.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  title: { fontSize: 22, fontWeight: '900', color: AP.secondary },
+  title: { fontSize: 22, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   addBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 16, backgroundColor: AP.primary, borderRadius: radius.md, ...shadow(6, AP.primary, 0.2) },
-  addText: { fontSize: 12, fontWeight: '800', color: '#fff' },
-  scroll: { paddingHorizontal: 20, paddingBottom: 120, gap: 16 },
+  addText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: '#fff' },
+  scroll: { paddingHorizontal: 20, paddingBottom: 28, gap: 16 },
   card: { backgroundColor: AP.card, borderWidth: 1, borderColor: AP.border, borderRadius: radius.xl, padding: 20, ...shadow(2) },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  linkTitle: { fontSize: 17, fontWeight: '800', color: AP.secondary },
+  linkTitle: { fontSize: 17, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   linkDetail: { fontSize: 12, color: AP.mutedForeground, marginTop: 4 },
   paidRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 },
   paidLabel: { fontSize: 13, color: AP.mutedForeground },
-  paidValue: { fontSize: 14, fontWeight: '900', color: AP.secondary, fontVariant: ['tabular-nums'] },
+  paidValue: { fontSize: 14, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary, fontVariant: ['tabular-nums'] },
   actions: { flexDirection: 'row', gap: 8, marginTop: 16 },
   copyBtn: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: soft.muted50, borderWidth: 1, borderColor: AP.border, borderRadius: radius.md },
-  copyText: { fontSize: 12, fontWeight: '800', color: AP.secondary },
+  copyText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.secondary },
   shareBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: AP.border, borderRadius: radius.md },
   enableBtn: { marginTop: 16, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: soft.primary10, borderWidth: 1, borderColor: soft.primary20, borderRadius: radius.md },
-  enableText: { fontSize: 12, fontWeight: '800', color: AP.primary },
+  enableText: { fontSize: 12, fontFamily: ucFont.condensed, fontWeight: '700', color: AP.primary },
 });

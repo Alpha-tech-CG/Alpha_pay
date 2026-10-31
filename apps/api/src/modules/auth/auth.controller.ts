@@ -4,7 +4,7 @@ import type { Request, Response } from 'express';
 import { MessageChannel } from '@paybrain/database';
 import { ApiError } from '../../common/errors/api-error';
 import { AuthService, RequestContext } from './auth.service';
-import { ForgotPasswordDto, LoginDto, OtpChannelInput, RegisterDto, ResetPasswordDto, VerifyCodeDto } from './dto/auth.dto';
+import { ForgotPasswordDto, LoginDto, OtpChannelInput, RefreshDto, RegisterDto, ResetPasswordDto, VerifySessionDto } from './dto/auth.dto';
 import { SessionGuard } from './session.guard';
 import { IssuedTokens, REFRESH_TOKEN_TTL_DAYS, SessionService } from './session.service';
 
@@ -77,8 +77,10 @@ export class AuthController {
   @Post('verify')
   @HttpCode(200)
   @ApiOperation({ summary: 'Étape 2 : code reçu ; ouvre une session' })
-  async verify(@Body() dto: VerifyCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const result = await this.auth.verify(dto, context(req));
+  async verify(@Body() dto: VerifySessionDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const result = await this.auth.verify({ challenge: dto.challenge, code: dto.code }, context(req));
+    // App mobile : pas de cookie, le jeton va dans le stockage sécurisé de l'appareil.
+    if (dto.client === 'mobile') return { ...tokenResponse(result), refresh_token: result.refreshToken, user: result.user };
     setRefreshCookie(res, result.refreshToken);
     return { ...tokenResponse(result), user: result.user };
   }
@@ -86,7 +88,12 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   @ApiOperation({ summary: 'Renouvelle le jeton d’accès (cookie de session)' })
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refresh(@Body() dto: RefreshDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    // App mobile : jeton dans le corps. Aucun cookie en jeu, donc pas de CSRF possible.
+    if (dto.refresh_token) {
+      const tokens = await this.sessions.rotate(dto.refresh_token);
+      return { ...tokenResponse(tokens), refresh_token: tokens.refreshToken };
+    }
     assertCsrfHeader(req);
     try {
       const tokens = await this.sessions.rotate(readCookie(req, REFRESH_COOKIE) ?? '');

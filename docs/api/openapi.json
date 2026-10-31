@@ -615,7 +615,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VerifyCodeDto"
+                "$ref": "#/components/schemas/VerifySessionDto"
               }
             }
           }
@@ -635,6 +635,16 @@
       "post": {
         "operationId": "AuthController_refresh",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -2592,6 +2602,39 @@
         ]
       }
     },
+    "/v1/public/links/{code}/pay-card": {
+      "post": {
+        "operationId": "PublicPaymentLinksController_payCard",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayLinkCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
     "/v1/payments": {
       "post": {
         "operationId": "PaymentsController_create",
@@ -2616,7 +2659,7 @@
             "ApiKey": []
           }
         ],
-        "summary": "Créer un paiement Mobile Money (MTN, Airtel)",
+        "summary": "Créer un paiement Mobile Money (MTN, Airtel) ou par carte (redirect_url à ouvrir)",
         "tags": [
           "Paiements"
         ]
@@ -2673,6 +2716,72 @@
         ]
       }
     },
+    "/v1/payments/{id}/refunds": {
+      "post": {
+        "operationId": "PaymentsController_refund",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Rembourser un paiement réussi (total ou partiel)",
+        "tags": [
+          "Paiements"
+        ]
+      },
+      "get": {
+        "operationId": "PaymentsController_listRefunds",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lister les remboursements d'un paiement",
+        "tags": [
+          "Paiements"
+        ]
+      }
+    },
     "/v1/payments/{id}": {
       "get": {
         "operationId": "PaymentsController_get",
@@ -2699,6 +2808,45 @@
         "summary": "Lire un paiement",
         "tags": [
           "Paiements"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/payments/{txId}/refunds": {
+      "post": {
+        "operationId": "MerchantPaymentsController_refund",
+        "parameters": [
+          {
+            "name": "txId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Rembourser un paiement réussi (carte : par l’acquéreur ; Mobile Money : déclaration)",
+        "tags": [
+          "Paiements (tableau de bord)"
         ]
       }
     },
@@ -4025,29 +4173,6 @@
         ]
       }
     },
-    "/v1/merchants/{merchantId}/card/sessions": {
-      "post": {
-        "operationId": "CardAcquirerController_createSession",
-        "parameters": [
-          {
-            "name": "merchantId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "CardAcquirer"
-        ]
-      }
-    },
     "/webhooks/{operator}": {
       "post": {
         "operationId": "WebhooksController_handle",
@@ -4257,6 +4382,233 @@
         ]
       }
     },
+    "/v1/api-keys": {
+      "get": {
+        "operationId": "ApiKeysController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      },
+      "post": {
+        "operationId": "ApiKeysController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/v1/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "ApiKeysController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/v1/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeysController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "tags": [
+          "Clés API"
+        ]
+      }
+    },
+    "/v1/disputes": {
+      "get": {
+        "operationId": "DisputesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Lister les litiges carte",
+        "tags": [
+          "Litiges carte"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/evidence": {
+      "post": {
+        "operationId": "DisputesController_evidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeEvidenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "summary": "Répondre à un litige : envoyer les preuves à l’acquéreur",
+        "tags": [
+          "Litiges carte"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/disputes": {
+      "get": {
+        "operationId": "MerchantDisputesController_list",
+        "parameters": [
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Litiges carte (tableau de bord)"
+        ]
+      }
+    },
+    "/v1/merchants/{merchantId}/disputes/{id}/evidence": {
+      "post": {
+        "operationId": "MerchantDisputesController_evidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisputeEvidenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Litiges carte (tableau de bord)"
+        ]
+      }
+    },
     "/v1/public/tills/{code}": {
       "get": {
         "operationId": "CheckoutApiController_tillView",
@@ -4299,6 +4651,39 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PayTillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Page de paiement (public)"
+        ]
+      }
+    },
+    "/v1/public/tills/{code}/pay-card": {
+      "post": {
+        "operationId": "CheckoutApiController_payTillCard",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayTillCardDto"
               }
             }
           }
@@ -4822,108 +5207,6 @@
         ],
         "tags": [
           "Développeurs (tableau de bord)"
-        ]
-      }
-    },
-    "/v1/api-keys": {
-      "get": {
-        "operationId": "ApiKeysController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ],
-        "tags": [
-          "Clés API"
-        ]
-      },
-      "post": {
-        "operationId": "ApiKeysController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateApiKeyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ],
-        "tags": [
-          "Clés API"
-        ]
-      }
-    },
-    "/v1/api-keys/{id}/rotate": {
-      "post": {
-        "operationId": "ApiKeysController_rotate",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ],
-        "tags": [
-          "Clés API"
-        ]
-      }
-    },
-    "/v1/api-keys/{id}": {
-      "delete": {
-        "operationId": "ApiKeysController_revoke",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "ApiKey": []
-          }
-        ],
-        "tags": [
-          "Clés API"
         ]
       }
     },
@@ -6270,7 +6553,7 @@
           "password"
         ]
       },
-      "VerifyCodeDto": {
+      "VerifySessionDto": {
         "type": "object",
         "properties": {
           "challenge": {
@@ -6279,12 +6562,30 @@
           "code": {
             "type": "string",
             "example": "482913"
+          },
+          "client": {
+            "type": "string",
+            "enum": [
+              "web",
+              "mobile"
+            ],
+            "default": "web",
+            "description": "mobile : jeton de rafraîchissement dans la réponse (stockage sécurisé de l’appareil) au lieu du cookie."
           }
         },
         "required": [
           "challenge",
           "code"
         ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "description": "App mobile uniquement ; le navigateur utilise le cookie."
+          }
+        }
       },
       "ForgotPasswordDto": {
         "type": "object",
@@ -6625,6 +6926,15 @@
           "phone"
         ]
       },
+      "PayLinkCardDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Requis si le lien est à montant libre"
+          }
+        }
+      },
       "CreatePaymentDto": {
         "type": "object",
         "properties": {
@@ -6636,9 +6946,25 @@
             "type": "string",
             "default": "XAF"
           },
+          "method": {
+            "type": "string",
+            "enum": [
+              "mobile_money",
+              "card"
+            ],
+            "default": "mobile_money"
+          },
           "phone": {
             "type": "string",
-            "example": "+242061234567"
+            "example": "+242061234567",
+            "description": "Obligatoire pour le Mobile Money"
+          },
+          "return_url": {
+            "type": "string",
+            "example": "https://boutique.cg/commande/1042/merci"
+          },
+          "cancel_url": {
+            "type": "string"
           },
           "reference": {
             "type": "string",
@@ -6662,8 +6988,27 @@
         },
         "required": [
           "amount",
-          "phone",
           "reference"
+        ]
+      },
+      "CreateRefundDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 2500
+          },
+          "reason": {
+            "type": "string",
+            "example": "Article retourné"
+          },
+          "manual": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "reason"
         ]
       },
       "CreateSchoolYearDto": {
@@ -6812,6 +7157,22 @@
         "type": "object",
         "properties": {}
       },
+      "CreateApiKeyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DisputeEvidenceDto": {
+        "type": "object",
+        "properties": {
+          "evidence": {
+            "type": "string",
+            "example": "Commande livrée le 12/11, bon de livraison signé par le client."
+          }
+        },
+        "required": [
+          "evidence"
+        ]
+      },
       "PayTillDto": {
         "type": "object",
         "properties": {
@@ -6836,9 +7197,17 @@
           "amount"
         ]
       },
-      "CreateApiKeyDto": {
+      "PayTillCardDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "amount": {
+            "type": "number",
+            "example": 2500
+          }
+        },
+        "required": [
+          "amount"
+        ]
       },
       "UpdateKybDto": {
         "type": "object",

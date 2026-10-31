@@ -181,6 +181,7 @@ export class StoresService {
       select: { ...TILL_SELECT, store: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'asc' },
     });
-    return tills.map(({ store, ...t }) => ({ ...this.mapTill(t), store }));
+    // url : adresse encodée dans le QR de la caisse (affiché par l'app mobile).
+    return tills.map(({ store, ...t }) => ({ ...this.mapTill(t), store, url: checkoutUrl('c', t.publicCode) }));
   }
 }

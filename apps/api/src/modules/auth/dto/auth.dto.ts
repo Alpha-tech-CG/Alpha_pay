@@ -64,6 +64,23 @@ export class VerifyCodeDto {
   code!: string;
 }
 
+/** Ouverture de session : l'app mobile reçoit son jeton de rafraîchissement dans la réponse. */
+export class VerifySessionDto extends VerifyCodeDto {
+  @ApiPropertyOptional({ enum: ['web', 'mobile'], default: 'web', description: 'mobile : jeton de rafraîchissement dans la réponse (stockage sécurisé de l’appareil) au lieu du cookie.' })
+  @IsOptional()
+  @IsIn(['web', 'mobile'])
+  client?: 'web' | 'mobile';
+}
+
+/** Rafraîchissement de l'app mobile : le jeton vient du corps, pas d'un cookie. */
+export class RefreshDto {
+  @ApiPropertyOptional({ description: 'App mobile uniquement ; le navigateur utilise le cookie.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  refresh_token?: string;
+}
+
 export class ForgotPasswordDto {
   @ApiProperty({ description: 'Email ou numéro de téléphone.' })
   @IsString()
