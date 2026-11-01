@@ -52,6 +52,8 @@ export default async function LocaleLayout({
           <main>{children}</main>
           <Footer />
         </NextIntlClientProvider>
+        {/* Suivi temps réel dans le portail Alpha Tech (Supervision > Temps réel). */}
+        <script defer src="https://www.alphatechcongo.com/t.js" data-key="fb7d5cf7b54fbbd3a6ad1fe9" />
       </body>
     </html>
   );
