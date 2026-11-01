@@ -10,6 +10,7 @@ import { OTP_TTL_SECONDS, OtpService } from '../messaging/otp.service';
 import { assertPasswordStrength, hashPassword, verifyPassword } from './password';
 import { hashToken, IssuedTokens, SessionService } from './session.service';
 import { createPersonalProfile, displayHandle } from '../personal/personal.service';
+import { can, MemberRole } from '../team/permissions/permissions';
 
 type Purpose = 'inscription' | 'connexion' | 'reinitialisation';
 
@@ -137,7 +138,7 @@ export class AuthService {
   // ── Inscription ────────────────────────────────────────────────────────────
 
   async register(
-    input: { name: string; phone: string; email: string; password: string; channel?: MessageChannel; account_type?: 'merchant' | 'personal' },
+    input: { name: string; phone: string; email: string; password: string; channel?: MessageChannel; account_type?: 'merchant' | 'personal'; business_name?: string },
     ctx: RequestContext,
   ): Promise<ChallengeResponse> {
     const email = normalizeEmail(input.email);
@@ -175,7 +176,7 @@ export class AuthService {
         // Mode test disponible dès l'inscription ; le live attend la validation du KYB (§4.6).
         const merchant = await tx.merchant.create({
           data: {
-            name,
+            name: input.business_name?.trim() || name,
             emailEncrypted: b(encryptField(email)),
             emailHash,
             onboardingStatus: 'PENDING',
@@ -186,6 +187,8 @@ export class AuthService {
         await tx.merchantMember.create({
           data: { merchantId: merchant.id, userId: created.id, role: 'OWNER', status: 'ACTIVE', joinedAt: new Date() },
         });
+        // Tout marchand est aussi un particulier (D-066) : budget, carte, identifiant AlphaPay.
+        await createPersonalProfile(tx, created.id, name);
         return created;
       });
     } catch (err: any) {
@@ -284,13 +287,28 @@ export class AuthService {
   }
 
   /** Profil et accès de l'utilisateur connecté. */
+  /**
+   * Comptes antérieurs au D-066 (marchands sans espace particulier) : l'espace est créé
+   * à la première lecture du profil. Idempotent, y compris en cas d'appels simultanés.
+   */
+  private async ensurePersonal(userId: string) {
+    if (await this.prisma.personalProfile.findUnique({ where: { userId }, select: { userId: true } })) return;
+    const user = await this.prisma.appUser.findUniqueOrThrow({ where: { id: userId }, select: { fullName: true } });
+    try {
+      await this.prisma.$transaction((tx) => createPersonalProfile(tx, userId, user.fullName ?? 'membre'));
+    } catch (err) {
+      if ((err as { code?: string }).code !== 'P2002') throw err;
+    }
+  }
+
   async me(userId: string) {
+    await this.ensurePersonal(userId);
     const user = await this.prisma.appUser.findUniqueOrThrow({
       where: { id: userId },
       include: {
         memberships: {
           where: { status: 'ACTIVE' },
-          select: { role: true, merchant: { select: { id: true, name: true, onboardingStatus: true } } },
+          select: { role: true, merchant: { select: { id: true, name: true, onboardingStatus: true, merchantType: true } } },
         },
         personal: { select: { handle: true } },
       },
@@ -308,6 +326,9 @@ export class AuthService {
         name: m.merchant.name,
         role: m.role,
         kybStatus: m.merchant.onboardingStatus,
+        type: m.merchant.merchantType,
+        // Espace développeur de l'app : clés API, webhooks, journal (mêmes droits que le web).
+        developer: can(m.role as MemberRole, 'apikeys:write'),
       })),
       personal: user.personal ? { alphapay_id: displayHandle(user.personal.handle) } : null,
     };

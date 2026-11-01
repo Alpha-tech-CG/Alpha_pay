@@ -78,7 +78,24 @@ describe('D-065 Espace particulier : budget, épargne, AlphaPay (HTTP, Postgres 
     // Une autre personne ne voit ni ne touche rien.
     const other = await person('Marie Okemba');
     await a.http().delete(`/v1/personal/entries/${wrong.body.id}`).set('Authorization', other.auth).expect(404);
-    await a.http().get('/v1/personal').set('Authorization', (await a.signUp()).auth).expect(403);
+  });
+
+  it('D-066 : tout marchand est aussi un particulier ; un compte antérieur reçoit son espace à la lecture du profil', async () => {
+    const owner = await a.signUp();
+    const me = (await a.http().get('/v1/auth/me').set('Authorization', owner.auth).expect(200)).body;
+    expect(me).toMatchObject({ personal: { alphapay_id: expect.stringMatching(/^@.+\.alphapay$/) }, merchants: [{ role: 'OWNER', type: 'MERCHANT', developer: true }] });
+    await a.http().get('/v1/personal').set('Authorization', owner.auth).expect(200);
+
+    // Marchand créé avant D-066 : pas d'espace particulier en base.
+    await prisma.personalProfile.delete({ where: { userId: owner.userId } });
+    const again = (await a.http().get('/v1/auth/me').set('Authorization', owner.auth).expect(200)).body;
+    expect(again.personal.alphapay_id).toEqual(expect.any(String));
+    expect(await prisma.personalProfile.count({ where: { userId: owner.userId } })).toBe(1);
+
+    // Un comptable n'a pas l'espace développeur.
+    const accountant = await a.inviteAndJoin(owner, 'ACCOUNTANT', 'compta');
+    const acc = (await a.http().get('/v1/auth/me').set('Authorization', accountant.auth).expect(200)).body;
+    expect(acc.merchants.find((m: any) => m.id === owner.merchantId)).toMatchObject({ role: 'ACCOUNTANT', developer: false });
   });
 
   it('épargne : arrondi automatique vers un objectif, paliers 25 %, retrait plafonné, rapport mensuel', async () => {

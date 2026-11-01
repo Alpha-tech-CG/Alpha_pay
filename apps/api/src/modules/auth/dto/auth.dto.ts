@@ -38,6 +38,13 @@ export class RegisterDto {
   @IsOptional()
   @IsIn(['merchant', 'personal'])
   account_type?: 'merchant' | 'personal';
+
+  @ApiPropertyOptional({ example: 'Boutique Mabiala', description: 'Nom du commerce (marchand) ; par défaut, le nom du titulaire.' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  business_name?: string;
 }
 
 export class LoginDto {
