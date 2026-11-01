@@ -1,0 +1,16 @@
+-- Retour arrière de 34_espace_particulier.
+DROP TABLE IF EXISTS "personal_alerts";
+DROP TABLE IF EXISTS "payment_requests";
+DROP TABLE IF EXISTS "personal_transfers";
+DROP TABLE IF EXISTS "goal_contributions";
+DROP TABLE IF EXISTS "savings_goals";
+DROP TABLE IF EXISTS "category_rules";
+DROP TABLE IF EXISTS "budget_entries";
+DROP TABLE IF EXISTS "envelopes";
+DROP TABLE IF EXISTS "personal_accounts";
+DROP TABLE IF EXISTS "personal_profiles";
+DROP TYPE IF EXISTS "PaymentRequestStatus";
+DROP TYPE IF EXISTS "TransferStatus";
+DROP TYPE IF EXISTS "BudgetEntrySource";
+DROP TYPE IF EXISTS "BudgetDirection";
+DROP TYPE IF EXISTS "PersonalAccountKind";

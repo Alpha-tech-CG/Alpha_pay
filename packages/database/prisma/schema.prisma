@@ -534,6 +534,7 @@ model AppUser {
   memberEvents    MerchantMemberEvent[] @relation("Actor")
   ownedMerchants  Merchant[]            @relation("MerchantOwner")
   sessions        Session[]
+  personal        PersonalProfile?
 
   @@map("app_users")
 }
@@ -1692,4 +1693,210 @@ model Dispute {
   @@index([transactionId])
   @@index([merchantId, livemode, status])
   @@map("disputes")
+}
+
+// ─── Espace particulier (D-065) : budget, épargne, identifiant AlphaPay ─────────
+// AlphaPay ne détient aucun fonds : soldes déclarés par l'utilisateur, épargne
+// suivie (l'argent reste sur son MoMo / sa banque), envois réalisés de MoMo à MoMo
+// et seulement enregistrés. Montants en francs CFA entiers (BIGINT, D-007).
+
+enum PersonalAccountKind {
+  MTN_MOMO
+  AIRTEL_MONEY
+  BANK
+  CARD
+  CASH
+}
+
+enum BudgetDirection {
+  OUT
+  IN
+}
+
+enum BudgetEntrySource {
+  MANUAL
+  ALPHAPAY_PAYMENT
+  ALPHAPAY_TRANSFER
+}
+
+enum TransferStatus {
+  DECLARED
+  CONFIRMED
+  DISPUTED
+  CANCELLED
+}
+
+enum PaymentRequestStatus {
+  OPEN
+  PAID
+  CANCELLED
+}
+
+/// Profil particulier : présence = espace particulier activé. `handle` = identifiant AlphaPay.
+model PersonalProfile {
+  userId          String    @id @map("user_id")
+  handle          String    @unique
+  monthlyIncome   BigInt?   @map("monthly_income")
+  incomeIrregular Boolean   @default(false) @map("income_irregular")
+  roundUpEnabled  Boolean   @default(false) @map("round_up_enabled")
+  roundUpTo       Int       @default(1000) @map("round_up_to")
+  roundUpGoalId   String?   @map("round_up_goal_id")
+  onboardedAt     DateTime? @map("onboarded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("personal_profiles")
+}
+
+/// Compte suivi (MoMo, banque, carte, espèces) : solde déclaré, ajusté à chaque mouvement saisi.
+model PersonalAccount {
+  id        String              @id @default(uuid())
+  userId    String              @map("user_id")
+  kind      PersonalAccountKind
+  label     String
+  balance   BigInt              @default(0)
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("personal_accounts")
+}
+
+/// Enveloppe de budget mensuelle.
+model Envelope {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  key            String?
+  name           String
+  icon           String
+  planned        BigInt    @default(0)
+  alertThreshold Int       @default(80) @map("alert_threshold")
+  position       Int       @default(0)
+  archivedAt     DateTime? @map("archived_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("envelopes")
+}
+
+/// Mouvement du budget : saisi, importé d'un paiement AlphaPay, ou issu d'un envoi AlphaPay.
+model BudgetEntry {
+  id         String            @id @default(uuid())
+  userId     String            @map("user_id")
+  accountId  String?           @map("account_id")
+  envelopeId String?           @map("envelope_id")
+  direction  BudgetDirection
+  amount     BigInt
+  category   String
+  label      String
+  note       String?
+  source     BudgetEntrySource @default(MANUAL)
+  sourceRef  String?           @map("source_ref")
+  roundUp    BigInt            @default(0) @map("round_up")
+  occurredAt DateTime          @default(now()) @map("occurred_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  @@unique([userId, source, sourceRef])
+  @@index([userId, occurredAt])
+  @@map("budget_entries")
+}
+
+/// Catégorie apprise des corrections de l'utilisateur (libellé normalisé → catégorie).
+model CategoryRule {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  pattern    String
+  category   String
+  envelopeId String?  @map("envelope_id")
+  hits       Int      @default(1)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, pattern])
+  @@map("category_rules")
+}
+
+/// Objectif d'épargne : l'argent reste chez l'utilisateur, AlphaPay suit la progression.
+model SavingsGoal {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  name          String
+  emoji         String
+  target        BigInt
+  saved         BigInt    @default(0)
+  targetDate    DateTime? @map("target_date") @db.Date
+  lastMilestone Int       @default(0) @map("last_milestone")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  contributions GoalContribution[]
+
+  @@index([userId])
+  @@map("savings_goals")
+}
+
+model GoalContribution {
+  id        String   @id @default(uuid())
+  goalId    String   @map("goal_id")
+  amount    BigInt
+  kind      String
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  goal SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@map("goal_contributions")
+}
+
+/// Envoi AlphaPay : l'argent passe de MoMo à MoMo, hors AlphaPay ; l'envoi est déclaré
+/// par l'expéditeur puis confirmé (ou contesté) par le bénéficiaire.
+model PersonalTransfer {
+  id               String         @id @default(uuid())
+  senderUserId     String         @map("sender_user_id")
+  receiverUserId   String         @map("receiver_user_id")
+  amount           BigInt
+  note             String?
+  status           TransferStatus @default(DECLARED)
+  idempotencyKey   String         @map("idempotency_key")
+  senderEnvelopeId String?        @map("sender_envelope_id")
+  requestId        String?        @map("request_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  confirmedAt      DateTime?      @map("confirmed_at")
+
+  @@unique([senderUserId, idempotencyKey])
+  @@index([receiverUserId])
+  @@map("personal_transfers")
+}
+
+/// Demande de paiement entre particuliers (lien valable 24 h par défaut).
+model PaymentRequest {
+  id              String               @id @default(uuid())
+  requesterUserId String               @map("requester_user_id")
+  amount          BigInt
+  reason          String
+  code            String               @unique
+  status          PaymentRequestStatus @default(OPEN)
+  expiresAt       DateTime             @map("expires_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  @@index([requesterUserId])
+  @@map("payment_requests")
+}
+
+/// Alerte du budget (80 %, 100 %, paliers d'objectif, envois) ; une seule par `dedupKey`.
+model PersonalAlert {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  kind      String
+  title     String
+  body      String
+  dedupKey  String    @map("dedup_key")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, dedupKey])
+  @@index([userId, createdAt])
+  @@map("personal_alerts")
 }

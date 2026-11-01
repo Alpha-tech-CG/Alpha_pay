@@ -65,3 +65,6 @@ infra/vps/*.env
 
 # Stockage local des pièces KYB (chiffrées) en développement
 apps/api/var/
+
+# APK construits en local
+dist-apk/

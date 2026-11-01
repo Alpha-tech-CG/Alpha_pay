@@ -9,6 +9,7 @@ import { decryptField, deterministicHash, encryptField, maskEmail, maskPhone, no
 import { OTP_TTL_SECONDS, OtpService } from '../messaging/otp.service';
 import { assertPasswordStrength, hashPassword, verifyPassword } from './password';
 import { hashToken, IssuedTokens, SessionService } from './session.service';
+import { createPersonalProfile, displayHandle } from '../personal/personal.service';
 
 type Purpose = 'inscription' | 'connexion' | 'reinitialisation';
 
@@ -136,7 +137,7 @@ export class AuthService {
   // ── Inscription ────────────────────────────────────────────────────────────
 
   async register(
-    input: { name: string; phone: string; email: string; password: string; channel?: MessageChannel },
+    input: { name: string; phone: string; email: string; password: string; channel?: MessageChannel; account_type?: 'merchant' | 'personal' },
     ctx: RequestContext,
   ): Promise<ChallengeResponse> {
     const email = normalizeEmail(input.email);
@@ -166,6 +167,11 @@ export class AuthService {
             preferredOtpChannel: channel,
           },
         });
+        // Particulier (D-065) : pas de commerce, identifiant AlphaPay créé tout de suite.
+        if (input.account_type === 'personal') {
+          await createPersonalProfile(tx, created.id, name);
+          return created;
+        }
         // Mode test disponible dès l'inscription ; le live attend la validation du KYB (§4.6).
         const merchant = await tx.merchant.create({
           data: {
@@ -286,6 +292,7 @@ export class AuthService {
           where: { status: 'ACTIVE' },
           select: { role: true, merchant: { select: { id: true, name: true, onboardingStatus: true } } },
         },
+        personal: { select: { handle: true } },
       },
     });
     return {
@@ -302,6 +309,7 @@ export class AuthService {
         role: m.role,
         kybStatus: m.merchant.onboardingStatus,
       })),
+      personal: user.personal ? { alphapay_id: displayHandle(user.personal.handle) } : null,
     };
   }
 }

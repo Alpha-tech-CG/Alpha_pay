@@ -2,6 +2,16 @@
 
 > Mis à jour à chaque fin de session. Plan détaillé : `docs/PLAN.md`. Branche de travail : `v1`.
 
+## Session du 31 octobre 2026 (20) — espace particulier, charte marine / moutarde / bordeaux
+
+### Fait
+- **Espace particulier** (D-065, migration 34) : vue unifiée, enveloppes, catégorisation apprise, objectifs et arrondi, alertes, rapport mensuel, identifiant AlphaPay et QR, envois déclarés (confirmés par le bénéficiaire), demandes de paiement, import des paiements AlphaPay du payeur. API `/v1/personal` ; 5 scénarios d'intégration et tests unitaires de catégorisation.
+- **App mobile** : charte bleu marine, jaune moutarde, rouge bordeaux, police IBM Plex Sans embarquée, animations (entrées échelonnées, ressorts, compteurs, carte 3D, pulsations), squelettes de chargement ; espace particulier (5 onglets, configuration, envoi biométrique, scan QR) ; bascule entre espaces.
+
+### Reste
+- Vrai wallet (solde, P2P instantané) : établissement de monnaie électronique partenaire.
+- Notifications push des alertes (en application seulement).
+
 ## Session du 31 octobre 2026 (19) — app mobile sur l'API V1
 
 ### Fait

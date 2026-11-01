@@ -124,3 +124,28 @@ d'un QR de caisse ou d'une facture.
 - **Litige** (carte) : la banque du porteur conteste un paiement → webhook
   `dispute.created`. Répondre avant `evidence_due_at` avec `POST /v1/disputes/:id/evidence`.
   Pendant un litige, le paiement ne peut pas être remboursé.
+
+## Espace particulier (`/v1/personal`, session utilisateur)
+
+Budget, épargne et identifiant AlphaPay (D-065). AlphaPay ne détient aucun fonds :
+soldes déclarés, épargne suivie, envois réalisés de MoMo à MoMo puis confirmés.
+
+| Méthode | Route | Rôle |
+| --- | --- | --- |
+| POST | `/v1/auth/register` `account_type: "personal"` | Inscription particulier (aucun commerce) |
+| POST | `/v1/personal/activate` | Activer l'espace pour un compte existant |
+| GET | `/v1/personal` | Vue unifiée (`?month=AAAA-MM`) |
+| GET / PUT | `/v1/personal/setup/suggestion`, `/v1/personal/setup` | Budget de départ |
+| PATCH | `/v1/personal/settings` | Revenu, arrondi automatique |
+| POST / PATCH / DELETE | `/v1/personal/accounts` | Comptes suivis (MoMo, banque, carte, espèces) |
+| GET / POST / PATCH / DELETE | `/v1/personal/envelopes` | Enveloppes |
+| GET | `/v1/personal/categorize?label=` | Catégorie proposée |
+| GET / POST / PATCH / DELETE | `/v1/personal/entries` | Mouvements ; PATCH = correction retenue |
+| GET / POST / PATCH / DELETE | `/v1/personal/goals`, `POST …/:id/contributions` | Objectifs, versements et retraits |
+| GET / POST | `/v1/personal/alerts`, `/v1/personal/alerts/read` | Alertes |
+| GET | `/v1/personal/report` | Rapport mensuel |
+| GET | `/v1/personal/directory?to=` | Bénéficiaire (`@nom.alphapay` ou numéro) |
+| GET / POST | `/v1/personal/transfers` | Historique ; déclarer un envoi (`Idempotency-Key`) |
+| POST | `/v1/personal/transfers/:id/confirm` · `/dispute` · `/cancel` | Bénéficiaire confirme ou conteste ; expéditeur annule |
+| GET / POST | `/v1/personal/requests`, `GET …/:code`, `POST …/:id/cancel` | Demandes de paiement |
+

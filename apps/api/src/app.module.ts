@@ -1,3 +1,4 @@
+import { PersonalModule } from './modules/personal/personal.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -76,6 +77,7 @@ import { SchedulingModule } from './common/scheduling/scheduling.module';
     MetricsModule,
     MerchantModule,
     TeamModule,
+    PersonalModule,
   ],
 })
 export class AppModule {}

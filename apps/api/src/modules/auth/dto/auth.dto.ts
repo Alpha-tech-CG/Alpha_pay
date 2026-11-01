@@ -33,6 +33,11 @@ export class RegisterDto {
   @Transform(lower)
   @IsIn(CHANNELS)
   channel?: OtpChannelInput;
+
+  @ApiPropertyOptional({ enum: ['merchant', 'personal'], default: 'merchant', description: 'personal : espace particulier (budget, épargne, AlphaPay), sans commerce.' })
+  @IsOptional()
+  @IsIn(['merchant', 'personal'])
+  account_type?: 'merchant' | 'personal';
 }
 
 export class LoginDto {

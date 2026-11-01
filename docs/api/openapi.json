@@ -6278,6 +6278,980 @@
           "Équipe marchand — moi"
         ]
       }
+    },
+    "/v1/personal/activate": {
+      "post": {
+        "operationId": "PersonalController_activate",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Active l’espace particulier et crée l’identifiant AlphaPay",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal": {
+      "get": {
+        "operationId": "PersonalController_overview",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Vue unifiée : soldes, dépenses, épargne, reste à dépenser, enveloppes, objectifs",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/setup/suggestion": {
+      "get": {
+        "operationId": "PersonalController_suggestion",
+        "parameters": [
+          {
+            "name": "income",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Budget de départ proposé à partir du revenu",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/setup": {
+      "put": {
+        "operationId": "PersonalController_setup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/settings": {
+      "patch": {
+        "operationId": "PersonalController_settings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/accounts": {
+      "post": {
+        "operationId": "PersonalController_createAccount",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/accounts/{id}": {
+      "patch": {
+        "operationId": "PersonalController_updateAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "delete": {
+        "operationId": "PersonalController_deleteAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/envelopes": {
+      "get": {
+        "operationId": "PersonalController_envelopes",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalController_createEnvelope",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvelopeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/envelopes/{id}": {
+      "patch": {
+        "operationId": "PersonalController_updateEnvelope",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnvelopeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "delete": {
+        "operationId": "PersonalController_deleteEnvelope",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/categorize": {
+      "get": {
+        "operationId": "PersonalController_categorize",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Catégorie proposée pour un libellé (règles apprises, puis mots-clés)",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/entries": {
+      "get": {
+        "operationId": "PersonalController_entries",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "envelope_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalController_createEntry",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/entries/{id}": {
+      "patch": {
+        "operationId": "PersonalController_updateEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Corriger la catégorie ou l’enveloppe ; le choix est retenu pour ce libellé",
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "delete": {
+        "operationId": "PersonalController_deleteEntry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/goals": {
+      "get": {
+        "operationId": "PersonalController_goals",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalController_createGoal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/goals/{id}": {
+      "patch": {
+        "operationId": "PersonalController_updateGoal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "delete": {
+        "operationId": "PersonalController_archiveGoal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/goals/{id}/contributions": {
+      "post": {
+        "operationId": "PersonalController_contribute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContributionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Versement (positif) ou retrait (négatif) suivi sur un objectif",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/alerts": {
+      "get": {
+        "operationId": "PersonalController_alerts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/alerts/read": {
+      "post": {
+        "operationId": "PersonalController_readAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/report": {
+      "get": {
+        "operationId": "PersonalController_report",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Rapport mensuel : revenus, dépenses, épargne, envois, principales dépenses, conseil",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/directory": {
+      "get": {
+        "operationId": "PersonalController_lookup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Bénéficiaire par identifiant AlphaPay ou numéro (affiché avant confirmation)",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/transfers": {
+      "get": {
+        "operationId": "PersonalController_transfers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalController_transfer",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Déclare un envoi AlphaPay (de MoMo à MoMo, hors AlphaPay) ; Idempotency-Key obligatoire",
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/transfers/{id}/confirm": {
+      "post": {
+        "operationId": "PersonalController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/transfers/{id}/dispute": {
+      "post": {
+        "operationId": "PersonalController_dispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/transfers/{id}/cancel": {
+      "post": {
+        "operationId": "PersonalController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/requests": {
+      "get": {
+        "operationId": "PersonalController_requests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalController_createRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/requests/{code}": {
+      "get": {
+        "operationId": "PersonalController_request",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
+    },
+    "/v1/personal/requests/{id}/cancel": {
+      "post": {
+        "operationId": "PersonalController_cancelRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "tags": [
+          "Espace particulier"
+        ]
+      }
     }
   },
   "info": {
@@ -6518,6 +7492,15 @@
             ],
             "default": "sms",
             "description": "Canal du code de vérification."
+          },
+          "account_type": {
+            "type": "string",
+            "enum": [
+              "merchant",
+              "personal"
+            ],
+            "default": "merchant",
+            "description": "personal : espace particulier (budget, épargne, AlphaPay), sans commerce."
           }
         },
         "required": [
@@ -7301,6 +8284,109 @@
         "properties": {}
       },
       "TransferOwnershipDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "EnvelopePlanDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SetupDto": {
+        "type": "object",
+        "properties": {
+          "monthly_income": {
+            "type": "number",
+            "description": "Revenu mensuel habituel en XAF ; absent si irrégulier"
+          },
+          "envelopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvelopePlanDto"
+            }
+          }
+        },
+        "required": [
+          "envelopes"
+        ]
+      },
+      "SettingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AccountDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "mtn_momo",
+              "airtel_money",
+              "bank",
+              "card",
+              "cash"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "UpdateAccountDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "EnvelopeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateEnvelopeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "EntryDto": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "out",
+              "in"
+            ]
+          }
+        },
+        "required": [
+          "direction"
+        ]
+      },
+      "UpdateEntryDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GoalDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateGoalDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ContributionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TransferDto": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "description": "Identifiant AlphaPay (@nom.alphapay) ou numéro de téléphone"
+          }
+        },
+        "required": [
+          "to"
+        ]
+      },
+      "PaymentRequestDto": {
         "type": "object",
         "properties": {}
       }
