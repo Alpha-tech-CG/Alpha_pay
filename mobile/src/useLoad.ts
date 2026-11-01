@@ -31,8 +31,12 @@ export function useLoad<T>(fn: () => Promise<T>, deps: unknown[], opts: { pollMs
   }, [load]);
 
   // Recharge au retour sur l'écran, et à intervalle régulier tant qu'il est affiché.
+  const focused = useRef(false);
   useFocusEffect(
     useCallback(() => {
+      // Retour sur l'écran (après un ajout ailleurs) : données rafraîchies.
+      if (focused.current) load();
+      focused.current = true;
       if (!opts.pollMs) return;
       const id = setInterval(() => load(), opts.pollMs);
       return () => clearInterval(id);

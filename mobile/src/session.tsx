@@ -6,6 +6,9 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import { getMe, logout as apiLogout, restoreSession, setSessionLostHandler, verifyCode, type Me, type Mode, type Role } from '@/api';
 
 const MODE_KEY = 'alphapay_mode';
+const SPACE_KEY = 'alphapay_space';
+
+export type Space = 'merchant' | 'personal';
 
 // Miroir CLIENT de la matrice serveur (apps/api/.../permissions.ts) : sert à
 // masquer des actions ; le serveur revérifie chaque requête.
@@ -34,6 +37,9 @@ interface SessionState {
   logout: () => Promise<void>;
   storedMode: Mode | null;
   setStoredMode: (m: Mode) => void;
+  /** Espace affiché quand le compte a les deux (particulier et commerce). */
+  space: Space | null;
+  setSpace: (s: Space) => void;
 }
 
 const Ctx = createContext<SessionState | null>(null);
@@ -50,6 +56,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading');
   const [user, setUser] = useState<Me | null>(null);
   const [storedMode, setMode] = useState<Mode | null>(null);
+  const [storedSpace, setStoredSpace] = useState<Space | null>(null);
 
   useEffect(() => {
     setSessionLostHandler(() => {
@@ -58,6 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     (async () => {
       setMode(((await SecureStore.getItemAsync(MODE_KEY)) as Mode | null) ?? null);
+      setStoredSpace(((await SecureStore.getItemAsync(SPACE_KEY)) as Space | null) ?? null);
       try {
         const hasSession = !!(await SecureStore.getItemAsync('alphapay_refresh_token'));
         if (hasSession && !(await unlockDevice())) throw new Error('verrouillé');
@@ -94,9 +102,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     SecureStore.setItemAsync(MODE_KEY, m).catch(() => {});
   }, []);
 
+  const setSpace = useCallback((sp: Space) => {
+    setStoredSpace(sp);
+    SecureStore.setItemAsync(SPACE_KEY, sp).catch(() => {});
+  }, []);
+
+  // Espace effectif : celui choisi s'il existe pour ce compte, sinon celui qui existe.
+  const hasMerchant = !!user?.merchants?.length;
+  const hasPersonal = !!user?.personal;
+  const space: Space | null = storedSpace === 'personal' && hasPersonal ? 'personal' : hasMerchant ? 'merchant' : hasPersonal ? 'personal' : null;
+
   const value = useMemo(
-    () => ({ status, user, verify, refreshUser, logout, storedMode, setStoredMode }),
-    [status, user, verify, refreshUser, logout, storedMode, setStoredMode],
+    () => ({ status, user, verify, refreshUser, logout, storedMode, setStoredMode, space, setSpace }),
+    [status, user, verify, refreshUser, logout, storedMode, setStoredMode, space, setSpace],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -19,18 +19,27 @@ module.exports = () => ({
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   newArchEnabled: false,
-  splash: { backgroundColor: '#E2001A' },
+  icon: './assets/icon.png',
   ios: { supportsTablet: true, bundleIdentifier: 'cg.paybrain.app' },
   android: {
     package: 'cg.paybrain.app',
     versionCode: 2,
-    adaptiveIcon: { backgroundColor: '#E2001A' },
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', monochromeImage: './assets/monochrome-icon.png', backgroundColor: '#0B1F3A' },
     // HTTP en clair seulement pour une API locale (démo) ; jamais en HTTPS.
     usesCleartextTraffic: apiBaseUrl.startsWith('http://'),
   },
   plugins: [
     'expo-router',
+    // Écran de lancement : logo AlphaPay sur fond marine.
+    ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 180, resizeMode: 'contain', backgroundColor: '#0B1F3A' }],
     'expo-secure-store',
+    // IBM Plex Sans embarquée nativement (famille = nom du fichier) : pas de chargement JS.
+    ['expo-font', {
+      fonts: ['400Regular', '500Medium', '600SemiBold', '700Bold'].map(
+        (w) => `./node_modules/@expo-google-fonts/ibm-plex-sans/${w}/IBMPlexSans_${w}.ttf`,
+      ),
+    }],
+    ['expo-camera', { cameraPermission: 'AlphaPay utilise la caméra pour scanner un QR code AlphaPay.', recordAudioAndroid: false }],
     ['expo-local-authentication', { faceIDPermission: 'AlphaPay utilise Face ID pour déverrouiller l’app.' }],
   ],
   extra: {

@@ -1,4 +1,4 @@
-# AlphaPay, app mobile marchand (V1)
+# AlphaPay, app mobile (V1) : espace marchand et espace particulier
 
 App **Expo / React Native** (TypeScript, expo-router) branchée sur l'API V1
 (`apps/api`), les mêmes routes que le tableau de bord web. Décision D-064.
@@ -14,6 +14,12 @@ App **Expo / React Native** (TypeScript, expo-router) branchée sur l'API V1
   précis (lien à usage unique) ; arrivées en direct, vibration au paiement reçu.
 - **Liens** : création, partage WhatsApp / SMS, désactivation.
 - **Réglages** : commerce, dossier, mode test / live, équipe, déconnexion.
+
+**Espace particulier** (D-065), choisi à l'inscription ou activé depuis l'espace marchand :
+Accueil (solde total suivi, dépensé, épargné, reste à dépenser), Budget (enveloppes, mouvements,
+catégorie proposée et apprise), AlphaPay (QR et identifiant, envoi biométrique, demande, scan,
+réceptions à confirmer), Épargne (objectifs, arrondi automatique), Plus (comptes suivis, rapport
+mensuel, alertes). AlphaPay ne détient pas l'argent : soldes déclarés, envois de MoMo à MoMo.
 
 Un caissier ne voit que ses caisses et leurs paiements (contrôle côté serveur).
 Boutiques, caisses, factures, opérateurs, clés API et invitations restent sur le web.

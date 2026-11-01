@@ -104,6 +104,7 @@ export interface Me {
   email: string | null;
   phone: string | null;
   merchants: Membership[];
+  personal: { alphapay_id: string } | null;
 }
 
 export interface Challenge {
@@ -118,7 +119,7 @@ export type OtpChannel = 'sms' | 'whatsapp' | 'email';
 export const login = (identifier: string, password: string, channel?: OtpChannel) =>
   publicApi.post<Challenge>('/v1/auth/login', { identifier, password, ...(channel ? { channel } : {}) }).then((r) => r.data);
 
-export const register = (body: { name: string; phone: string; email: string; password: string; channel?: OtpChannel }) =>
+export const register = (body: { name: string; phone: string; email: string; password: string; channel?: OtpChannel; account_type?: 'merchant' | 'personal' }) =>
   publicApi.post<Challenge>('/v1/auth/register', body).then((r) => r.data);
 
 export async function verifyCode(challenge: string, code: string): Promise<Me> {
@@ -263,7 +264,7 @@ export const getSummary = (m: string, mode: Mode) =>
 export const getPayments = (
   m: string,
   mode: Mode,
-  filters: { status?: string; till_id?: string; q?: string; limit?: number; starting_after?: string } = {},
+  filters: { status?: string; till_id?: string; operator?: string; q?: string; limit?: number; starting_after?: string } = {},
 ) => api.get<List<Payment>>(`${base(m)}/payments`, { params: { mode, ...filters } }).then((r) => r.data);
 
 export const getPayment = (m: string, id: string) => api.get<PaymentDetail>(`${base(m)}/payments/${id}`).then((r) => r.data);
@@ -286,3 +287,83 @@ export const sendLink = (m: string, mode: Mode, id: string, phone: string, chann
   api.post(`${base(m)}/payment-links/${id}/send`, { phone, channel }, { params: { mode } }).then((r) => r.data);
 
 export const getMembers = (m: string) => api.get<Member[] | { data: Member[] }>(`${base(m)}/members`).then((r) => (Array.isArray(r.data) ? r.data : r.data.data));
+
+/* ─── Espace particulier (D-065) : budget, épargne, AlphaPay ─── */
+
+export interface PersonalProfile {
+  handle: string;
+  alphapay_id: string;
+  monthly_income: number | null;
+  income_irregular: boolean;
+  round_up: { enabled: boolean; to: number; goal_id: string | null };
+  onboarded: boolean;
+  qr_payload: string;
+}
+
+export interface PAccount { id: string; kind: 'mtn_momo' | 'airtel_money' | 'bank' | 'card' | 'cash'; label: string; balance: number }
+export interface PEnvelope { id: string; key: string | null; name: string; icon: string; planned: number; spent: number; remaining: number; progress: number; alert_threshold: number }
+export interface PGoal { id: string; name: string; emoji: string; target: number; saved: number; progress: number; target_date: string | null }
+export interface PEntry { id: string; direction: 'out' | 'in'; amount: number; category: string; category_name: string; label: string; note: string | null; source: string; account_id: string | null; envelope_id: string | null; round_up: number; occurred_at: string }
+export interface PAlert { id: string; kind: string; title: string; body: string; read: boolean; created_at: string }
+export interface POverview {
+  month: string;
+  profile: PersonalProfile;
+  total_balance: number;
+  accounts: PAccount[];
+  spent_this_month: number;
+  income_this_month: number;
+  saved_this_month: number;
+  remaining_to_spend: number;
+  envelopes: PEnvelope[];
+  goals: PGoal[];
+  unread_alerts: number;
+}
+export interface PReport {
+  month: string; income: number; spent: number; saved: number; alphapay_sent: number; alphapay_received: number;
+  top_categories: { category: string; category_name: string; amount: number }[];
+  advice: { category: string; saving: number; text: string } | null;
+}
+export interface PRecipient { alphapay_id: string; name: string; phone_masked: string | null }
+export interface PTransfer { id: string; direction: 'sent' | 'received'; status: 'declared' | 'confirmed' | 'disputed' | 'cancelled'; amount: number; note: string | null; counterpart: { alphapay_id: string | null; name: string | null }; created_at: string }
+export interface PDeclared { id: string; status: string; amount: number; fee: number; note: string | null; to: { alphapay_id: string | null; name: string | null }; momo_number: string | null }
+export interface PRequest { id: string; code: string; from: string; amount: number; reason: string; status: 'open' | 'paid' | 'cancelled' | 'expired'; expires_at: string; qr_payload: string }
+
+const P = '/v1/personal';
+export const personal = {
+  activate: () => api.post<PersonalProfile>(`${P}/activate`).then((r) => r.data),
+  overview: () => api.get<POverview>(P).then((r) => r.data),
+  suggestion: (income: number) => api.get<{ envelopes: { key: string; name: string; icon: string; planned: number }[] }>(`${P}/setup/suggestion`, { params: { income } }).then((r) => r.data.envelopes),
+  setup: (body: { monthly_income?: number; income_irregular?: boolean; envelopes: { key: string; planned: number }[]; goal_name?: string; goal_target?: number }) => api.put<POverview>(`${P}/setup`, body).then((r) => r.data),
+  settings: (body: Partial<{ monthly_income: number; round_up_enabled: boolean; round_up_to: number; round_up_goal_id: string }>) => api.patch<PersonalProfile>(`${P}/settings`, body).then((r) => r.data),
+  createAccount: (body: { kind: PAccount['kind']; label: string; balance: number }) => api.post<PAccount>(`${P}/accounts`, body).then((r) => r.data),
+  updateAccount: (id: string, body: { label?: string; balance?: number }) => api.patch<PAccount>(`${P}/accounts/${id}`, body).then((r) => r.data),
+  deleteAccount: (id: string) => api.delete(`${P}/accounts/${id}`).then((r) => r.data),
+  createEnvelope: (body: { name: string; planned: number }) => api.post<PEnvelope[]>(`${P}/envelopes`, body).then((r) => r.data),
+  updateEnvelope: (id: string, body: { name?: string; planned?: number }) => api.patch<PEnvelope[]>(`${P}/envelopes/${id}`, body).then((r) => r.data),
+  deleteEnvelope: (id: string) => api.delete<PEnvelope[]>(`${P}/envelopes/${id}`).then((r) => r.data),
+  categorize: (label: string, direction: 'in' | 'out') => api.get<{ category: string; category_name: string; envelope_id: string | null; learned: boolean }>(`${P}/categorize`, { params: { label, direction } }).then((r) => r.data),
+  entries: (envelopeId?: string) => api.get<{ month: string; data: PEntry[] }>(`${P}/entries`, { params: envelopeId ? { envelope_id: envelopeId } : {} }).then((r) => r.data.data),
+  createEntry: (body: { direction: 'out' | 'in'; amount: number; label: string; account_id?: string; envelope_id?: string; category?: string }) => api.post<PEntry>(`${P}/entries`, body).then((r) => r.data),
+  updateEntry: (id: string, body: { category?: string; envelope_id?: string }) => api.patch<PEntry>(`${P}/entries/${id}`, body).then((r) => r.data),
+  deleteEntry: (id: string) => api.delete(`${P}/entries/${id}`).then((r) => r.data),
+  createGoal: (body: { name: string; emoji?: string; target: number; target_date?: string }) => api.post<PGoal>(`${P}/goals`, body).then((r) => r.data),
+  archiveGoal: (id: string) => api.delete(`${P}/goals/${id}`).then((r) => r.data),
+  contribute: (id: string, amount: number, note?: string) => api.post<PGoal>(`${P}/goals/${id}/contributions`, { amount, note }).then((r) => r.data),
+  alerts: () => api.get<{ data: PAlert[] }>(`${P}/alerts`).then((r) => r.data.data),
+  readAlerts: () => api.post(`${P}/alerts/read`).then((r) => r.data),
+  report: (month?: string) => api.get<PReport>(`${P}/report`, { params: month ? { month } : {} }).then((r) => r.data),
+  lookup: (to: string) => api.get<PRecipient>(`${P}/directory`, { params: { to } }).then((r) => r.data),
+  transfers: () => api.get<{ data: PTransfer[] }>(`${P}/transfers`).then((r) => r.data.data),
+  send: (body: { to: string; amount: number; note?: string; envelope_id?: string; request_code?: string }, idempotencyKey: string) =>
+    api.post<PDeclared>(`${P}/transfers`, body, { headers: { 'Idempotency-Key': idempotencyKey } }).then((r) => r.data),
+  confirmTransfer: (id: string) => api.post(`${P}/transfers/${id}/confirm`).then((r) => r.data),
+  disputeTransfer: (id: string) => api.post(`${P}/transfers/${id}/dispute`).then((r) => r.data),
+  cancelTransfer: (id: string) => api.post(`${P}/transfers/${id}/cancel`).then((r) => r.data),
+  requests: () => api.get<{ data: PRequest[] }>(`${P}/requests`).then((r) => r.data.data),
+  createRequest: (body: { amount: number; reason: string; ttl_hours?: number }) => api.post<PRequest>(`${P}/requests`, body).then((r) => r.data),
+  request: (code: string) => api.get<PRequest>(`${P}/requests/${code}`).then((r) => r.data),
+  cancelRequest: (id: string) => api.post(`${P}/requests/${id}/cancel`).then((r) => r.data),
+};
+
+/** Clé d'idempotence d'un envoi : un double appui ou un réseau qui rejoue renvoie le même envoi. */
+export const newIdempotencyKey = () => `send-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
