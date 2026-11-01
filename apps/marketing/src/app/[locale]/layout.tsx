@@ -6,7 +6,11 @@ import { routing } from '@/i18n/routing';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Analytics from '@/components/Analytics';
+import { IBM_Plex_Sans } from 'next/font/google';
 import '../globals.css';
+
+// Police de l'app mobile (IBM Plex Sans), servie par next/font : aucune requête vers Google côté visiteur.
+const plex = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-plex', display: 'swap' });
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -40,7 +44,7 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={plex.variable}>
       <body>
         <NextIntlClientProvider messages={messages}>
           <Analytics />

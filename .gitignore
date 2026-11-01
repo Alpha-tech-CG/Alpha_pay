@@ -68,3 +68,8 @@ apps/api/var/
 
 # APK construits en local
 dist-apk/
+
+# Liaison locale aux projets Vercel
+.vercel/
+
+.env.local

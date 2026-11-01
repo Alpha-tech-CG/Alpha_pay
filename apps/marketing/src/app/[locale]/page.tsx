@@ -3,20 +3,53 @@ import { setRequestLocale } from 'next-intl/server';
 import { use } from 'react';
 import { Link } from '@/i18n/routing';
 import Reveal from '@/components/Reveal';
-import WaitlistForm from '@/components/WaitlistForm';
+import { Browser, Phone } from '@/components/Frames';
+
+// Page d'accueil : charte de l'app (marine, moutarde, bordeaux) et captures réelles
+// de l'application mobile et du tableau de bord (public/screens).
+
+function Check() {
+  return (
+    <svg viewBox="0 0 20 20" className="mt-0.5 h-5 w-5 flex-none" aria-hidden>
+      <circle cx="10" cy="10" r="10" fill="var(--ap-mustard-soft)" />
+      <path d="M6 10.5l2.6 2.5L14 7.5" stroke="var(--ap-navy)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Label({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-widest ${light ? 'bg-white/10 text-[var(--ap-mustard)]' : 'bg-[var(--ap-mustard-soft)] text-[var(--ap-mustard-deep)]'}`}>
+      <span className="h-1.5 w-1.5 rounded-full bg-[var(--ap-mustard)]" aria-hidden />
+      {children}
+    </span>
+  );
+}
+
+const ICONS = {
+  scan: 'M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2M7 12h10',
+  shield: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z M9 12l2 2 4-4',
+  card: 'M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z M3 10h18 M7 15h4',
+  send: 'M4 12l16-8-6 16-2-6-8-2z',
+};
+
+function Icon({ d }: { d: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={d} />
+    </svg>
+  );
+}
 
 export default function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = use(params);
   setRequestLocale(locale);
-  const t = useTranslations('home');
+  const t = useTranslations('landing');
 
   const features = [
-    { icon: '⚡', title: t('feature1Title'), text: t('feature1Text') },
-    { icon: '🔐', title: t('feature2Title'), text: t('feature2Text') },
-    { icon: '📡', title: t('feature3Title'), text: t('feature3Text') },
-    { icon: '📊', title: t('feature4Title'), text: t('feature4Text') },
-    { icon: '🔁', title: t('feature5Title'), text: t('feature5Text') },
-    { icon: '🌍', title: t('feature6Title'), text: t('feature6Text') },
+    { tag: t('f1Tag'), title: t('f1Title'), text: t('f1Text'), points: [t('f1a'), t('f1b'), t('f1c')], shots: [{ src: '/screens/app-merchant-home.webp', alt: t('altMerchant') }, { src: '/screens/app-merchant-card.webp', alt: t('altCard') }] },
+    { tag: t('f2Tag'), title: t('f2Title'), text: t('f2Text'), points: [t('f2a'), t('f2b'), t('f2c')], shots: [{ src: '/screens/app-budget-setup.webp', alt: t('altBudget') }, { src: '/screens/app-personal-home.webp', alt: t('altPersonal') }] },
+    { tag: t('f3Tag'), title: t('f3Title'), text: t('f3Text'), points: [t('f3a'), t('f3b'), t('f3c')], shots: [{ src: '/screens/app-welcome-savings.webp', alt: t('altSavings') }] },
   ];
 
   const steps = [
@@ -25,349 +58,214 @@ export default function Home({ params }: { params: Promise<{ locale: string }> }
     { n: '03', title: t('step3Title'), text: t('step3Text') },
   ];
 
+  const diffs = [
+    { icon: ICONS.scan, title: t('d1Title'), text: t('d1Text'), tone: 'bg-[var(--ap-navy-soft)] text-[var(--ap-navy)]' },
+    { icon: ICONS.shield, title: t('d2Title'), text: t('d2Text'), tone: 'bg-[#e3f2ea] text-[var(--ap-success)]' },
+    { icon: ICONS.card, title: t('d3Title'), text: t('d3Text'), tone: 'bg-[var(--ap-burgundy-soft)] text-[var(--ap-burgundy)]' },
+    { icon: ICONS.send, title: t('d4Title'), text: t('d4Text'), tone: 'bg-[var(--ap-mustard-soft)] text-[var(--ap-mustard-deep)]' },
+  ];
+
   return (
     <>
-      {/* ── HERO ── */}
-      <section className="mx-auto max-w-6xl px-5 pb-16 pt-24 text-center">
-        <Reveal>
-          <span
-            className="inline-block rounded-full px-4 py-1.5 text-xs font-bold tracking-wide"
-            style={{ background: 'var(--pb-secondary-container)', color: 'var(--pb-on-secondary-container)' }}
-          >
-            {t('heroBadge')}
-          </span>
-          <h1 className="mx-auto mt-6 max-w-3xl text-5xl font-black leading-tight tracking-tight sm:text-6xl"
-              style={{ color: 'var(--pb-ink)' }}>
-            {t('heroTitle')}
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed" style={{ color: 'var(--pb-muted)' }}>
-            {t('heroSubtitle')}
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/contact"
-              className="rounded-xl px-7 py-3.5 text-sm font-bold text-white shadow-lg transition-opacity hover:opacity-90"
-              style={{ background: 'var(--pb-primary)', boxShadow: '0 8px 24px rgba(0,53,197,.30)' }}
-            >
-              {t('heroCtaPrimary')}
-            </Link>
-            <Link
-              href="/documentation"
-              className="rounded-xl border px-7 py-3.5 text-sm font-bold transition-colors hover:bg-white"
-              style={{ borderColor: 'var(--pb-border)', color: 'var(--pb-ink)' }}
-            >
-              {t('heroCtaSecondary')}
-            </Link>
-          </div>
-        </Reveal>
-
-        {/* Dashboard preview card */}
-        <Reveal delay={0.15}>
-          <div
-            className="mx-auto mt-16 max-w-3xl overflow-hidden rounded-3xl border shadow-2xl"
-            style={{ borderColor: 'var(--pb-border)', boxShadow: '0 24px 80px rgba(0,53,197,.12)' }}
-          >
-            {/* Window chrome */}
-            <div className="flex items-center gap-2 border-b px-4 py-3" style={{ background: 'var(--pb-soft-high)', borderColor: 'var(--pb-border)' }}>
-              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-              <span className="mx-auto rounded-md bg-white px-6 py-1 text-xs font-medium" style={{ color: 'var(--pb-muted)' }}>
-                dashboard.alphapay.cg
-              </span>
-            </div>
-            {/* Dashboard content mockup */}
-            <div className="p-6" style={{ background: 'var(--pb-bg)' }}>
-              {/* Stats row */}
-              <div className="mb-6 grid grid-cols-3 gap-4">
-                {[
-                  { label: 'Volume total', value: '485 000 XAF', trend: '+12%' },
-                  { label: 'Transactions', value: '1 247', trend: '+8%' },
-                  { label: 'Taux de succès', value: '97.4%', trend: '+0.4%' },
-                ].map((s) => (
-                  <div key={s.label} className="rounded-2xl p-4" style={{ background: 'var(--pb-surface)', boxShadow: '0 2px 8px rgba(0,53,197,.06)' }}>
-                    <div className="text-xs font-semibold" style={{ color: 'var(--pb-muted)' }}>{s.label}</div>
-                    <div className="mt-1 text-lg font-bold" style={{ color: 'var(--pb-ink)' }}>{s.value}</div>
-                    <div className="mt-1 text-xs font-bold" style={{ color: 'var(--pb-secondary)' }}>{s.trend}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Chart placeholder */}
-              <div className="rounded-2xl p-4" style={{ background: 'var(--pb-surface)' }}>
-                <div className="mb-3 text-sm font-semibold" style={{ color: 'var(--pb-ink)' }}>Activité — 7 derniers jours</div>
-                <div className="flex h-20 items-end gap-1.5">
-                  {[35, 55, 48, 70, 62, 88, 74].map((h, i) => (
-                    <div
-                      key={i} className="flex-1 rounded-t-md transition-all"
-                      style={{ height: `${h}%`, background: i === 5 ? 'var(--pb-primary)' : 'var(--pb-soft-high)' }}
-                    />
-                  ))}
-                </div>
-                <div className="mt-2 flex justify-between">
-                  {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d) => (
-                    <span key={d} className="flex-1 text-center text-xs" style={{ color: 'var(--pb-muted)' }}>{d}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ── STATS BAND ── */}
-      <section style={{ background: 'var(--pb-primary)' }} className="py-14">
-        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-8 px-5 sm:grid-cols-4">
-          {[
-            { value: '2', unit: 'opérateurs', label: 'MTN + Airtel' },
-            { value: '< 3s', unit: '', label: 'Délai moyen de confirmation' },
-            { value: '99.9%', unit: '', label: 'Disponibilité SLA' },
-            { value: 'XAF', unit: '+ USD', label: 'Devises supportées' },
-          ].map((s) => (
-            <Reveal key={s.label}>
-              <div className="text-center">
-                <div className="text-3xl font-black text-white">{s.value}<span className="ml-1 text-lg font-bold" style={{ color: 'rgba(255,255,255,.7)' }}>{s.unit}</span></div>
-                <div className="mt-1 text-xs font-semibold" style={{ color: 'rgba(255,255,255,.65)' }}>{s.label}</div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
-        <Reveal>
-          <div className="mb-12 text-center">
-            <div className="mb-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--pb-primary)' }}>
-              {t('featuresSectionLabel')}
-            </div>
-            <h2 className="text-3xl font-black sm:text-4xl" style={{ color: 'var(--pb-ink)' }}>{t('featuresSectionTitle')}</h2>
-          </div>
-        </Reveal>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((f, i) => (
-            <Reveal key={f.title} delay={i * 0.07}>
-              <div
-                className="flex h-full flex-col gap-3 rounded-2xl border p-6 transition-shadow hover:shadow-md"
-                style={{ background: 'var(--pb-surface)', borderColor: 'var(--pb-border)' }}
-              >
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-xl text-xl"
-                  style={{ background: 'var(--pb-soft)' }}
-                >
-                  {f.icon}
-                </div>
-                <div className="text-base font-bold" style={{ color: 'var(--pb-ink)' }}>{f.title}</div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--pb-muted)' }}>{f.text}</p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── ACCOUNT TYPES ── */}
-      <section className="py-20" style={{ background: 'var(--pb-soft)' }}>
-        <div className="mx-auto max-w-6xl px-5">
+      {/* ── Accroche ── */}
+      <section className="relative overflow-hidden">
+        <div className="pointer-events-none absolute -top-40 right-[-10%] h-[520px] w-[520px] rounded-full bg-[var(--ap-mustard)]/15 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute bottom-[-20%] left-[-10%] h-[420px] w-[420px] rounded-full bg-[var(--ap-navy-3)]/10 blur-3xl" aria-hidden />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-10 lg:grid-cols-[1.1fr_1fr] lg:pt-16">
           <Reveal>
-            <div className="mb-12 text-center">
-              <div className="mb-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--pb-primary)' }}>
-                {t('accountsSectionLabel')}
+            <Label>{t('badge')}</Label>
+            <h1 className="mt-6 text-[2.6rem] font-bold leading-[1.08] tracking-tight text-[var(--ap-navy)] sm:text-6xl">
+              {t('title1')} <span className="text-[var(--ap-mustard)]">{t('titleAccent')}</span> {t('title2')}
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--ap-ink-soft)]">{t('subtitle')}</p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link href="/contact" className="rounded-full bg-[var(--ap-navy)] px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[var(--ap-navy)]/20 transition-transform hover:-translate-y-0.5">
+                {t('ctaPrimary')}
+              </Link>
+              <Link href="/developer" className="rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-[var(--ap-navy)] ring-1 ring-[var(--ap-line)] transition-colors hover:bg-[var(--ap-navy-soft)]">
+                {t('ctaSecondary')}
+              </Link>
+            </div>
+            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-[var(--ap-ink-soft)]">
+              {[t('proof1'), t('proof2'), t('proof3')].map((p) => (
+                <li key={p} className="flex items-center gap-2"><Check />{p}</li>
+              ))}
+            </ul>
+          </Reveal>
+          <Reveal delay={0.15}>
+            <div className="relative mx-auto flex h-[560px] max-w-md justify-center sm:h-[600px]">
+              <div className="absolute inset-x-6 bottom-6 top-16 rounded-[3rem] bg-[var(--ap-navy)]" aria-hidden />
+              <div className="absolute inset-x-6 bottom-6 top-16 overflow-hidden rounded-[3rem]" aria-hidden>
+                <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[var(--ap-navy-3)]" />
+                <div className="absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-[var(--ap-burgundy)]/60" />
               </div>
-              <h2 className="text-3xl font-black sm:text-4xl" style={{ color: 'var(--pb-ink)' }}>{t('accountsSectionTitle')}</h2>
-              <p className="mx-auto mt-3 max-w-xl text-base" style={{ color: 'var(--pb-muted)' }}>{t('accountsSectionSubtitle')}</p>
+              <Phone src="/screens/app-personal-home.webp" alt={t('altPersonal')} priority className="absolute left-1/2 top-0 w-[62%] -translate-x-[78%] -rotate-3" />
+              <Phone src="/screens/app-welcome-collect.webp" alt={t('altWelcome')} className="absolute left-1/2 top-14 w-[56%] translate-x-[-8%] rotate-3" />
             </div>
           </Reveal>
-          <div className="grid gap-6 sm:grid-cols-2">
-            {/* Compte commerçant */}
-            <Reveal delay={0}>
-              <div
-                className="flex flex-col gap-5 rounded-3xl border-2 p-8"
-                style={{ background: 'var(--pb-surface)', borderColor: 'var(--pb-primary)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-2xl"
-                       style={{ background: 'var(--pb-soft-high)' }}>🏪</div>
-                  <div>
-                    <div className="text-lg font-black" style={{ color: 'var(--pb-ink)' }}>{t('merchantTitle')}</div>
-                    <div
-                      className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-bold"
-                      style={{ background: 'var(--pb-soft-high)', color: 'var(--pb-primary)' }}
-                    >
-                      {t('merchantBadge')}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--pb-muted)' }}>{t('merchantDesc')}</p>
-                <ul className="flex flex-col gap-2">
-                  {[t('merchantF1'), t('merchantF2'), t('merchantF3'), t('merchantF4'), t('merchantF5')].map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--pb-ink-var)' }}>
-                      <span className="mt-0.5 font-bold" style={{ color: 'var(--pb-secondary)' }}>✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/contact"
-                  className="mt-auto rounded-xl py-3 text-center text-sm font-bold text-white"
-                  style={{ background: 'var(--pb-primary)' }}
-                >
-                  {t('merchantCta')}
-                </Link>
-              </div>
-            </Reveal>
+        </div>
+      </section>
 
-            {/* Compte normal */}
-            <Reveal delay={0.08}>
-              <div
-                className="flex flex-col gap-5 rounded-3xl border-2 p-8"
-                style={{ background: 'var(--pb-surface)', borderColor: 'var(--pb-border)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-2xl"
-                       style={{ background: 'var(--pb-soft)' }}>👤</div>
-                  <div>
-                    <div className="text-lg font-black" style={{ color: 'var(--pb-ink)' }}>{t('clientTitle')}</div>
-                    <div
-                      className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-bold"
-                      style={{ background: 'var(--pb-secondary-container)', color: 'var(--pb-on-secondary-container)' }}
-                    >
-                      {t('clientBadge')}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--pb-muted)' }}>{t('clientDesc')}</p>
-                <ul className="flex flex-col gap-2">
-                  {[t('clientF1'), t('clientF2'), t('clientF3'), t('clientF4')].map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--pb-ink-var)' }}>
-                      <span className="mt-0.5 font-bold" style={{ color: 'var(--pb-secondary)' }}>✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href="/contact"
-                  className="mt-auto rounded-xl border-2 py-3 text-center text-sm font-bold"
-                  style={{ borderColor: 'var(--pb-primary)', color: 'var(--pb-primary)' }}
-                >
-                  {t('clientCta')}
-                </Link>
-              </div>
-            </Reveal>
+      {/* ── Moyens de paiement ── */}
+      <section className="border-y border-[var(--ap-line)] bg-white/60">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-5 py-8 md:flex-row md:justify-between">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--ap-muted)]">{t('railTitle')}</p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <span className="rounded-xl bg-[#FFCC00] px-4 py-2 text-sm font-bold text-black">MTN MoMo</span>
+            <span className="rounded-xl bg-[#E11900] px-4 py-2 text-sm font-bold text-white">airtel money</span>
+            <span className="rounded-xl bg-[var(--ap-navy)] px-4 py-2 text-sm font-bold italic text-white">VISA</span>
+            <span className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-[var(--ap-navy)] ring-1 ring-[var(--ap-line)]">Mastercard</span>
+            <span className="rounded-xl bg-[var(--ap-mustard-soft)] px-4 py-2 text-sm font-bold text-[var(--ap-navy)]">@AlphaPay</span>
           </div>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
+      {/* ── Fonctionnalités, captures réelles ── */}
+      <section id="fonctionnalites" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-24">
         <Reveal>
-          <div className="mb-12 text-center">
-            <div className="mb-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--pb-primary)' }}>
-              {t('howSectionLabel')}
-            </div>
-            <h2 className="text-3xl font-black sm:text-4xl" style={{ color: 'var(--pb-ink)' }}>{t('howSectionTitle')}</h2>
+          <div className="mx-auto max-w-2xl text-center">
+            <Label>{t('featuresLabel')}</Label>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ap-navy)] sm:text-[2.6rem] sm:leading-tight">{t('featuresTitle')}</h2>
+            <p className="mt-4 text-[var(--ap-muted)]">{t('featuresText')}</p>
           </div>
         </Reveal>
-        <div className="grid gap-8 sm:grid-cols-3">
-          {steps.map((s, i) => (
-            <Reveal key={s.n} delay={i * 0.1}>
-              <div className="relative flex flex-col gap-4">
-                {i < steps.length - 1 && (
-                  <div className="absolute left-8 top-8 hidden h-px w-full border-t-2 border-dashed sm:block"
-                       style={{ borderColor: 'var(--pb-border)' }} />
-                )}
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black"
-                  style={{ background: 'var(--pb-soft-high)', color: 'var(--pb-primary)' }}
-                >
-                  {s.n}
+        <div className="mt-16 space-y-10">
+          {features.map((f, i) => (
+            <Reveal key={f.title}>
+              <div className={`grid items-center gap-10 overflow-hidden rounded-[2rem] bg-white p-8 ring-1 ring-[var(--ap-line)] sm:p-12 lg:grid-cols-2 ${i % 2 ? 'lg:[&>*:first-child]:order-2' : ''}`}>
+                <div>
+                  <span className="text-sm font-semibold text-[var(--ap-burgundy)]">{f.tag}</span>
+                  <h3 className="mt-3 text-3xl font-bold leading-tight tracking-tight text-[var(--ap-navy)]">{f.title}</h3>
+                  <p className="mt-4 leading-relaxed text-[var(--ap-ink-soft)]">{f.text}</p>
+                  <ul className="mt-6 space-y-3">
+                    {f.points.map((p) => (
+                      <li key={p} className="flex gap-3 text-[var(--ap-ink)]"><Check />{p}</li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="text-lg font-bold" style={{ color: 'var(--pb-ink)' }}>{s.title}</div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--pb-muted)' }}>{s.text}</p>
+                <div className="relative flex min-h-[420px] items-end justify-center rounded-[1.6rem] bg-[var(--ap-bg)] px-6 pt-10">
+                  <div className="absolute inset-x-10 top-6 h-40 rounded-full bg-[var(--ap-mustard)]/20 blur-2xl" aria-hidden />
+                  {f.shots.map((sh, k) => (
+                    <Phone key={sh.src} src={sh.src} alt={sh.alt} className={`relative -mb-24 w-[46%] max-w-[230px] ${f.shots.length > 1 ? (k === 0 ? '-mr-6 -rotate-2' : 'mt-12 rotate-2') : ''}`} />
+                  ))}
+                </div>
               </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ── DEV SECTION ── */}
-      <section style={{ background: 'var(--pb-primary)' }} className="py-20">
+      {/* ── Trois étapes ── */}
+      <section id="etapes" className="scroll-mt-24 bg-[var(--ap-navy)] py-24 text-white">
         <div className="mx-auto max-w-6xl px-5">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <Reveal>
-              <div className="mb-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,.6)' }}>
-                {t('devSectionLabel')}
-              </div>
-              <h2 className="text-3xl font-black text-white sm:text-4xl">{t('devSectionTitle')}</h2>
-              <p className="mt-4 text-base leading-relaxed" style={{ color: 'rgba(255,255,255,.75)' }}>{t('devSectionText')}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="/documentation"
-                  className="rounded-xl px-6 py-3 text-sm font-bold"
-                  style={{ background: 'var(--pb-secondary-container)', color: 'var(--pb-on-secondary-container)' }}
-                >
-                  {t('devCtaPrimary')}
-                </Link>
-                <Link
-                  href="/contact"
-                  className="rounded-xl border px-6 py-3 text-sm font-bold text-white"
-                  style={{ borderColor: 'rgba(255,255,255,.3)' }}
-                >
-                  {t('devCtaSecondary')}
-                </Link>
-              </div>
-            </Reveal>
-
-            {/* Code snippet */}
-            <Reveal delay={0.1}>
-              <div className="rounded-2xl p-5 font-mono text-sm" style={{ background: 'var(--pb-primary-dark)' }}>
-                <div className="mb-3 flex gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+          <Reveal>
+            <div className="max-w-2xl">
+              <Label light>{t('stepsLabel')}</Label>
+              <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-[2.6rem]">{t('stepsTitle')}</h2>
+            </div>
+          </Reveal>
+          <div className="mt-14 grid gap-5 md:grid-cols-3">
+            {steps.map((s, i) => (
+              <Reveal key={s.n} delay={i * 0.08}>
+                <div className="h-full rounded-3xl bg-white/[0.06] p-8 ring-1 ring-white/10">
+                  <span className="text-5xl font-bold text-[var(--ap-mustard)]">{s.n}</span>
+                  <h3 className="mt-6 text-xl font-semibold">{s.title}</h3>
+                  <p className="mt-3 leading-relaxed text-white/65">{s.text}</p>
                 </div>
-                <pre className="overflow-x-auto text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,.85)' }}>{`// Initier un paiement
-const payment = await alphapay.payments.create({
-  amount: 5000,
-  currency: "XAF",
-  operator: "MTN",
-  phone: "+242065000000",
-  description: "Achat tissu wax",
-  externalId: "order_123",
-});
-
-// Résultat instantané
-// { id: "pay_abc123", status: "PENDING",
-//   redirectUrl: "https://pay.alphapay.cg/..." }`}</pre>
-              </div>
-            </Reveal>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── TRUST / OPERATORS ── */}
-      <section className="mx-auto max-w-6xl px-5 py-20">
+      {/* ── La différence ── */}
+      <section className="mx-auto max-w-6xl px-5 py-24">
         <Reveal>
-          <div className="rounded-3xl p-10 text-center" style={{ background: 'var(--pb-soft)' }}>
-            <h2 className="text-2xl font-black" style={{ color: 'var(--pb-ink)' }}>{t('trustTitle')}</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base" style={{ color: 'var(--pb-muted)' }}>{t('trustText')}</p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
-              {[
-                { name: 'MTN MoMo', color: '#FFCB02', text: '#000' },
-                { name: 'Airtel Money', color: '#FF0000', text: '#fff' },
-              ].map((op) => (
-                <div
-                  key={op.name}
-                  className="flex h-14 items-center rounded-2xl px-7 text-sm font-black"
-                  style={{ background: op.color, color: op.text }}
-                >
-                  {op.name}
-                </div>
+          <div className="mx-auto max-w-2xl text-center">
+            <Label>{t('diffLabel')}</Label>
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ap-navy)] sm:text-[2.6rem]">{t('diffTitle')}</h2>
+          </div>
+        </Reveal>
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {diffs.map((d, i) => (
+            <Reveal key={d.title} delay={i * 0.06}>
+              <div className="h-full rounded-3xl bg-white p-7 ring-1 ring-[var(--ap-line)] transition-transform hover:-translate-y-1">
+                <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${d.tone}`}><Icon d={d.icon} /></span>
+                <h3 className="mt-5 text-lg font-semibold text-[var(--ap-navy)]">{d.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ap-ink-soft)]">{d.text}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Tableau de bord web ── */}
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-6xl px-5">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <Label>{t('dashLabel')}</Label>
+              <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ap-navy)] sm:text-[2.6rem]">{t('dashTitle')}</h2>
+              <p className="mt-4 leading-relaxed text-[var(--ap-ink-soft)]">{t('dashText')}</p>
+            </div>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <Browser src="/screens/web-dashboard.webp" alt={t('altDash')} url="app.alphapay.cg" className="mx-auto mt-14 max-w-5xl" />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Développeurs ── */}
+      <section className="relative overflow-hidden bg-[var(--ap-navy)] py-24 text-white">
+        <div className="pointer-events-none absolute -right-32 top-10 h-96 w-96 rounded-full bg-[var(--ap-navy-3)]" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-32 left-10 h-72 w-72 rounded-full bg-[var(--ap-burgundy)]/40 blur-2xl" aria-hidden />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <Reveal>
+            <Label light>{t('devLabel')}</Label>
+            <h2 className="mt-5 text-3xl font-bold leading-tight tracking-tight sm:text-[2.6rem]">{t('devTitle')}</h2>
+            <p className="mt-5 leading-relaxed text-white/70">{t('devText')}</p>
+            <ul className="mt-6 space-y-3">
+              {[t('devA'), t('devB'), t('devC')].map((p) => (
+                <li key={p} className="flex gap-3"><Check />{p}</li>
               ))}
+            </ul>
+            <pre className="mt-8 overflow-x-auto rounded-2xl bg-black/30 p-5 text-[13px] leading-relaxed ring-1 ring-white/10">
+              <code>
+                <span className="text-[var(--ap-mustard)]">curl</span> https://api.alphapay.cg/v1/payments \{'\n'}
+                {'  '}-H <span className="text-[#9fd4b7]">&quot;Authorization: Bearer ap_test_…&quot;</span> \{'\n'}
+                {'  '}-H <span className="text-[#9fd4b7]">&quot;Idempotency-Key: cmd-1042&quot;</span> \{'\n'}
+                {'  '}-d <span className="text-[#9fd4b7]">&apos;{'{'}&quot;amount&quot;: 15000, &quot;phone&quot;: &quot;+242061234567&quot;{'}'}&apos;</span>
+              </code>
+            </pre>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/developer" className="rounded-full bg-[var(--ap-mustard)] px-6 py-3 text-sm font-semibold text-[var(--ap-navy)] transition-transform hover:-translate-y-0.5">{t('devCta')}</Link>
+              <Link href="/documentation" className="rounded-full px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">{t('devDocs')}</Link>
+            </div>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <div className="relative">
+              <Browser src="/screens/web-developers.webp" alt={t('altDev')} url="app.alphapay.cg/developers" />
+              <Browser src="/screens/web-api-docs.webp" alt={t('altDocs')} url="api.alphapay.cg/docs" className="absolute -bottom-16 -left-6 hidden w-[62%] md:block" />
+            </div>
+          </Reveal>
+        </div>
+        <div className="h-10 md:h-16" aria-hidden />
+      </section>
+
+      {/* ── Dernier appel ── */}
+      <section className="mx-auto max-w-6xl px-5 py-24">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[2.4rem] bg-[var(--ap-mustard)] px-8 py-16 text-center sm:px-16">
+            <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/25" aria-hidden />
+            <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[var(--ap-burgundy)]/25" aria-hidden />
+            <h2 className="relative text-3xl font-bold tracking-tight text-[var(--ap-navy)] sm:text-5xl">{t('finalTitle')}</h2>
+            <p className="relative mx-auto mt-4 max-w-xl text-lg text-[var(--ap-navy)]/80">{t('finalText')}</p>
+            <div className="relative mt-9 flex flex-wrap justify-center gap-3">
+              <Link href="/contact" className="rounded-full bg-[var(--ap-navy)] px-7 py-3.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5">{t('finalCta')}</Link>
+              <Link href="/contact" className="rounded-full bg-white/70 px-7 py-3.5 text-sm font-semibold text-[var(--ap-navy)] hover:bg-white">{t('finalSecondary')}</Link>
             </div>
           </div>
         </Reveal>
-      </section>
-
-      {/* ── WAITLIST ── */}
-      <section className="mx-auto max-w-2xl px-5 pb-24">
-        <WaitlistForm />
       </section>
     </>
   );

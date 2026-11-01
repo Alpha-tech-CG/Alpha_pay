@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile && DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm --filter @paybrain/database exec prisma generate",
   "buildCommand": "cd ../.. && pnpm exec turbo run build --filter=@paybrain/marketing"
 }

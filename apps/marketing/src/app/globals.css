@@ -1,20 +1,40 @@
 @import 'tailwindcss';
 
+/* Charte de l'app AlphaPay (mobile/src/brand.ts) : bleu marine, jaune moutarde, rouge bordeaux. */
 :root {
-  --pb-bg: #f8f9ff;
-  --pb-surface: #ffffff;
-  --pb-ink: #0b1c30;
-  --pb-ink-var: #434657;
-  --pb-muted: #747688;
-  --pb-primary: #0035c5;
-  --pb-primary-dark: #001257;
-  --pb-secondary: #006a62;
-  --pb-secondary-container: #57fae9;
-  --pb-on-secondary-container: #007168;
-  --pb-soft: #eff4ff;
-  --pb-soft-high: #dce9ff;
-  --pb-soft-highest: #d3e4fe;
-  --pb-border: #c4c5da;
+  --ap-navy: #0b1f3a;
+  --ap-navy-2: #13294b;
+  --ap-navy-3: #1e3a66;
+  --ap-navy-soft: #e7ecf4;
+  --ap-mustard: #d4a017;
+  --ap-mustard-deep: #b8860b;
+  --ap-mustard-soft: #f7ebc6;
+  --ap-burgundy: #7a1f2b;
+  --ap-burgundy-deep: #5c1620;
+  --ap-burgundy-soft: #f4e4e6;
+  --ap-bg: #f6f4ef;
+  --ap-surface: #ffffff;
+  --ap-ink: #0b1f3a;
+  --ap-ink-soft: #3a4a63;
+  --ap-muted: #667085;
+  --ap-line: #e4e1d9;
+  --ap-success: #2e7d5b;
+
+  /* Anciens noms, conservés pour les pages secondaires. */
+  --pb-bg: var(--ap-bg);
+  --pb-surface: var(--ap-surface);
+  --pb-ink: var(--ap-ink);
+  --pb-ink-var: var(--ap-ink-soft);
+  --pb-muted: var(--ap-muted);
+  --pb-primary: var(--ap-navy);
+  --pb-primary-dark: var(--ap-navy-2);
+  --pb-secondary: var(--ap-burgundy);
+  --pb-secondary-container: var(--ap-mustard-soft);
+  --pb-on-secondary-container: var(--ap-mustard-deep);
+  --pb-soft: #efece4;
+  --pb-soft-high: var(--ap-navy-soft);
+  --pb-soft-highest: var(--ap-navy-soft);
+  --pb-border: var(--ap-line);
 }
 
 html {
@@ -22,8 +42,20 @@ html {
 }
 
 body {
-  background: var(--pb-bg);
-  color: var(--pb-ink);
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--ap-bg);
+  color: var(--ap-ink);
+  font-family: var(--font-plex), system-ui, -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

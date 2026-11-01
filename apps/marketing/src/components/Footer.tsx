@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
+import { Logo } from '@/components/Frames';
 
 export default function Footer() {
   const t = useTranslations('footer');
@@ -7,31 +8,34 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-[var(--pb-border)] bg-[var(--pb-soft)]">
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-3">
-        <div>
-          <div className="text-lg font-black">Alpha<span style={{ color: 'var(--pb-primary)' }}>Pay</span></div>
-          <p className="mt-2 text-sm text-[var(--pb-muted)]">Groupe Alpha · Congo</p>
+    <footer className="bg-[var(--ap-navy)] text-white">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-4">
+        <div className="sm:col-span-2">
+          <Logo className="text-white" />
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/65">{t('tagline')}</p>
+          <p className="mt-3 text-sm text-white/45">Groupe Alpha · Brazzaville, Congo</p>
         </div>
         <div>
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--pb-muted)]">{t('product')}</div>
-          <ul className="space-y-2 text-sm">
-            <li><Link href="/solution" className="hover:underline">{nav('solution')}</Link></li>
-            <li><Link href="/pricing" className="hover:underline">{nav('pricing')}</Link></li>
-            <li><Link href="/documentation" className="hover:underline">{nav('docs')}</Link></li>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--ap-mustard)]">{t('product')}</div>
+          <ul className="space-y-2 text-sm text-white/80">
+            <li><Link href="/#fonctionnalites" className="hover:text-white">{nav('features')}</Link></li>
+            <li><Link href="/pricing" className="hover:text-white">{nav('pricing')}</Link></li>
+            <li><Link href="/developer" className="hover:text-white">{nav('developer')}</Link></li>
+            <li><Link href="/documentation" className="hover:text-white">{nav('docs')}</Link></li>
           </ul>
         </div>
         <div>
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-[var(--pb-muted)]">{t('legal')}</div>
-          <ul className="space-y-2 text-sm">
-            <li><Link href="/mentions-legales" className="hover:underline">{t('mentions')}</Link></li>
-            <li><Link href="/cgu" className="hover:underline">{t('cgu')}</Link></li>
-            <li><Link href="/confidentialite" className="hover:underline">{t('privacy')}</Link></li>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--ap-mustard)]">{t('legal')}</div>
+          <ul className="space-y-2 text-sm text-white/80">
+            <li><Link href="/mentions-legales" className="hover:text-white">{t('mentions')}</Link></li>
+            <li><Link href="/cgu" className="hover:text-white">{t('cgu')}</Link></li>
+            <li><Link href="/confidentialite" className="hover:text-white">{t('privacy')}</Link></li>
+            <li><Link href="/contact" className="hover:text-white">{nav('contact')}</Link></li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-[var(--pb-border)] px-5 py-4 text-center text-xs text-[var(--pb-muted)]">
-        © {year} AlphaPay — {t('rights')}
+      <div className="border-t border-white/10 px-5 py-5 text-center text-xs text-white/45">
+        © {year} AlphaPay · {t('rights')}
       </div>
     </footer>
   );

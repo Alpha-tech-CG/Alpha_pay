@@ -1,0 +1,19 @@
+# Fichiers inutiles au build du site (apps/marketing) envoyé à Vercel.
+node_modules
+**/node_modules
+**/.turbo
+**/.next
+**/dist
+**/.vercel
+.tools
+dist-apk
+mobile
+apps/alphapay-backend/src
+apps/prototype/src
+apps/e2e/tests
+terraform
+infra
+docs
+**/*.log
+**/*.apk
+.tmp-*

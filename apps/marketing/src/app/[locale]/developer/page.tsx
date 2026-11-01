@@ -2,6 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { use } from 'react';
 import Reveal from '@/components/Reveal';
 import DeveloperForm from '@/components/DeveloperForm';
+import { Browser } from '@/components/Frames';
 
 export default function DeveloperPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = use(params);
@@ -25,6 +26,16 @@ export default function DeveloperPage({ params }: { params: Promise<{ locale: st
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed" style={{ color: 'var(--pb-muted)' }}>
             Accédez aux clés API REST, webhooks et documentation technique. Votre dossier est examiné sous 48h.
           </p>
+        </Reveal>
+      </section>
+
+      {/* Captures réelles : page Développeurs du tableau de bord et documentation de l'API */}
+      <section className="mx-auto max-w-5xl px-5 pb-16">
+        <Reveal>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Browser src="/screens/web-developers.webp" alt="Page Développeurs du tableau de bord : clés API, webhooks, journal des requêtes" url="app.alphapay.cg/developers" />
+            <Browser src="/screens/web-api-docs.webp" alt="Documentation de l'API AlphaPay" url="api.alphapay.cg/docs" />
+          </div>
         </Reveal>
       </section>
 

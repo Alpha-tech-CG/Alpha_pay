@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
+  // Site déployé sans base (pas encore de serveur) : réponse claire plutôt qu'une erreur 500.
+  if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'service_unavailable' }, { status: 503 });
   try {
     const data = await req.formData();
 
