@@ -31,7 +31,7 @@ function Face({ width, children }: { width: number; children: React.ReactNode })
   );
 }
 
-export function CardArt({ width, holder, last4, frozen }: { width: number; holder: string; last4: string; frozen?: boolean }) {
+export function CardArt({ width, holder, last4, frozen, kind = 'BUSINESS' }: { width: number; holder: string; last4: string; frozen?: boolean; kind?: string }) {
   const flip = useRef(new Animated.Value(0)).current;
   const float = useRef(new Animated.Value(0)).current;
   const [back, setBack] = useState(false);
@@ -69,7 +69,7 @@ export function CardArt({ width, holder, last4, frozen }: { width: number; holde
                   <LogoMark size={26} />
                   <Text style={s.brand}>AlphaPay</Text>
                 </View>
-                <Text style={s.kind}>BUSINESS</Text>
+                <Text style={s.kind}>{kind}</Text>
               </View>
               <View style={s.mid}>
                 <View style={s.chip}><View style={s.chipLine} /><View style={[s.chipLine, { top: 15 }]} /></View>

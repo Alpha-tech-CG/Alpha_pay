@@ -8,7 +8,7 @@ import { getMe, logout as apiLogout, restoreSession, setSessionLostHandler, veri
 const MODE_KEY = 'alphapay_mode';
 const SPACE_KEY = 'alphapay_space';
 
-export type Space = 'merchant' | 'personal';
+export type Space = 'merchant' | 'personal' | 'developer';
 
 // Miroir CLIENT de la matrice serveur (apps/api/.../permissions.ts) : sert à
 // masquer des actions ; le serveur revérifie chaque requête.
@@ -24,7 +24,18 @@ export const ROLE_LABEL: Record<Role, string> = {
   ADMIN: 'Administrateur',
   ACCOUNTANT: 'Comptable',
   CASHIER: 'Caissier',
+  DEVELOPER: 'Développeur',
 };
+
+/** Espaces auxquels le compte a droit, dans l'ordre d'affichage. */
+export function availableSpaces(user: Me | null): Space[] {
+  if (!user) return [];
+  const out: Space[] = [];
+  if (user.personal) out.push('personal');
+  if (user.merchants?.length) out.push('merchant');
+  if (user.merchants?.some((m) => m.developer)) out.push('developer');
+  return out;
+}
 
 type Status = 'loading' | 'anonymous' | 'authenticated';
 
@@ -107,10 +118,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     SecureStore.setItemAsync(SPACE_KEY, sp).catch(() => {});
   }, []);
 
-  // Espace effectif : celui choisi s'il existe pour ce compte, sinon celui qui existe.
-  const hasMerchant = !!user?.merchants?.length;
-  const hasPersonal = !!user?.personal;
-  const space: Space | null = storedSpace === 'personal' && hasPersonal ? 'personal' : hasMerchant ? 'merchant' : hasPersonal ? 'personal' : null;
+  // Espace effectif (D-066) : tout compte est particulier ; marchand et développeur en plus
+  // quand le compte y a droit. Par défaut : particulier.
+  const spaces = availableSpaces(user);
+  const space: Space | null = storedSpace && spaces.includes(storedSpace) ? storedSpace : spaces[0] ?? null;
 
   const value = useMemo(
     () => ({ status, user, verify, refreshUser, logout, storedMode, setStoredMode, space, setSpace }),

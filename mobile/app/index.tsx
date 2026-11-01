@@ -7,13 +7,31 @@ import { Redirect } from 'expo-router';
 import { Icon } from '@/components/Icon';
 import { B, F, R } from '@/brand';
 import { ErrorLine, LineField, Pill, PrimaryButton, Spinner, useStatusBar, Wordmark } from '@/bank';
-import { FadeIn } from '@/motion';
+import * as Linking from 'expo-linking';
+import { FadeIn, PressScale } from '@/motion';
 import { IllBudget, IllCollect, IllTransfer } from '@/illustrations';
 import { Welcome } from '@/Welcome';
-import { errorMessage, forgotPassword, login, register, resetPassword, type Challenge, type OtpChannel } from '@/api';
+import { DASHBOARD_URL, errorMessage, forgotPassword, login, register, resetPassword, type Challenge, type OtpChannel } from '@/api';
 import { useSession } from '@/session';
 
 type Flow = 'welcome' | 'login' | 'register' | 'code' | 'forgot' | 'reset';
+type Goal = 'personal' | 'merchant' | 'developer';
+
+// Ouverture de compte (D-066) : particulier par défaut ; marchand pour encaisser ;
+// les développeurs ouvrent leur compte sur le site web.
+const GOALS: { key: Goal; title: string; text: string; icon: string; bg: string; fg: string }[] = [
+  { key: 'personal', title: 'Gérer mon argent', text: 'Budget, carte Visa, épargne, envoyer et recevoir.', icon: 'account-circle', bg: B.mustardSoft, fg: B.mustardDeep },
+  { key: 'merchant', title: 'Encaisser mes clients', text: 'QR, liens de paiement, Mobile Money et carte.', icon: 'storefront', bg: B.navySoft, fg: B.navy },
+  { key: 'developer', title: 'Intégrer l’API AlphaPay', text: 'Clés API, webhooks : compte ouvert sur le site.', icon: 'code', bg: B.burgundySoft, fg: B.burgundy },
+];
+const ACTIVITIES = [
+  { key: 'shop', label: 'Boutique, commerce', icon: 'storefront', example: 'Boutique Mabiala' },
+  { key: 'food', label: 'Restaurant, bar', icon: 'shopping-cart', example: 'Maquis Chez Tantine' },
+  { key: 'school', label: 'École', icon: 'calendar', example: 'École Les Lauréats' },
+  { key: 'services', label: 'Services', icon: 'settings', example: 'Pressing du Plateau' },
+  { key: 'online', label: 'Vente en ligne', icon: 'shopping-bag', example: 'Mode Kintélé' },
+  { key: 'other', label: 'Autre', icon: 'shapes', example: 'Mon activité' },
+];
 
 const CHANNELS: { key: OtpChannel; label: string }[] = [
   { key: 'sms', label: 'SMS' },
@@ -28,7 +46,10 @@ export default function Access() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [channel, setChannel] = useState<OtpChannel>('sms');
-  const [accountType, setAccountType] = useState<'personal' | 'merchant'>('personal');
+  const [goal, setGoal] = useState<Goal>('personal');
+  const [regStep, setRegStep] = useState(0);
+  const [activity, setActivity] = useState<string | null>(null);
+  const [business, setBusiness] = useState('');
   const [reg, setReg] = useState({ name: '', phone: '', email: '' });
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [code, setCode] = useState('');
@@ -40,6 +61,7 @@ export default function Access() {
   if (status === 'loading') return <Spinner />;
   if (status === 'authenticated' && space === 'personal') return <Redirect href="/(personal)" />;
   if (status === 'authenticated' && space === 'merchant') return <Redirect href="/(merchant)" />;
+  if (status === 'authenticated' && space === 'developer') return <Redirect href="/(developer)" />;
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -54,10 +76,16 @@ export default function Access() {
   };
 
   const go = (next: Flow) => {
+    if (next === 'register') setRegStep(0);
     setError(null);
     setNotice(null);
     setCode('');
     setFlow(next);
+  };
+
+  const chooseGoal = (g: Goal) => {
+    setGoal(g);
+    setRegStep(g === 'personal' ? 2 : 1);
   };
 
   const submitLogin = () =>
@@ -68,7 +96,7 @@ export default function Access() {
 
   const submitRegister = () =>
     run(async () => {
-      setChallenge(await register({ name: reg.name.trim(), email: reg.email.trim(), phone: reg.phone.trim(), password, channel, account_type: accountType }));
+      setChallenge(await register({ name: reg.name.trim(), email: reg.email.trim(), phone: reg.phone.trim(), password, channel, account_type: goal === 'merchant' ? 'merchant' : 'personal', ...(goal === 'merchant' ? { business_name: business.trim() } : {}) }));
       go('code');
     });
 
@@ -132,7 +160,7 @@ export default function Access() {
             <View style={s.glow} />
             <View style={s.glow2} />
             <View style={s.bandTop}>
-              <Pressable onPress={() => go(flow === 'login' || flow === 'register' ? 'welcome' : flow === 'code' && reg.email ? 'register' : 'login')} hitSlop={10} style={s.bandBack} accessibilityRole="button" accessibilityLabel="Retour">
+              <Pressable onPress={() => (flow === 'register' && regStep > 0 ? setRegStep(goal === 'personal' ? 0 : regStep - 1) : go(flow === 'login' || flow === 'register' ? 'welcome' : flow === 'code' && reg.email ? 'register' : 'login'))} hitSlop={10} style={s.bandBack} accessibilityRole="button" accessibilityLabel="Retour">
                 <Icon name="chevron-left" size={24} color={B.white} />
               </Pressable>
               <Wordmark size={26} />
@@ -159,26 +187,72 @@ export default function Access() {
             </>
           )}
 
-          {flow === 'register' && (
-            <>
-              <Text style={s.h1}>Créer un compte</Text>
-              <View style={s.chips}>
-                <Pill label="Particulier" active={accountType === 'personal'} onPress={() => setAccountType('personal')} />
-                <Pill label="Commerçant" active={accountType === 'merchant'} onPress={() => setAccountType('merchant')} />
+          {flow === 'register' && regStep === 0 && (
+            <FadeIn key="q1" style={{ gap: 12 }}>
+              <Text style={s.step}>Question 1 sur 2</Text>
+              <Text style={s.h1}>Que voulez-vous faire avec AlphaPay ?</Text>
+              {GOALS.map((g, i) => (
+                <FadeIn key={g.key} index={i}>
+                  <PressScale onPress={() => chooseGoal(g.key)} style={[s.option, goal === g.key && s.optionActive]} accessibilityRole="button" accessibilityLabel={g.title}>
+                    <View style={[s.optionIcon, { backgroundColor: g.bg }]}><Icon name={g.icon} size={22} color={g.fg} /></View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={s.optionTitle}>{g.title}</Text>
+                      <Text style={s.optionText}>{g.text}</Text>
+                    </View>
+                    <Icon name="chevron-right" size={20} color={B.muted} />
+                  </PressScale>
+                </FadeIn>
+              ))}
+              <Text style={s.small}>Tous les comptes ont l’espace particulier : budget, carte Visa, épargne et identifiant AlphaPay.</Text>
+            </FadeIn>
+          )}
+
+          {flow === 'register' && regStep === 1 && goal === 'developer' && (
+            <FadeIn key="dev" style={{ gap: 14 }}>
+              <Text style={s.h1}>Ouvrez votre compte développeur sur le site</Text>
+              <Text style={s.lead}>Les comptes développeur (clés API, webhooks, journal) s’ouvrent sur le tableau de bord web. Avec les mêmes identifiants, vous vous connectez ensuite ici : espace particulier, espace marchand et espace développeur.</Text>
+              <PrimaryButton label="Ouvrir le site AlphaPay" icon="open-in-new" onPress={() => Linking.openURL(`${DASHBOARD_URL}/sign-up`)} />
+              <PrimaryButton label="J’ai déjà mes identifiants" variant="outline" onPress={() => go('login')} />
+            </FadeIn>
+          )}
+
+          {flow === 'register' && regStep === 1 && goal === 'merchant' && (
+            <FadeIn key="q2" style={{ gap: 12 }}>
+              <Text style={s.step}>Question 2 sur 2</Text>
+              <Text style={s.h1}>Quelle est votre activité ?</Text>
+              <View style={s.grid}>
+                {ACTIVITIES.map((a, i) => (
+                  <FadeIn key={a.key} index={i} style={{ width: '48%' }}>
+                    <PressScale onPress={() => { setActivity(a.key); setRegStep(2); }} style={[s.tile, activity === a.key && s.optionActive]} accessibilityRole="button" accessibilityLabel={a.label}>
+                      <Icon name={a.icon} size={24} color={B.navy} />
+                      <Text style={s.tileText}>{a.label}</Text>
+                    </PressScale>
+                  </FadeIn>
+                ))}
               </View>
+            </FadeIn>
+          )}
+
+          {flow === 'register' && regStep === 2 && (
+            <FadeIn key="form" style={{ gap: 18 }}>
+              <Text style={s.step}>Dernière étape</Text>
+              <Text style={s.h1}>{goal === 'merchant' ? 'Votre commerce et vous' : 'Vos informations'}</Text>
               <Text style={s.lead}>
-                {accountType === 'personal'
-                  ? 'Gratuit. Votre budget, votre épargne et votre identifiant AlphaPay pour envoyer et recevoir.'
-                  : 'Gratuit. Le mode test est disponible tout de suite ; le live après validation de votre dossier.'}
+                {goal === 'merchant'
+                  ? 'Gratuit. Mode test tout de suite, live après validation de votre dossier. Votre espace particulier est inclus.'
+                  : 'Gratuit. Budget, carte Visa, épargne et identifiant AlphaPay pour envoyer et recevoir.'}
               </Text>
-              <LineField label={accountType === 'personal' ? 'Nom et prénom' : 'Nom du commerce'} value={reg.name} onChangeText={(v) => setReg({ ...reg, name: v })} placeholder={accountType === 'personal' ? 'Zlatan Mabiala' : 'Boutique Mabiala'} />
-              <LineField label="Téléphone" value={reg.phone} onChangeText={(v) => setReg({ ...reg, phone: v })} keyboardType="phone-pad" placeholder="06 123 45 67" />
-              <LineField label="Email" value={reg.email} onChangeText={(v) => setReg({ ...reg, email: v })} autoCapitalize="none" keyboardType="email-address" />
+              <LineField label="Nom et prénom" value={reg.name} onChangeText={(v) => setReg({ ...reg, name: v })} placeholder="Zlatan Mabiala" autoComplete="name" />
+              {goal === 'merchant' && (
+                <LineField label="Nom du commerce" value={business} onChangeText={setBusiness} placeholder={ACTIVITIES.find((a) => a.key === activity)?.example ?? 'Boutique Mabiala'} />
+              )}
+              <LineField label="Téléphone" value={reg.phone} onChangeText={(v) => setReg({ ...reg, phone: v })} keyboardType="phone-pad" placeholder="06 123 45 67" autoComplete="tel" />
+              <LineField label="Email" value={reg.email} onChangeText={(v) => setReg({ ...reg, email: v })} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
               <LineField label="Mot de passe" value={password} onChangeText={setPassword} secureTextEntry hint="10 caractères au moins." />
               {channelPicker}
               <ErrorLine message={error} />
-              <PrimaryButton label="Créer le compte" busy={busy} disabled={!reg.name || !reg.phone || !reg.email || password.length < 10} onPress={submitRegister} />
-            </>
+              <PrimaryButton label="Créer mon compte" icon="check" busy={busy} disabled={!reg.name || !reg.phone || !reg.email || password.length < 10 || (goal === 'merchant' && business.trim().length < 2)} onPress={submitRegister} />
+            </FadeIn>
           )}
 
           {flow === 'code' && challenge && (
@@ -220,6 +294,15 @@ export default function Access() {
 }
 
 const s = StyleSheet.create({
+  step: { fontFamily: F.semibold, fontSize: 12, color: B.mustardDeep, letterSpacing: 0.8, textTransform: 'uppercase' },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: B.surface, borderRadius: R.lg, padding: 14, borderWidth: 1.5, borderColor: B.line },
+  optionActive: { borderColor: B.navy },
+  optionIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  optionTitle: { fontFamily: F.semibold, fontSize: 16, color: B.ink },
+  optionText: { fontFamily: F.regular, fontSize: 13, color: B.muted, lineHeight: 18 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  tile: { backgroundColor: B.surface, borderRadius: R.lg, padding: 16, gap: 10, borderWidth: 1.5, borderColor: B.line, minHeight: 96 },
+  tileText: { fontFamily: F.semibold, fontSize: 14, color: B.ink },
   root: { flex: 1, backgroundColor: B.navy },
   band: { backgroundColor: B.navy, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 44, overflow: 'hidden', alignItems: 'center' },
   bandTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },

@@ -3,11 +3,12 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { Redirect, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { Icon } from '@/components/Icon';
-import { B, F, R } from '@/brand';
+import { B, F, R, shadow } from '@/brand';
 import { Amount, EmptyLine, ErrorLine, Hero, PrimaryButton, SectionHead, Spinner, Surface, useAmountsHidden, useStatusBar } from '@/bank';
 import { FadeIn, PressScale, useCountUp } from '@/motion';
 import { AccountTile, CategoryTile, envelopeColor, fcfa, Gauge, HeroStat } from '@/personalUi';
 import { personal } from '@/api';
+import { demoLast4 } from '@/CardArt';
 import { useSession } from '@/session';
 import { useLoad } from '@/useLoad';
 
@@ -65,9 +66,9 @@ export default function PersonalHome() {
               <Text style={s.heroLabel}>Solde total suivi</Text>
               <Amount value={total} currency="FCFA" size={38} color={B.white} />
               <View style={s.stats}>
-                <HeroStat label="Dépensé ce mois" value={mask(d.spent_this_month)} />
-                <HeroStat label="Épargné ce mois" value={mask(d.saved_this_month)} tone="mustard" />
-                <HeroStat label="Reste à dépenser" value={mask(d.remaining_to_spend)} tone={d.remaining_to_spend < 0 ? 'burgundy' : undefined} />
+                <HeroStat label="Dépensé" value={mask(d.spent_this_month)} />
+                <HeroStat label="Épargné" value={mask(d.saved_this_month)} tone="mustard" />
+                <HeroStat label="Reste" value={mask(d.remaining_to_spend)} tone={d.remaining_to_spend < 0 ? 'burgundy' : undefined} />
               </View>
             </FadeIn>
           )}
@@ -84,7 +85,21 @@ export default function PersonalHome() {
           {ov.loading && !d ? <Surface><Spinner /></Surface> : null}
           {d && (
             <>
-              <Surface index={1}>
+              <FadeIn index={1}>
+                <PressScale onPress={() => router.push('/(personal)/card')} style={s.cardRow} accessibilityRole="button" accessibilityLabel="Ma carte Visa">
+                  <View style={s.miniCard}>
+                    <View style={s.miniGlow} />
+                    <View style={s.miniChip} />
+                    <Text style={s.miniVisa}>VISA</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={s.cardTitle}>Ma carte Visa AlphaPay</Text>
+                    <Text style={s.cardSub}>•••• {demoLast4(user?.id ?? 'alphapay')} · carte virtuelle</Text>
+                  </View>
+                  <Icon name="chevron-right" size={20} color={B.muted} />
+                </PressScale>
+              </FadeIn>
+              <Surface index={2}>
                 <SectionHead title="Mes comptes" onPress={() => router.push('/(personal)/more')} action="Gérer" />
                 {d.accounts.length === 0 && <EmptyLine icon="account-balance" title="Aucun compte suivi" body="Ajoutez votre MoMo, votre banque ou vos espèces pour tout voir au même endroit." />}
                 {d.accounts.map((a) => (
@@ -96,7 +111,7 @@ export default function PersonalHome() {
                 ))}
               </Surface>
 
-              <Surface index={2}>
+              <Surface index={3}>
                 <SectionHead title="Enveloppes du mois" onPress={() => router.push('/(personal)/budget')} />
                 {d.envelopes.slice(0, 4).map((e) => (
                   <View key={e.id} style={s.env}>
@@ -153,6 +168,13 @@ const s = StyleSheet.create({
   envHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   envName: { flex: 1, fontFamily: F.medium, fontSize: 14, color: B.ink },
   envLeft: { fontFamily: F.semibold, fontSize: 12, color: B.muted },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: B.surface, borderRadius: R.lg, padding: 14, ...shadow(1) },
+  miniCard: { width: 72, height: 46, borderRadius: 7, backgroundColor: B.navy, overflow: 'hidden', padding: 6, justifyContent: 'space-between' },
+  miniGlow: { position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: B.burgundy, opacity: 0.7, right: -22, bottom: -30 },
+  miniChip: { width: 14, height: 10, borderRadius: 2, backgroundColor: B.mustard },
+  miniVisa: { fontFamily: F.bold, fontStyle: 'italic', fontSize: 11, color: B.white, alignSelf: 'flex-end' },
+  cardTitle: { fontFamily: F.semibold, fontSize: 15, color: B.ink },
+  cardSub: { fontFamily: F.regular, fontSize: 13, color: B.muted },
   goal: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: B.navy, borderRadius: R.lg, padding: 16 },
   goalEmoji: { fontSize: 34 },
   goalName: { fontFamily: F.semibold, fontSize: 16, color: B.white },

@@ -89,13 +89,16 @@ export function errorCode(err: unknown): string | undefined {
 
 /* ─── Authentification ─── */
 
-export type Role = 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'CASHIER';
+export type Role = 'OWNER' | 'ADMIN' | 'ACCOUNTANT' | 'CASHIER' | 'DEVELOPER';
 
 export interface Membership {
   id: string;
   name: string;
   role: Role;
   kybStatus: string;
+  type?: 'MERCHANT' | 'DEVELOPER';
+  /** Accès à l'espace développeur (clés API, webhooks, journal). */
+  developer?: boolean;
 }
 
 export interface Me {
@@ -119,7 +122,7 @@ export type OtpChannel = 'sms' | 'whatsapp' | 'email';
 export const login = (identifier: string, password: string, channel?: OtpChannel) =>
   publicApi.post<Challenge>('/v1/auth/login', { identifier, password, ...(channel ? { channel } : {}) }).then((r) => r.data);
 
-export const register = (body: { name: string; phone: string; email: string; password: string; channel?: OtpChannel; account_type?: 'merchant' | 'personal' }) =>
+export const register = (body: { name: string; phone: string; email: string; password: string; channel?: OtpChannel; account_type?: 'merchant' | 'personal'; business_name?: string }) =>
   publicApi.post<Challenge>('/v1/auth/register', body).then((r) => r.data);
 
 export async function verifyCode(challenge: string, code: string): Promise<Me> {
@@ -367,3 +370,17 @@ export const personal = {
 
 /** Clé d'idempotence d'un envoi : un double appui ou un réseau qui rejoue renvoie le même envoi. */
 export const newIdempotencyKey = () => `send-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+/* ─── Espace développeur : clés API, webhooks, journal des requêtes ─── */
+
+export interface ApiKey { id: string; name: string; mode: 'test' | 'live'; prefix: string; scopes: string[]; lastUsedAt: string | null; revoked: boolean; createdAt: string }
+export interface CreatedApiKey extends ApiKey { secret?: string; key?: string }
+export interface WebhookEndpoint { id: string; url: string; events: string[]; status: string; createdAt: string }
+export interface ApiLog { id: string; method: string; path: string; status: number; duration_ms: number; error_code: string | null; created_at: string }
+
+export const developer = {
+  keys: (m: string) => api.get<{ data: ApiKey[]; rate_limit_per_minute: number }>(`${base(m)}/api-keys`).then((r) => r.data),
+  createKey: (m: string, name: string) => api.post<CreatedApiKey>(`${base(m)}/api-keys`, { name, mode: 'test' }).then((r) => r.data),
+  webhooks: (m: string, mode: Mode) => api.get<{ data: WebhookEndpoint[] }>(`${base(m)}/webhook-endpoints`, { params: { mode } }).then((r) => r.data.data),
+  logs: (m: string, mode: Mode) => api.get<{ data: ApiLog[] }>(`${base(m)}/api-logs`, { params: { mode, limit: 25 } }).then((r) => r.data.data),
+};

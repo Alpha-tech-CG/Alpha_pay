@@ -5,9 +5,10 @@ import * as Linking from 'expo-linking';
 import { B, F, R } from '@/brand';
 import { ErrorLine, Hero, InfoRow, Initials, Label, MenuRow, Spinner, Surface, Tag, useStatusBar } from '@/bank';
 import { FadeIn, PressScale } from '@/motion';
-import { API_URL, DASHBOARD_URL, errorMessage, getMembers, personal } from '@/api';
+import { API_URL, DASHBOARD_URL, getMembers } from '@/api';
 import { ROLE_LABEL, useMerchant, useSession } from '@/session';
 import { useLoad } from '@/useLoad';
+import { SpaceSwitcher } from '@/SpaceSwitcher';
 
 const KYB: Record<string, { label: string; tone: 'ok' | 'bad' | 'wait' }> = {
   PENDING: { label: 'En attente de validation', tone: 'wait' },
@@ -18,7 +19,7 @@ const KYB: Record<string, { label: string; tone: 'ok' | 'bad' | 'wait' }> = {
 export default function More() {
   useStatusBar('light');
   const router = useRouter();
-  const { user, logout, refreshUser, setSpace } = useSession();
+  const { user, logout } = useSession();
   const { membership, merchantId, role, mode, canLive, setMode, can } = useMerchant();
   const team = useLoad(() => getMembers(merchantId), [merchantId]);
   const kyb = membership ? KYB[membership.kybStatus] : undefined;
@@ -44,6 +45,7 @@ export default function More() {
         </Hero>
 
         <View style={s.body}>
+          <SpaceSwitcher index={0} />
           <Surface index={0}>
             <Label>Mode</Label>
             {canLive ? (
@@ -62,26 +64,7 @@ export default function More() {
           <Surface index={1} style={{ paddingVertical: 4 }}>
             {can('payments:view') && <MenuRow icon="link" label="Liens de paiement" sub="Créer, partager, désactiver" onPress={() => router.push('/(merchant)/links')} />}
             <MenuRow icon="credit-card" tone="mustard" label="Cartes" sub="Carte virtuelle et paiements Visa / Mastercard" onPress={() => router.push('/(merchant)/card')} />
-            <MenuRow icon="public" label="Tableau de bord web" sub="Boutiques, factures, opérateurs, clés API" onPress={() => Linking.openURL(DASHBOARD_URL)} />
-            <MenuRow
-              icon="piggy-bank"
-              tone="mustard"
-              label="Mon espace particulier"
-              sub={user?.personal ? user.personal.alphapay_id : 'Budget, épargne et envois AlphaPay'}
-              onPress={async () => {
-                try {
-                  if (!user?.personal) {
-                    await personal.activate();
-                    await refreshUser();
-                  }
-                  setSpace('personal');
-                  router.replace('/(personal)');
-                } catch (e) {
-                  Alert.alert('Impossible', errorMessage(e));
-                }
-              }}
-              last
-            />
+            <MenuRow icon="public" label="Tableau de bord web" sub="Boutiques, factures, opérateurs, clés API" onPress={() => Linking.openURL(DASHBOARD_URL)} last />
           </Surface>
 
           <Surface index={2}>

@@ -9,6 +9,7 @@ import { FadeIn, PressScale } from '@/motion';
 import { ACCOUNT_META, AccountTile } from '@/personalUi';
 import { errorMessage, personal, type PAccount } from '@/api';
 import { useSession } from '@/session';
+import { SpaceSwitcher } from '@/SpaceSwitcher';
 import { useLoad } from '@/useLoad';
 
 const digits = (v: string) => v.replace(/\D/g, '');
@@ -17,7 +18,7 @@ const group = (v: string) => v.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 export default function More() {
   const router = useRouter();
   useStatusBar('light');
-  const { user, logout, setSpace } = useSession();
+  const { user, logout } = useSession();
   const ov = useLoad(() => personal.overview(), []);
   const [form, setForm] = useState<{ id?: string; kind: PAccount['kind']; label: string; balance: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,13 +89,12 @@ export default function More() {
             )}
           </Surface>
 
+          <SpaceSwitcher index={1} />
           <Surface index={1} style={{ paddingVertical: 4 }}>
             <MenuRow icon="receipt-long" label="Rapport mensuel" sub="Revenus, dépenses, épargne, conseil" onPress={() => router.push('/(personal)/report')} />
             <MenuRow icon="notifications-none" tone="mustard" label="Alertes" sub="Budget, objectifs, envois" onPress={() => router.push('/(personal)/alerts')} />
-            <MenuRow icon="sliders-horizontal" label="Refaire mon budget" sub="Revenu et enveloppes de départ" onPress={() => router.push('/(personal)/setup')} last={!user?.merchants?.length} />
-            {!!user?.merchants?.length && (
-              <MenuRow icon="storefront" label="Espace marchand" sub={user.merchants[0].name} onPress={() => { setSpace('merchant'); router.replace('/(merchant)'); }} last />
-            )}
+            <MenuRow icon="credit-card" tone="burgundy" label="Ma carte Visa" sub="Carte virtuelle AlphaPay" onPress={() => router.push('/(personal)/card')} />
+            <MenuRow icon="sliders-horizontal" label="Refaire mon budget" sub="Revenu et enveloppes de départ" onPress={() => router.push('/(personal)/setup')} last />
           </Surface>
 
           <Surface index={2} style={{ paddingVertical: 4 }}>
