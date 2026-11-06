@@ -20,3 +20,6 @@ process.env.OTP_MAX_PER_IP_PER_HOUR = '100000';
 process.env.INTERNAL_API_TOKEN = 'test-internal-token-0123456789abcdef';
 process.env.STORAGE_DIR = require('path').join(require('os').tmpdir(), 'alphapay-test-storage');
 process.env.PUBLIC_API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3000';
+// Les endpoints webhook de test écoutent sur 127.0.0.1 : exception de
+// développement local du garde anti-SSRF (endpoints test uniquement).
+process.env.WEBHOOKS_ALLOW_LOCALHOST = 'true';
