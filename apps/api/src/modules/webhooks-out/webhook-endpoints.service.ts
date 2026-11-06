@@ -1,24 +1,24 @@
 import { ForbiddenException, HttpStatus, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ApiError } from '../../common/errors/api-error';
+import { assertDeliverableWebhookUrl, WebhookUrlRejectedError } from '../../common/security/webhook-url-guard';
 import { randomBytes } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { CreateWebhookEndpointDto } from './dto/create-webhook-endpoint.dto';
 import { WebhookDeliveryService } from './webhook-delivery.service';
 
 /**
- * En live, l'URL doit être en https et publique (pas de localhost ni d'adresse
- * privée littérale : anti-SSRF). En test, http et localhost restent permis.
+ * URL publique exigée, en live comme en test (anti-SSRF, cf. webhook-url-guard) :
+ * https en live, nom résolu vers des adresses publiques uniquement. La même
+ * vérification est refaite à chaque envoi, sur l'adresse effectivement connectée.
  */
-function assertDeliverableUrl(url: string, livemode: boolean): void {
-  if (!livemode) return;
-  const u = new URL(url);
-  const host = u.hostname.replace(/^\[|\]$/g, '');
-  const privateHost =
-    host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal') ||
-    /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host === '::1' || /^f[cd]/i.test(host);
-  if (u.protocol !== 'https:' || privateHost) {
-    throw new ApiError(HttpStatus.BAD_REQUEST, 'url_webhook_invalide', 'En mode live, l’URL doit être en https et accessible publiquement', 'url');
+async function assertDeliverableUrl(url: string, livemode: boolean): Promise<void> {
+  try {
+    await assertDeliverableWebhookUrl(url, { livemode });
+  } catch (err) {
+    if (err instanceof WebhookUrlRejectedError) {
+      throw new ApiError(HttpStatus.BAD_REQUEST, 'url_webhook_invalide', `URL de webhook refusée : ${err.message}`, 'url');
+    }
+    throw err;
   }
 }
 
@@ -37,8 +37,8 @@ export class WebhookEndpointsService {
     });
   }
 
-  create(merchantId: string, livemode: boolean, dto: CreateWebhookEndpointDto) {
-    assertDeliverableUrl(dto.url, livemode);
+  async create(merchantId: string, livemode: boolean, dto: CreateWebhookEndpointDto) {
+    await assertDeliverableUrl(dto.url, livemode);
     return this.prisma.webhookEndpoint.create({
       data: {
         merchantId,
@@ -55,7 +55,7 @@ export class WebhookEndpointsService {
 
   async update(merchantId: string, livemode: boolean, id: string, dto: Partial<CreateWebhookEndpointDto> & { status?: 'ACTIVE' | 'DISABLED' }) {
     await this.assertOwned(merchantId, livemode, id);
-    if (dto.url) assertDeliverableUrl(dto.url, livemode);
+    if (dto.url) await assertDeliverableUrl(dto.url, livemode);
     return this.prisma.webhookEndpoint.update({
       where: { id },
       data: {

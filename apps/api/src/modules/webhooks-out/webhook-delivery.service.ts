@@ -4,12 +4,24 @@ import { randomUUID } from 'crypto';
 import { PrismaClient } from '@paybrain/database';
 import { alphaPaySignature } from '../../common/security/hmac';
 import { decryptField } from '../../common/security/pii-crypto';
+import { postWebhook, WebhookUrlRejectedError } from '../../common/security/webhook-url-guard';
 import type { MessagingService } from '../messaging/messaging.service';
 
 // Nouvelles tentatives sur 24 h (§M10) : délai APRÈS chaque échec.
 // 1 min, 5 min, 30 min, 2 h, 6 h, 15 h → dernière tentative ≈ 23 h 36 après la première.
 export const RETRY_SCHEDULE_SEC = [60, 300, 1800, 7200, 21600, 54000];
 const HTTP_TIMEOUT_MS = 10_000;
+
+/**
+ * Motif d'échec visible du marchand : générique, sans détail réseau (adresse,
+ * port, message système) qui l'aiderait à cartographier une infrastructure.
+ */
+function deliveryErrorReason(err: any): string {
+  if (err instanceof WebhookUrlRejectedError) return `destination refusée : ${err.message}`;
+  if (err?.name === 'AbortError' || err?.name === 'TimeoutError') return 'timeout';
+  // Code système seul (ECONNREFUSED, CERT_HAS_EXPIRED…), jamais le message.
+  return typeof err?.code === 'string' && /^[A-Z0-9_]+$/.test(err.code) ? `erreur réseau (${err.code})` : 'erreur réseau';
+}
 
 @Injectable()
 export class WebhookDeliveryService {
@@ -79,11 +91,12 @@ export class WebhookDeliveryService {
     const body = JSON.stringify(delivery.payload);
     const signature = alphaPaySignature(endpoint.secret, ts, body);
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
     try {
-      const res = await fetch(endpoint.url, {
-        method: 'POST',
+      // Connexion épinglée sur une adresse publique validée, sans suivre de
+      // redirection (anti-SSRF, cf. webhook-url-guard).
+      const res = await postWebhook(endpoint.url, {
+        livemode: endpoint.livemode,
+        timeoutMs: HTTP_TIMEOUT_MS,
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'AlphaPay-Webhooks/1.0',
@@ -93,23 +106,21 @@ export class WebhookDeliveryService {
           'AlphaPay-Delivery-Id': delivery.webhookId,
         },
         body,
-        signal: controller.signal,
       });
-      const text = await res.text().catch(() => '');
-      if (res.ok) {
+      if (res.status >= 200 && res.status < 300) {
         await this.prisma.webhookDelivery.update({
           where: { id: delivery.id },
-          data: { status: 'SUCCESS', attempts: delivery.attempts + 1, responseStatus: res.status, responseBody: text.slice(0, 500), lastError: null },
+          data: { status: 'SUCCESS', attempts: delivery.attempts + 1, responseStatus: res.status, responseBody: res.body.slice(0, 500), lastError: null },
         });
         return { ok: true, status: res.status };
       }
-      await this.recordFailure(delivery, `HTTP ${res.status}`, res.status, text, opts.manual);
+      // Une redirection est un échec : elle n'est jamais suivie.
+      const reason = res.status >= 300 && res.status < 400 ? `redirection refusée (HTTP ${res.status})` : `HTTP ${res.status}`;
+      await this.recordFailure(delivery, reason, res.status, res.body, opts.manual);
       return { ok: false, status: res.status };
     } catch (err: any) {
-      await this.recordFailure(delivery, err?.name === 'AbortError' ? 'timeout' : (err?.message ?? 'erreur réseau'), null, null, opts.manual);
+      await this.recordFailure(delivery, deliveryErrorReason(err), null, null, opts.manual);
       return { ok: false, status: 0 };
-    } finally {
-      clearTimeout(timer);
     }
   }
 
